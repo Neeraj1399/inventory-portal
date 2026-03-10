@@ -1,0 +1,211 @@
+import React, { useState, useEffect, useRef } from "react";
+import { X, UserPlus, Loader2, Search, Check } from "lucide-react";
+import api from "../../hooks/api";
+
+const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
+  const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchEmployees();
+      setSelectedEmployee(null);
+      setSearchTerm("");
+      setIsDropdownOpen(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      // Use the timestamp to bypass any browser caching
+      const res = await api.get(`/employees?t=${Date.now()}`);
+      const data = res.data.data || [];
+      setEmployees(data);
+      // Initialize filtered list with all employees so it's not empty on first click
+      setFilteredEmployees(data);
+    } catch (err) {
+      console.error("Failed to load employees", err);
+    }
+  };
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+
+    const filtered = employees.filter((emp) => {
+      const nameMatch = emp.name?.toLowerCase().includes(term);
+      const deptMatch = (emp.department || "Staff")
+        .toLowerCase()
+        .includes(term);
+      return nameMatch || deptMatch;
+    });
+
+    setFilteredEmployees(filtered);
+    setIsDropdownOpen(true);
+  };
+
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    if (!selectedEmployee) return;
+    setLoading(true);
+    try {
+      await api.patch(`/assets/${asset._id}/assign`, {
+        employeeId: selectedEmployee._id,
+      });
+      onRefresh();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 400) {
+        await onRefresh();
+        onClose();
+      } else {
+        alert(
+          "Assignment failed: " +
+            (err.response?.data?.message || "Server error"),
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !asset) return null;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              Assign Hardware
+            </h2>
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
+              Inventory Management
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-200 rounded-full text-slate-400"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleAssign} className="p-6 space-y-6">
+          <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center gap-4">
+            <div className="p-3 bg-white rounded-xl shadow-sm text-blue-600">
+              <Check size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800">{asset.model}</p>
+              <p className="text-[11px] text-slate-500 font-mono">
+                {asset.serialNumber}
+              </p>
+            </div>
+          </div>
+
+          <div className="relative" ref={dropdownRef}>
+            <label className="block text-xs font-bold uppercase text-slate-400 mb-2 px-1">
+              Select Recipient
+            </label>
+            <div className="relative">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Search name or department..."
+                className={`w-full pl-12 pr-10 py-3.5 bg-slate-50 border rounded-2xl outline-none transition-all ${
+                  selectedEmployee
+                    ? "border-blue-500 ring-4 ring-blue-50"
+                    : "border-slate-200 focus:border-blue-400"
+                }`}
+                value={selectedEmployee ? selectedEmployee.name : searchTerm}
+                onChange={handleSearch}
+                onFocus={() => setIsDropdownOpen(true)}
+                readOnly={!!selectedEmployee}
+              />
+              {selectedEmployee && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmployee(null);
+                    setSearchTerm("");
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {isDropdownOpen && (
+              <div className="absolute w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[80] max-h-52 overflow-y-auto p-2">
+                {filteredEmployees.length > 0 ? (
+                  filteredEmployees.map((emp) => (
+                    <div
+                      key={emp._id}
+                      className="px-4 py-3 hover:bg-blue-50 rounded-xl cursor-pointer flex justify-between items-center group"
+                      onClick={() => {
+                        setSelectedEmployee(emp);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-slate-700 group-hover:text-blue-700">
+                          {emp.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 uppercase font-medium">
+                          {emp.department || "Staff"}
+                        </p>
+                      </div>
+                      {selectedEmployee?._id === emp._id && (
+                        <Check size={16} className="text-blue-600" />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center text-slate-400 italic text-sm">
+                    No employees found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !selectedEmployee}
+            className="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30 shadow-lg shadow-slate-200"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                <UserPlus size={18} /> Assign Asset
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AssignAssetModal;

@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@theme {
+  --color-brand: #3b82f6; 
+  --color-surface: #f9fafb;
+}
+
+body {
+  @apply bg-surface text-slate-900;
+}

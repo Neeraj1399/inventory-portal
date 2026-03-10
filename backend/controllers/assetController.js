@@ -1,0 +1,692 @@
+// import Employee from "../models/Employee.js";
+// import Asset from "../models/Asset.js";
+// import AuditLog from "../models/AuditLog.js";
+// import AppError from "../utils/appError.js";
+// import cloudinary from "../utils/cloudinary.js";
+// import fs from "fs";
+// import mongoose from "mongoose";
+// import catchAsync from "../utils/catchAsync.js";
+
+// // --- 1. UPLOAD & CREATION ---
+
+// /**
+//  * @desc    Create a new serialized asset with optional receipt upload
+//  * @route   POST /api/assets
+//  */
+// export const createAsset = catchAsync(async (req, res, next) => {
+//   const {
+//     category,
+//     model,
+//     serialNumber,
+//     purchasePrice,
+//     purchaseDate,
+//     warrantyMonths,
+//   } = req.body;
+
+//   let receiptUrl = "";
+
+//   if (req.file) {
+//     try {
+//       const result = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "assets/receipts",
+//         public_id: `receipt_${serialNumber}_${Date.now()}`,
+//       });
+//       receiptUrl = result.secure_url;
+
+//       // Clean up local temp file
+//       if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+//     } catch (uploadErr) {
+//       if (req.file && fs.existsSync(req.file.path))
+//         fs.unlinkSync(req.file.path);
+//       return next(
+//         new AppError(`Cloudinary Upload Failed: ${uploadErr.message}`, 500),
+//       );
+//     }
+//   }
+
+//   const newAsset = await Asset.create({
+//     category,
+//     model,
+//     serialNumber,
+//     purchasePrice: Number(purchasePrice) || 0,
+//     purchaseDate,
+//     warrantyMonths: Number(warrantyMonths) || 12,
+//     receiptUrl: receiptUrl,
+//   });
+
+//   res.status(201).json({ status: "success", data: newAsset });
+// });
+
+// /**
+//  * @desc    Upload/Update receipt for an existing asset
+//  * @route   PATCH /api/assets/:id/receipt
+//  */
+// export const uploadAssetReceipt = catchAsync(async (req, res, next) => {
+//   if (!req.file)
+//     return next(new AppError("Please provide a receipt file.", 400));
+
+//   const asset = await Asset.findById(req.params.id);
+//   if (!asset) {
+//     if (req.file) fs.unlinkSync(req.file.path);
+//     return next(new AppError("Asset not found.", 404));
+//   }
+
+//   const result = await cloudinary.uploader.upload(req.file.path, {
+//     folder: "assets/receipts",
+//     public_id: `receipt_${asset.serialNumber}_${Date.now()}`,
+//   });
+
+//   asset.receiptUrl = result.secure_url;
+//   await asset.save();
+
+//   if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+//   res
+//     .status(200)
+//     .json({ status: "success", data: { receiptUrl: asset.receiptUrl } });
+// });
+
+// // --- 2. LIFECYCLE MANAGEMENT ---
+
+// /**
+//  * @desc    Assign an asset to an employee
+//  * @logic   Now handles "Already Assigned" gracefully to prevent UI crashes
+//  */
+// export const assignAsset = catchAsync(async (req, res, next) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { employeeId } = req.body;
+
+//     // Check current state first
+//     const existingAsset = await Asset.findById(req.params.id).session(session);
+
+//     if (!existingAsset) throw new AppError("Asset not found", 404);
+
+//     // If it's already assigned to THIS person, just return success
+//     if (
+//       existingAsset.status === "ASSIGNED" &&
+//       existingAsset.assignedTo?.toString() === employeeId
+//     ) {
+//       await session.commitTransaction();
+//       return res.status(200).json({ status: "success", data: existingAsset });
+//     }
+
+//     const asset = await Asset.findOneAndUpdate(
+//       { _id: req.params.id, status: "AVAILABLE" },
+//       { $set: { status: "ASSIGNED", assignedTo: employeeId } },
+//       { new: true, session },
+//     );
+
+//     if (!asset)
+//       throw new AppError(
+//         "Asset is no longer available (it might have been assigned just now)",
+//         400,
+//       );
+
+//     await Employee.findByIdAndUpdate(
+//       employeeId,
+//       { $inc: { assignedAssetsCount: 1 } },
+//       { session },
+//     );
+
+//     await AuditLog.create(
+//       [
+//         {
+//           action: "ASSIGNED",
+//           entityType: "Asset",
+//           entityId: asset._id,
+//           performedBy: req.user._id,
+//           targetEmployee: employeeId,
+//           description: `Assigned ${asset.model} (SN: ${asset.serialNumber}) to employee.`,
+//         },
+//       ],
+//       { session },
+//     );
+
+//     await session.commitTransaction();
+//     res.status(200).json({ status: "success", data: asset });
+//   } catch (err) {
+//     await session.abortTransaction();
+//     next(err);
+//   } finally {
+//     session.endSession();
+//   }
+// });
+
+// /**
+//  * @desc    Return an asset to inventory
+//  * @logic   If already returned, returns 200 OK instead of 400 Error to sync UI
+//  */
+// export const returnAsset = catchAsync(async (req, res, next) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const returnStatus = req.body?.returnStatus || "AVAILABLE";
+//     const asset = await Asset.findById(req.params.id).session(session);
+
+//     if (!asset) throw new AppError("Asset not found", 404);
+
+//     // CRITICAL FIX: If asset is already returned/available, don't throw 400.
+//     // Just commit and tell the frontend "All good".
+//     if (asset.status !== "ASSIGNED") {
+//       await session.commitTransaction();
+//       return res.status(200).json({
+//         status: "success",
+//         message: "Asset was already returned or moved.",
+//         data: asset,
+//       });
+//     }
+
+//     const previousHolder = asset.assignedTo;
+//     asset.status = returnStatus;
+//     asset.assignedTo = null;
+//     await asset.save({ session });
+
+//     if (previousHolder) {
+//       await Employee.findByIdAndUpdate(
+//         previousHolder,
+//         { $inc: { assignedAssetsCount: -1 } },
+//         { session },
+//       );
+//     }
+
+//     const statusLabels = {
+//       AVAILABLE: "inventory",
+//       SCRAPPED: "scrapped",
+//       REPAIR: "repair",
+//     };
+
+//     await AuditLog.create(
+//       [
+//         {
+//           action: "RETURNED",
+//           entityType: "Asset",
+//           entityId: asset._id,
+//           performedBy: req.user._id,
+//           targetEmployee: previousHolder,
+//           description: `Asset ${asset.model} was returned to ${statusLabels[asset.status] || "inventory"}.`,
+//         },
+//       ],
+//       { session },
+//     );
+
+//     await session.commitTransaction();
+//     res
+//       .status(200)
+//       .json({ status: "success", message: `Asset successfully returned` });
+//   } catch (err) {
+//     await session.abortTransaction();
+//     next(err);
+//   } finally {
+//     session.endSession();
+//   }
+// });
+
+// /**
+//  * @desc    Mark a repaired asset as available again
+//  */
+// export const completeRepair = catchAsync(async (req, res, next) => {
+//   const asset = await Asset.findOneAndUpdate(
+//     { _id: req.params.id, status: "REPAIR" },
+//     { $set: { status: "AVAILABLE" } },
+//     { new: true },
+//   );
+
+//   if (!asset)
+//     return next(new AppError("Asset not found or not in repair", 404));
+
+//   await AuditLog.create({
+//     action: "UPDATED",
+//     entityType: "Asset",
+//     entityId: asset._id,
+//     performedBy: req.user._id,
+//     description: `Repair completed for ${asset.model} (SN: ${asset.serialNumber}). Returned to stock.`,
+//   });
+
+//   res.status(200).json({ status: "success", data: asset });
+// });
+
+// // --- 3. RETRIEVAL ---
+
+// /**
+//  * @desc    Get all assets with filtering & search
+//  */
+// export const getAssets = catchAsync(async (req, res, next) => {
+//   const { search, status, category, assignedTo } = req.query; // 1. Add assignedTo here
+//   let query = {};
+
+//   if (req.user.role === "STAFF") {
+//     query.assignedTo = req.user._id;
+//   } else {
+//     // 2. Allow Admin to filter by specific employee
+//     if (assignedTo) {
+//       query.assignedTo = assignedTo;
+//     }
+
+//     if (search?.trim()) {
+//       query.$or = [
+//         { model: { $regex: search.trim(), $options: "i" } },
+//         { serialNumber: { $regex: search.trim(), $options: "i" } },
+//       ];
+//     }
+
+//     // Only apply status filter if assignedTo isn't provided
+//     // (or if you want to find specific status for that user)
+//     if (status && status !== "ALL") query.status = status;
+
+//     if (category?.trim()) {
+//       query.category = { $in: category.split(",") };
+//     }
+//   }
+
+//   const assets = await Asset.find(query)
+//     .populate({ path: "assignedTo", select: "name email" })
+//     .sort("-createdAt");
+
+//   res.status(200).json({
+//     status: "success",
+//     results: assets.length,
+//     data: assets,
+//   });
+// });
+// /**
+//  * @desc    Get a single asset by ID with employee details
+//  * @route   GET /api/assets/:id
+//  */
+// export const getAsset = catchAsync(async (req, res, next) => {
+//   const asset = await Asset.findById(req.params.id).populate({
+//     path: "assignedTo",
+//     select: "name email department", // Ensure these fields match your Employee model
+//   });
+
+//   if (!asset) {
+//     return next(new AppError("No asset found with that ID", 404));
+//   }
+
+//   res.status(200).json({
+//     status: "success",
+//     data: asset,
+//   });
+// });
+import Employee from "../models/Employee.js";
+import Asset from "../models/Asset.js";
+import AuditLog from "../models/AuditLog.js";
+import AppError from "../utils/appError.js";
+import cloudinary from "../utils/cloudinary.js";
+import fs from "fs";
+import mongoose from "mongoose";
+import catchAsync from "../utils/catchAsync.js";
+
+// --- 1. RETRIEVAL CONTROLLERS ---
+
+/**
+ * @desc    Get all assets with filtering, search, and role-based access
+ * @route   GET /api/assets
+ */
+export const getAssets = catchAsync(async (req, res, next) => {
+  const { search, status, category, assignedTo } = req.query;
+  let query = {};
+
+  if (req.user.role === "STAFF") {
+    // Staff only see what is assigned to them
+    query.assignedTo = req.user._id;
+  } else {
+    // Admin Filtering
+    if (assignedTo) query.assignedTo = assignedTo;
+
+    if (search?.trim()) {
+      query.$or = [
+        { model: { $regex: search.trim(), $options: "i" } },
+        { serialNumber: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+
+    if (status && status !== "ALL") query.status = status;
+
+    if (category?.trim()) {
+      query.category = { $in: category.split(",") };
+    }
+  }
+
+  const assets = await Asset.find(query)
+    .populate({ path: "assignedTo", select: "name email" })
+    .sort("-createdAt");
+
+  res.status(200).json({
+    status: "success",
+    results: assets.length,
+    data: assets,
+  });
+});
+
+/**
+ * @desc    Get a single asset by ID
+ * @route   GET /api/assets/:id
+ */
+export const getAsset = catchAsync(async (req, res, next) => {
+  const asset = await Asset.findById(req.params.id).populate({
+    path: "assignedTo",
+    select: "name email department",
+  });
+
+  if (!asset) return next(new AppError("No asset found with that ID", 404));
+
+  res.status(200).json({ status: "success", data: asset });
+});
+
+// --- 2. CREATION & UPDATE CONTROLLERS ---
+
+/**
+ * @desc    Create a new asset with optional receipt
+ * @route   POST /api/assets
+ */
+export const createAsset = catchAsync(async (req, res, next) => {
+  const {
+    category,
+    model,
+    serialNumber,
+    purchasePrice,
+    purchaseDate,
+    warrantyMonths,
+  } = req.body;
+  let receiptUrl = "";
+
+  if (req.file) {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "assets/receipts",
+      public_id: `receipt_${serialNumber}_${Date.now()}`,
+    });
+    receiptUrl = result.secure_url;
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+  }
+
+  const newAsset = await Asset.create({
+    category,
+    model,
+    serialNumber,
+    purchasePrice: Number(purchasePrice) || 0,
+    purchaseDate,
+    warrantyMonths: Number(warrantyMonths) || 12,
+    receiptUrl,
+  });
+
+  res.status(201).json({ status: "success", data: newAsset });
+});
+
+/**
+ * @desc    Update asset details (The "Edit" functionality)
+ * @route   PATCH /api/assets/:id
+ */
+export const updateAsset = catchAsync(async (req, res, next) => {
+  const asset = await Asset.findById(req.params.id);
+  if (!asset) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return next(new AppError("Asset not found", 404));
+  }
+
+  const updateData = { ...req.body };
+
+  // Ensure numeric types
+  if (updateData.purchasePrice)
+    updateData.purchasePrice = Number(updateData.purchasePrice);
+  if (updateData.warrantyMonths)
+    updateData.warrantyMonths = Number(updateData.warrantyMonths);
+
+  // Handle new receipt upload if provided
+  if (req.file) {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "assets/receipts",
+      public_id: `receipt_${updateData.serialNumber || asset.serialNumber}_${Date.now()}`,
+    });
+    updateData.receiptUrl = result.secure_url;
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+  }
+
+  const updatedAsset = await Asset.findByIdAndUpdate(
+    req.params.id,
+    { $set: updateData },
+    { new: true, runValidators: true },
+  );
+
+  await AuditLog.create({
+    action: "UPDATED",
+    entityType: "Asset",
+    entityId: asset._id,
+    performedBy: req.user._id,
+    description: `Updated details for ${updatedAsset.model}.`,
+  });
+
+  res.status(200).json({ status: "success", data: updatedAsset });
+});
+
+/**
+ * @desc    Specifically update only the receipt
+ * @route   PATCH /api/assets/:id/receipt
+ */
+export const uploadAssetReceipt = catchAsync(async (req, res, next) => {
+  if (!req.file)
+    return next(new AppError("Please provide a receipt file.", 400));
+
+  const asset = await Asset.findById(req.params.id);
+  if (!asset) {
+    fs.unlinkSync(req.file.path);
+    return next(new AppError("Asset not found.", 404));
+  }
+
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "assets/receipts",
+    public_id: `receipt_${asset.serialNumber}_${Date.now()}`,
+  });
+
+  asset.receiptUrl = result.secure_url;
+  await asset.save();
+  if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+  res
+    .status(200)
+    .json({ status: "success", data: { receiptUrl: asset.receiptUrl } });
+});
+
+// --- 3. LIFECYCLE (ASSIGN/RETURN/REPAIR) CONTROLLERS ---
+
+/**
+ * @desc    Assign asset to employee
+ */
+export const assignAsset = catchAsync(async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { employeeId } = req.body;
+    const existingAsset = await Asset.findById(req.params.id).session(session);
+
+    if (!existingAsset) throw new AppError("Asset not found", 404);
+    if (
+      existingAsset.status === "ASSIGNED" &&
+      existingAsset.assignedTo?.toString() === employeeId
+    ) {
+      await session.commitTransaction();
+      return res.status(200).json({ status: "success", data: existingAsset });
+    }
+
+    const asset = await Asset.findOneAndUpdate(
+      { _id: req.params.id, status: "AVAILABLE" },
+      { $set: { status: "ASSIGNED", assignedTo: employeeId } },
+      { new: true, session },
+    );
+
+    if (!asset) throw new AppError("Asset is no longer available", 400);
+
+    await Employee.findByIdAndUpdate(
+      employeeId,
+      { $inc: { assignedAssetsCount: 1 } },
+      { session },
+    );
+
+    await AuditLog.create(
+      [
+        {
+          action: "ASSIGNED",
+          entityType: "Asset",
+          entityId: asset._id,
+          performedBy: req.user._id,
+          targetEmployee: employeeId,
+          description: `Assigned ${asset.model} (SN: ${asset.serialNumber}) to employee.`,
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+    res.status(200).json({ status: "success", data: asset });
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+});
+
+/**
+ * @desc    Return asset to inventory
+ */
+export const returnAsset = catchAsync(async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const returnStatus = req.body?.returnStatus || "AVAILABLE";
+    const asset = await Asset.findById(req.params.id).session(session);
+
+    if (!asset) throw new AppError("Asset not found", 404);
+    if (asset.status !== "ASSIGNED") {
+      await session.commitTransaction();
+      return res.status(200).json({
+        status: "success",
+        message: "Asset already returned.",
+        data: asset,
+      });
+    }
+
+    const previousHolder = asset.assignedTo;
+    asset.status = returnStatus;
+    asset.assignedTo = null;
+    await asset.save({ session });
+
+    if (previousHolder) {
+      await Employee.findByIdAndUpdate(
+        previousHolder,
+        { $inc: { assignedAssetsCount: -1 } },
+        { session },
+      );
+    }
+
+    await AuditLog.create(
+      [
+        {
+          action: "RETURNED",
+          entityType: "Asset",
+          entityId: asset._id,
+          performedBy: req.user._id,
+          targetEmployee: previousHolder,
+          description: `Asset ${asset.model} returned as ${returnStatus}.`,
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+    res
+      .status(200)
+      .json({ status: "success", message: "Asset successfully returned" });
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+});
+
+/**
+ * @desc    Mark repair as complete
+ */
+export const completeRepair = catchAsync(async (req, res, next) => {
+  const asset = await Asset.findOneAndUpdate(
+    { _id: req.params.id, status: "REPAIR" },
+    { $set: { status: "AVAILABLE" } },
+    { new: true },
+  );
+
+  if (!asset)
+    return next(new AppError("Asset not found or not in repair", 404));
+
+  await AuditLog.create({
+    action: "UPDATED",
+    entityType: "Asset",
+    entityId: asset._id,
+    performedBy: req.user._id,
+    description: `Repair completed for ${asset.model}. Returned to stock.`,
+  });
+
+  res.status(200).json({ status: "success", data: asset });
+});
+/**
+ * @desc    Delete an asset and its associated receipt from Cloudinary
+ * @route   DELETE /api/assets/:id
+ * @access  Admin
+ */
+export const deleteAsset = catchAsync(async (req, res, next) => {
+  const asset = await Asset.findById(req.params.id);
+
+  if (!asset) {
+    return next(new AppError("No asset found with that ID", 404));
+  }
+
+  // 1. Prevent deletion if currently assigned
+  if (asset.status === "ASSIGNED") {
+    return next(
+      new AppError(
+        "Cannot delete an asset that is currently assigned to an employee. Return it first.",
+        400,
+      ),
+    );
+  }
+
+  // 2. Delete receipt from Cloudinary if it exists
+  if (asset.receiptUrl) {
+    try {
+      // Extracts 'assets/receipts/receipt_SN123_123456' from the full URL
+      const urlParts = asset.receiptUrl.split("/");
+      const fileName = urlParts[urlParts.length - 1].split(".")[0];
+      const folderName = urlParts[urlParts.length - 3]; // "assets"
+      const subFolder = urlParts[urlParts.length - 2]; // "receipts"
+
+      const publicId = `${folderName}/${subFolder}/${fileName}`;
+
+      await cloudinary.uploader.destroy(publicId);
+    } catch (cloudinaryErr) {
+      console.error("Cloudinary Delete Failed:", cloudinaryErr);
+      // We continue deleting from DB even if image delete fails to prevent "stuck" records
+    }
+  }
+
+  // 3. Remove from Database
+  await Asset.findByIdAndDelete(req.params.id);
+
+  // 4. Log the deletion
+  await AuditLog.create({
+    action: "DELETED",
+    entityType: "Asset",
+    entityId: req.params.id,
+    performedBy: req.user._id,
+    description: `Permanently deleted ${asset.model} (SN: ${asset.serialNumber}) and its receipt.`,
+  });
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
