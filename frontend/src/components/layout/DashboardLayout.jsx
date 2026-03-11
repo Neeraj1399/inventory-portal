@@ -196,7 +196,9 @@ const DashboardLayout = () => {
   ];
 
   // Filter nav items based on user role
-  const filteredNav = navItems.filter((item) => item.roles.includes(user.role));
+  const filteredNav = navItems.filter((item) =>
+    item.roles.includes(user?.roleAccess),
+  );
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -222,7 +224,7 @@ const DashboardLayout = () => {
               <Package size={20} />
             </div>
             <span className="font-bold text-xl text-slate-800 tracking-tight">
-              InvenTrack
+              Inventory
             </span>
           </div>
 

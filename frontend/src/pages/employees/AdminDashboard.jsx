@@ -495,8 +495,8 @@ const AdminDashboard = () => {
 
           <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2">
             {recentActivity.length > 0 ? (
-              recentActivity.map((log) => (
-                <AuditLogItem key={log._id} log={log} />
+              recentActivity.map((log, index) => (
+                <AuditLogItem key={log._id || `log-${index}`} log={log} />
               ))
             ) : (
               <div className="text-center py-8 text-slate-400 italic">
@@ -527,7 +527,7 @@ const AdminDashboard = () => {
 
                   return (
                     <div
-                      key={item._id}
+                      key={item._id || `low-stock-${index}`}
                       className={`p-4 border rounded-xl flex justify-between items-center transition-colors ${
                         highlightedItemId === item._id
                           ? "bg-green-100/60 border-green-300"

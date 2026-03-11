@@ -687,10 +687,17 @@ const LogItem = ({ log, isLast, highlight }) => {
   const [expanded, setExpanded] = useState(false);
 
   const performer = log.performedBy?.name || "System";
-  const target = log.targetEmployee?.name || "N/A";
+  const target = log.targetEmployee?.name;
   const time = log.createdAt || log.timestamp;
 
-  const handleCopy = () => {
+  // Logic: Show target only if it exists AND the action isn't just CREATED/UPDATED
+  const actionType = log.action?.toUpperCase() || "";
+  const isCreationOrUpdate =
+    actionType.includes("CREATE") || actionType.includes("UPDATE");
+  const shouldShowTarget = target && !isCreationOrUpdate;
+
+  const handleCopy = (e) => {
+    e.stopPropagation(); // Prevent the accordion from closing when clicking copy
     if (log.changes)
       navigator.clipboard.writeText(JSON.stringify(log.changes, null, 2));
   };
@@ -698,7 +705,6 @@ const LogItem = ({ log, isLast, highlight }) => {
   return (
     <div className="p-5 hover:bg-slate-50 flex gap-6">
       {/* TIMELINE */}
-
       <div className="flex flex-col items-center">
         <div className={`p-2 rounded-full ${getActionColor(log.action)}`}>
           <Terminal size={14} />
@@ -707,7 +713,6 @@ const LogItem = ({ log, isLast, highlight }) => {
       </div>
 
       {/* CONTENT */}
-
       <div className="flex-1 space-y-1">
         <div className="flex justify-between items-center">
           <span className="text-xs font-black uppercase tracking-widest text-slate-400">
@@ -729,17 +734,30 @@ const LogItem = ({ log, isLast, highlight }) => {
           className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md cursor-pointer w-fit"
         >
           <User size={12} />
-          {performer} → {target}
-          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          <span>{performer}</span>
+
+          {/* Conditional Arrow and Target */}
+          {shouldShowTarget && (
+            <>
+              <span className="mx-1 text-slate-400">→</span>
+              <span>{target}</span>
+            </>
+          )}
+
+          <div className="ml-1">
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </div>
         </div>
 
         {expanded && log.changes && (
-          <div className="mt-2 p-2 bg-slate-50 rounded text-xs font-mono relative">
-            <pre>{JSON.stringify(log.changes, null, 2)}</pre>
+          <div className="mt-2 p-3 bg-slate-900 text-blue-300 rounded-lg text-[11px] font-mono relative shadow-inner">
+            <pre className="whitespace-pre-wrap break-all">
+              {JSON.stringify(log.changes, null, 2)}
+            </pre>
 
             <button
               onClick={handleCopy}
-              className="absolute top-2 right-2 flex items-center gap-1 bg-slate-200 px-2 py-1 rounded text-xs hover:bg-slate-300"
+              className="absolute top-2 right-2 flex items-center gap-1 bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors"
             >
               <Copy size={12} /> Copy
             </button>

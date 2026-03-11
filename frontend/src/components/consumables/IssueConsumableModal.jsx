@@ -491,6 +491,7 @@
 
 // export default IssueConsumableModal;
 import React from "react";
+import api from "../../hooks/api";
 import { X, Loader2, Send, AlertCircle } from "lucide-react";
 import { useConsumableModal } from "../../hooks/useConsumableModal";
 

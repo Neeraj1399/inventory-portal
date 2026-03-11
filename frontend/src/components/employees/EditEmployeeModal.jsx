@@ -321,9 +321,19 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // MongoDB documents use _id, not id
+    const empId = employeeData._id || employeeData.id;
+
+    if (!empId) {
+      alert("Error: Employee ID is missing from the record.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.patch(`/employees/${employeeData.id}`, formData);
+      // This matches your backend route: PATCH /api/employees/:id
+      await api.patch(`/employees/${empId}`, formData);
       onRefresh();
       onClose();
     } catch (err) {
@@ -332,7 +342,6 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
       setLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">

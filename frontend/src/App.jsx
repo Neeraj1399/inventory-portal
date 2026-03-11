@@ -103,9 +103,14 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 // Lazy load AuditLogs for performance
 const AuditLogs = lazy(() => import("./pages/audit/AuditLogs"));
 
+/**
+ * --- APP CONTENT ---
+ * Handles the logic-based routing once Auth state is hydrated
+ */
 function AppContent() {
   const { user, loading } = useAuth();
 
+  // 1. Loading State
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -117,14 +122,14 @@ function AppContent() {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* --- PUBLIC ROUTES --- */}
         <Route
           path="/login"
           element={user ? <Navigate to="/" replace /> : <Login />}
         />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected routes */}
+        {/* --- PROTECTED ROUTES --- */}
         <Route
           path="/"
           element={
@@ -133,28 +138,43 @@ function AppContent() {
             </ProtectedRoute>
           }
         >
-          {/* Dashboard */}
+          {/* FIX: Check roleAccess instead of role. 
+            This ensures Admin stays on Admin view and Staff stays on Staff view.
+          */}
           <Route
             index
             element={
-              user?.role === "ADMIN" ? <AdminDashboard /> : <StaffDashboard />
+              user?.roleAccess === "ADMIN" ? (
+                <AdminDashboard />
+              ) : (
+                <StaffDashboard />
+              )
             }
           />
 
-          {/* Modules */}
+          {/* Shared Modules */}
           <Route path="assets" element={<AssetList />} />
           <Route path="consumables" element={<ConsumableList />} />
-          <Route path="employees" element={<EmployeeList />} />
 
-          {/* Audit Logs - Admin only */}
+          {/* Admin-Only Management (Optional check) */}
+          <Route
+            path="employees"
+            element={
+              user?.roleAccess === "ADMIN" ? (
+                <EmployeeList />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+
+          {/* Audit Logs - Strictly Admin only */}
           <Route
             path="audit-logs"
             element={
-              user?.role === "ADMIN" ? (
+              user?.roleAccess === "ADMIN" ? (
                 <Suspense
-                  fallback={
-                    <div className="p-8 text-center">Loading Audit Logs...</div>
-                  }
+                  fallback={<div className="p-8 text-center">Loading...</div>}
                 >
                   <AuditLogs />
                 </Suspense>
@@ -164,7 +184,7 @@ function AppContent() {
             }
           />
 
-          {/* Catch-all */}
+          {/* Catch-all redirection */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -172,18 +192,25 @@ function AppContent() {
   );
 }
 
-// Protected route wrapper
+/**
+ * --- PROTECTED ROUTE WRAPPER ---
+ */
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.passwordResetRequired)
+
+  // Enforce password reset first
+  if (user.passwordResetRequired) {
     return <Navigate to="/reset-password" replace />;
+  }
 
   return children;
 };
 
-// Root App
+/**
+ * --- ROOT APP ---
+ */
 export default function App() {
   return (
     <AuthProvider>
