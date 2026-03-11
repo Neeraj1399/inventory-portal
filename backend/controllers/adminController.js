@@ -99,7 +99,7 @@ import Employee from "../models/Employee.js";
 import AppError from "../utils/appError.js";
 
 /**
- * @desc    Export logs to CSV and optionally purge them
+ * @desc    Export audit logs to CSV and optionally purge them
  * @route   POST /api/admin/system/archive-logs
  * @access  Admin
  */
@@ -107,6 +107,7 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
   try {
     const { confirmPurge } = req.body;
 
+    // Fetch all logs, populate relevant info
     const logs = await AuditLog.find()
       .populate("performedBy", "name email")
       .populate("targetEmployee", "name email")
@@ -114,18 +115,19 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
       .lean();
 
     if (!logs.length) {
-      return next(new AppError("No logs available to archive", 404));
+      return next(new AppError("No audit logs available to archive.", 404));
     }
 
-    // Flatten data for CSV
+    // Flatten logs for CSV export
     const formattedLogs = logs.map((log) => ({
-      timestamp: log.createdAt,
-      action: log.action,
-      entityType: log.entityType,
+      timestamp: log.createdAt || "",
+      action: log.action || "",
+      entityType: log.entityType || "",
       performedBy: log.performedBy?.name || "System",
       performedByEmail: log.performedBy?.email || "",
       targetEmployee: log.targetEmployee?.name || "",
-      description: log.description,
+      targetEmployeeEmail: log.targetEmployee?.email || "",
+      description: log.description || "",
     }));
 
     const fields = [
@@ -135,17 +137,19 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
       "performedBy",
       "performedByEmail",
       "targetEmployee",
+      "targetEmployeeEmail",
       "description",
     ];
 
     const parser = new Parser({ fields });
     const csv = parser.parse(formattedLogs);
 
-    // Purge logs if confirmed
+    // Optionally purge logs if confirmed
     if (confirmPurge === true) {
       await AuditLog.deleteMany({});
     }
 
+    // Set CSV headers
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
@@ -159,12 +163,13 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
 };
 
 /**
- * @desc    Global System Stats + Atlas Health Check
+ * @desc    Get system-wide stats and DB health
  * @route   GET /api/admin/system/stats
  * @access  Admin
  */
 export const getSystemStats = async (req, res, next) => {
   try {
+    // Fetch assets, employee count, broken assets, and DB stats in parallel
     const [assets, activeEmployees, brokenCount, dbStats] = await Promise.all([
       Asset.find({ isDeleted: { $ne: true } }).lean(),
       Employee.countDocuments({ status: "ACTIVE" }),
@@ -172,12 +177,14 @@ export const getSystemStats = async (req, res, next) => {
       mongoose.connection.db.command({ dbStats: 1 }),
     ]);
 
-    const sizeBytes = dbStats.dataSize + dbStats.indexSize;
+    // Calculate DB usage
+    const sizeBytes = (dbStats?.dataSize || 0) + (dbStats?.indexSize || 0);
     const sizeMB = sizeBytes / (1024 * 1024);
 
     const storageLimitMB = 512; // Atlas Free Tier
     const percentUsed = (sizeMB / storageLimitMB) * 100;
 
+    // Build stats object
     const stats = {
       inventory: {
         totalAssets: assets.length,
@@ -197,7 +204,7 @@ export const getSystemStats = async (req, res, next) => {
       },
     };
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
       data: stats,
     });

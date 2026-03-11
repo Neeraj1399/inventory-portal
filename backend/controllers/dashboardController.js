@@ -119,19 +119,19 @@ import catchAsync from "../utils/catchAsync.js";
  * @access  Admin
  */
 export const getAdminDashboard = catchAsync(async (req, res) => {
-  // Parallel fetch for performance
+  // Fetch all required data in parallel for performance
   const [activeEmployees, assetStats, lowStockConsumables, recentActivity] =
     await Promise.all([
-      // Count active employees
+      // Count active employees (exclude offboarded)
       Employee.countDocuments({ status: "ACTIVE" }),
 
-      // Aggregate asset stats
+      // Aggregate asset stats by status
       Asset.aggregate([
         { $match: { isDeleted: { $ne: true } } },
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
 
-      // Low stock consumables
+      // Consumables that are low in stock
       Consumable.aggregate([
         {
           $addFields: {
@@ -150,17 +150,17 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
         { $project: { itemName: 1, currentStock: 1, totalQuantity: 1 } },
       ]),
 
-      // Recent audit logs for admin
+      // Recent activity logs
       AuditLog.find()
         .sort({ timestamp: -1 })
         .limit(10)
-        .populate("performedBy", "name")       // Admin / staff performing action
-        .populate("targetEmployee", "name")    // Employee affected (assigned/returned)
-        .populate("entityId")                  // optional: could populate Asset/Consumable if needed
+        .populate("performedBy", "name roleAccess")
+        .populate("targetEmployee", "name")
+        .populate("entityId") // optional: Asset/Consumable details
         .lean(),
     ]);
 
-  // Format asset stats for frontend
+  // Map asset stats for frontend
   const assetCounts = {
     TOTAL: assetStats.reduce((acc, curr) => acc + curr.count, 0),
     AVAILABLE: assetStats.find((a) => a._id === "AVAILABLE")?.count || 0,
@@ -169,16 +169,17 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
     SCRAPPED: assetStats.find((a) => a._id === "SCRAPPED")?.count || 0,
   };
 
-  // Map recent activity with full info
+  // Format audit logs for frontend
   const formattedActivity = recentActivity.map((log) => ({
     id: log._id,
     performedBy: log.performedBy?.name || "System",
+    performedByRole: log.performedBy?.roleAccess || "N/A",
     targetEmployee: log.targetEmployee?.name || null,
     action: log.action,
-    description: log.description || "No details provided",
-    timestamp: log.timestamp,
     entityType: log.entityType || null,
     entityId: log.entityId || null,
+    description: log.description || "No details provided",
+    timestamp: log.timestamp,
     changes: log.changes || null,
     ipAddress: log.ipAddress || "Internal",
   }));
@@ -204,6 +205,7 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
 export const getStaffDashboard = catchAsync(async (req, res) => {
   const employeeId = req.user._id;
 
+  // Fetch staff assigned assets and consumables
   const [myAssets, myConsumables] = await Promise.all([
     Asset.find({ assignedTo: employeeId, isDeleted: { $ne: true } })
       .select("category model serialNumber status updatedAt")
@@ -216,7 +218,7 @@ export const getStaffDashboard = catchAsync(async (req, res) => {
   res.status(200).json({
     status: "success",
     data: {
-      serializedAssets: myAssets || [],
+      assignedAssets: myAssets || [],
       consumables: (myConsumables || []).map((item) => ({
         name: item.itemName,
         quantity: item.assignments[0]?.quantity || 0,

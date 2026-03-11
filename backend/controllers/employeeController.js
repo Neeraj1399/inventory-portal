@@ -164,7 +164,9 @@
 import Employee from "../models/Employee.js";
 import { processFullOffboard } from "../services/offboardingservice.js";
 import AppError from "../utils/appError.js";
-
+import Asset from "../models/Asset.js";
+import Consumable from "../models/Consumable.js";
+import AuditLog from "../models/AuditLog.js";
 /**
  * @desc    Get all employees
  * @route   GET /api/employees
@@ -377,7 +379,8 @@ export const offboardEmployee = async (req, res) => {
     });
   }
 
-  employee.status = "INACTIVE";
+  employee.status = "OFFBOARDED";
+
   employee.offboardedAt = new Date();
   await employee.save();
 

@@ -4,6 +4,7 @@ import {
   getEmployees,
   createEmployee,
   offboardEmployee,
+  updateEmployee,
 } from "../controllers/employeeController.js";
 import { protect, isAdmin } from "../middleware/authMiddleware.js";
 
@@ -21,6 +22,13 @@ router.get("/", getEmployees);
 // --- ADMIN ONLY GUARD ---
 // Every route below this line requires Admin privileges
 router.use(isAdmin);
+
+//ADD THIS ROUTE HERE
+/**
+ * @route   PATCH /api/employees/:id
+ * @desc    Update employee details
+ */
+router.patch("/:id", updateEmployee);
 
 /**
  * @route   POST /api/employees

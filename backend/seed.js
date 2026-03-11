@@ -9,55 +9,51 @@ dotenv.config();
 
 const seedDB = async () => {
   try {
-    const URI = process.env.MONGO_URI;
-    if (!URI) throw new Error("MONGO_URI not found in .env file");
+    const { MONGO_URI } = process.env;
+    if (!MONGO_URI) throw new Error("❌ MONGO_URI not found in .env file");
 
-    await mongoose.connect(URI);
-    console.log("⏳ Connected to Atlas. Cleaning database...");
+    // 1️⃣ Connect to MongoDB
+    await mongoose.connect(MONGO_URI);
+    console.log("⏳ Connected to MongoDB Atlas");
 
-    // Clean existing data
-    await Employee.deleteMany({});
-    await Asset.deleteMany({});
-    await AuditLog.deleteMany({});
+    // 2️⃣ Drop existing database
+    await mongoose.connection.db.dropDatabase();
+    console.log("🗑️  Dropped existing database...");
 
-    /**
-     * 1️⃣ Create Employees
-     */
-
+    // 3️⃣ Create Employees
     const salt = await bcrypt.genSalt(10);
-    const staffPassword = await bcrypt.hash("password123", salt);
-    const adminPassword = await bcrypt.hash("Admin@123", salt);
 
-    const createdEmployees = await Employee.insertMany([
+    const employeesData = [
       {
         name: "System Admin",
         email: "admin@athiva.com",
-        password: adminPassword,
-        role: "ADMIN",
+        password: await bcrypt.hash("Admin@123", salt),
+        role: "Backend Developer",
+        level: "Director",
         type: "FULL-TIME",
         status: "ACTIVE",
         department: "IT",
+        roleAccess: "ADMIN",
       },
       {
         name: "John Doe",
         email: "john.doe@company.com",
-        password: staffPassword,
-        role: "STAFF",
+        password: await bcrypt.hash("password123", salt),
+        role: "Frontend Developer",
+        level: "Mid",
         type: "FULL-TIME",
         status: "ACTIVE",
         department: "IT",
+        roleAccess: "STAFF",
       },
-    ]);
+    ];
 
+    const createdEmployees = await Employee.insertMany(employeesData);
     const [admin, john] = createdEmployees;
+    console.log("👥 Employees created successfully");
 
-    console.log("👥 Employees created. Seeding High-Value Hardware...");
-
-    /**
-     * 2️⃣ Create Hardware Assets
-     */
-
-    const assets = await Asset.insertMany([
+    // 4️⃣ Seed Assets
+    const assetsData = [
       {
         category: "Laptop",
         model: "MacBook Pro M3 Max",
@@ -67,8 +63,8 @@ const seedDB = async () => {
         purchasePrice: 3499,
         purchaseDate: new Date("2024-01-15"),
         warrantyMonths: 36,
-        receiptUrl:
-          "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        needsMaintenance: false,
+        isDeleted: false,
       },
       {
         category: "Laptop",
@@ -78,8 +74,8 @@ const seedDB = async () => {
         purchasePrice: 1199,
         purchaseDate: new Date("2024-03-01"),
         warrantyMonths: 12,
-        receiptUrl:
-          "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        needsMaintenance: false,
+        isDeleted: false,
       },
       {
         category: "Monitor",
@@ -90,8 +86,8 @@ const seedDB = async () => {
         purchasePrice: 450,
         purchaseDate: new Date("2024-02-10"),
         warrantyMonths: 24,
-        receiptUrl:
-          "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        needsMaintenance: false,
+        isDeleted: false,
       },
       {
         category: "Laptop",
@@ -101,63 +97,60 @@ const seedDB = async () => {
         purchasePrice: 1800,
         purchaseDate: new Date("2023-11-05"),
         warrantyMonths: 12,
-        receiptUrl:
-          "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        needsMaintenance: true,
+        isDeleted: false,
       },
-    ]);
+    ];
 
-    console.log("💻 Hardware Assets seeded.");
+    const createdAssets = await Asset.insertMany(assetsData);
+    console.log("💻 Assets seeded successfully");
 
-    /**
-     * 3️⃣ Generate Audit Logs
-     */
-
-    await AuditLog.insertMany([
+    // 5️⃣ Create Audit Logs
+    const auditLogsData = [
       {
         action: "ASSIGNED",
         entityType: "Asset",
-        entityId: assets[0]._id,
+        entityId: createdAssets[0]._id,
         performedBy: admin._id,
         targetEmployee: john._id,
-        description: `Assigned ${assets[0].model} to ${john.name}`,
+        description: `Assigned ${createdAssets[0].model} to ${john.name}`,
       },
       {
         action: "ASSIGNED",
         entityType: "Asset",
-        entityId: assets[2]._id,
+        entityId: createdAssets[2]._id,
         performedBy: admin._id,
         targetEmployee: john._id,
-        description: `Assigned ${assets[2].model} to ${john.name}`,
+        description: `Assigned ${createdAssets[2].model} to ${john.name}`,
       },
-    ]);
+    ];
 
-    console.log("🧾 Audit logs created.");
+    await AuditLog.insertMany(auditLogsData);
+    console.log("🧾 Audit logs created successfully");
 
-    /**
-     * 4️⃣ Sync Employee Asset Count Automatically
-     */
-
-    const assignedCount = assets.filter(
+    // 6️⃣ Update John's assigned asset count
+    const johnAssignedCount = createdAssets.filter(
       (asset) =>
         asset.assignedTo && asset.assignedTo.toString() === john._id.toString(),
     ).length;
 
     await Employee.findByIdAndUpdate(john._id, {
-      assignedAssetsCount: assignedCount,
+      assignedAssetsCount: johnAssignedCount,
     });
 
     console.log("------------------------------------------");
     console.log("✅ SEED SUCCESSFUL");
-    console.log(`Employees: ${createdEmployees.length}`);
-    console.log(`Assets: ${assets.length}`);
-    console.log(`Assets assigned to John: ${assignedCount}`);
+    console.log(`Employees created: ${createdEmployees.length}`);
+    console.log(`Assets created: ${createdAssets.length}`);
+    console.log(`Assets assigned to John: ${johnAssignedCount}`);
     console.log("------------------------------------------");
 
-    process.exit();
+    process.exit(0);
   } catch (err) {
     console.error("❌ Seeding failed:", err);
     process.exit(1);
   }
 };
 
+// Execute seeding
 seedDB();
