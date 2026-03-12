@@ -139,6 +139,7 @@ const employeeSchema = new Schema(
         "Team Lead",
         "Manager",
         "Director",
+        "Data Analyst",
       ],
     },
     level: {
@@ -194,11 +195,10 @@ const employeeSchema = new Schema(
 );
 
 employeeSchema.pre("save", async function () {
-  if (!this.isModified("password")) return ;
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
   // //update: Set timestamp for password changes
   if (!this.isNew) this.passwordChangedAt = Date.now() - 1000;
-  
 });
 
 employeeSchema.methods.correctPassword = async function (

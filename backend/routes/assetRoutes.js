@@ -6,7 +6,7 @@ import {
   getAssets,
   getAsset,
   createAsset,
-  updateAsset, // <-- Ensure this is imported
+  updateAsset, 
   assignAsset,
   returnAsset,
   uploadAssetReceipt,
