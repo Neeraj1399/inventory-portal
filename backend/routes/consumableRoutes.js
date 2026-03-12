@@ -5,26 +5,31 @@
 //   getConsumableById,
 //   createConsumable,
 //   assignConsumable,
+//   restockConsumable,
+//   returnConsumable,
+//   deleteConsumable,
 // } from "../controllers/consumableController.js";
 // import { protect, isAdmin } from "../middleware/authMiddleware.js";
 
 // // --- AUTHENTICATION GUARD ---
 // router.use(protect);
 
-// /**
-//  * @desc    View Inventory (Staff can see what's available, Admins see all)
-//  */
 // router.get("/", getConsumables);
 // router.get("/:id", getConsumableById);
 
 // // --- ADMIN AUTHORIZATION GUARD ---
-// router.use(isAdmin);
+// router.use((req, res, next) => isAdmin(req, res, next));
 
 // /**
-//  * @desc    Inventory Management
+//  * Inventory Management
 //  */
 // router.post("/", createConsumable);
 // router.post("/:id/assign", assignConsumable);
+// router.post("/:id/return", returnConsumable);
+// router.patch("/:id/restock", restockConsumable);
+
+// // 2. ADD THE DELETE ROUTE HERE
+// router.delete("/:id", deleteConsumable);
 
 // export default router;
 import express from "express";
@@ -35,16 +40,16 @@ import {
   createConsumable,
   assignConsumable,
   restockConsumable,
-  returnConsumable, // 1. Added this import
+  returnConsumable,
+  deleteConsumable,
+  updateCondition,
+  resolveMaintenance
 } from "../controllers/consumableController.js";
 import { protect, isAdmin } from "../middleware/authMiddleware.js";
 
 // --- AUTHENTICATION GUARD ---
 router.use(protect);
 
-/**
- * @desc    View Inventory (Staff can see what's available, Admins see all)
- */
 router.get("/", getConsumables);
 router.get("/:id", getConsumableById);
 
@@ -52,11 +57,17 @@ router.get("/:id", getConsumableById);
 router.use((req, res, next) => isAdmin(req, res, next));
 
 /**
- * @desc    Inventory Management
+ * Inventory Management
  */
 router.post("/", createConsumable);
 router.post("/:id/assign", assignConsumable);
-router.post("/:id/return", returnConsumable); // 2. Added this route
+router.post("/:id/return", returnConsumable);
 router.patch("/:id/restock", restockConsumable);
+
+// 2. REGISTER THE CONDITION ROUTE
+// This matches the frontend call: PATCH /api/consumables/:id/condition
+router.patch("/:id/condition", updateCondition);
+router.patch("/:id/resolve-maintenance", resolveMaintenance);
+router.delete("/:id", deleteConsumable);
 
 export default router;

@@ -43,36 +43,7 @@ export async function getConsumableById(req, res, next) {
  * @route   POST /api/consumables
  * @access  Admin
  */
-// export async function createConsumable(req, res, next) {
-//   try {
-//     // 1. Map frontend 'quantity' to backend 'totalQuantity' if needed
-//     const consumableData = {
-//       ...req.body,
-//       totalQuantity: req.body.totalQuantity || req.body.quantity || 0,
-//     };
 
-//     const newItem = await Consumable.create(consumableData);
-
-//     // 2. SAFETY CHECK: Only create AuditLog if user is authenticated
-//     if (req.user && req.user._id) {
-//       await AuditLog.create({
-//         action: "CREATED",
-//         entityType: "Consumable",
-//         entityId: newItem._id,
-//         performedBy: req.user._id,
-//         description: `Added ${newItem.itemName} to inventory.`,
-//       });
-//     } else {
-//       console.warn("⚠️ Item created, but AuditLog skipped: No req.user found.");
-//     }
-
-//     res.status(201).json({ status: "success", data: newItem });
-//   } catch (err) {
-//     // This will now catch Duplicate Key errors (if index still exists)
-//     // or Validation errors (if fields are missing)
-//     next(err);
-//   }
-//}
 export async function createConsumable(req, res, next) {
   try {
     // 1. Create the item
@@ -299,6 +270,262 @@ export async function returnConsumable(req, res, next) {
     res
       .status(200)
       .json({ status: "success", message: "Item processed successfully" });
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+}
+/**
+ * @desc    Delete/Scrap a consumable item permanently
+ * @route   DELETE /api/consumables/:id
+ * @access  Private/Admin
+ */
+export const deleteConsumable = async (req, res) => {
+  try {
+    const consumable = await Consumable.findById(req.params.id);
+
+    if (!consumable) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Consumable not found",
+      });
+    }
+
+    // Optional: Prevent deletion if items are still assigned to employees
+    if (consumable.assignedQuantity > 0) {
+      return res.status(400).json({
+        status: "fail",
+        message:
+          "Cannot delete item while units are still assigned to employees. Return them first.",
+      });
+    }
+
+    // 1. Store name before deletion for the log description
+    const deletedItemName = consumable.itemName;
+
+    // 2. Delete the item
+    await consumable.deleteOne();
+
+    // 3. 🔴 THE FIX: Create the Audit Log entry
+    if (req.user && req.user._id) {
+      await AuditLog.create({
+        action: "DELETED",
+        entityType: "Consumable",
+        entityId: req.params.id, // The ID of the item that was just removed
+        performedBy: req.user._id,
+        description: `Permanently deleted "${deletedItemName}" from the inventory.`,
+      });
+    }
+
+    // Note: 204 status does not send a body, so the "data: null" is symbolic
+    res.status(204).json({
+      status: "success",
+      data: null,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};
+/**
+ * @desc    Adjust consumable stock for Maintenance or Scrap
+ * @route   PATCH /api/consumables/:id/condition
+ * @access  Admin
+ */
+// export async function updateCondition(req, res, next) {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { actionType, quantity, reason } = req.body;
+//     const qty = Number(quantity);
+
+//     if (qty <= 0) {
+//       return next(
+//         new AppError("Adjustment quantity must be greater than 0", 400),
+//       );
+//     }
+
+//     // 1. Find the item
+//     const item = await Consumable.findById(req.params.id).session(session);
+//     if (!item) {
+//       throw new AppError("Consumable not found", 404);
+//     }
+
+//     // 2. Calculate current available stock
+//     const available = item.totalQuantity - item.assignedQuantity;
+//     if (qty > available) {
+//       throw new AppError(
+//         `Insufficient stock. Only ${available} units available in warehouse.`,
+//         400,
+//       );
+//     }
+
+//     // 3. Apply Logic based on Action Type
+//     let description = "";
+
+//     if (actionType === "SCRAP") {
+//       // Permanent removal: Reduce total quantity
+//       item.totalQuantity -= qty;
+//       description = `Scrapped ${qty} units of ${item.itemName}. Reason: ${reason || "Not specified"}`;
+//     } else {
+//       // Maintenance: Typically we just sideline them.
+//       // If your schema doesn't have a 'maintenanceQuantity' field,
+//       // we reduce totalQuantity so they aren't "available" for assignment.
+//       item.totalQuantity -= qty;
+//       description = `Moved ${qty} units of ${item.itemName} to MAINTENANCE. Reason: ${reason || "Not specified"}`;
+//     }
+
+//     await item.save({ session });
+
+//     // 4. Create Audit Log
+//     if (req.user && req.user._id) {
+//       await AuditLog.create(
+//         [
+//           {
+//             action: actionType === "SCRAP" ? "DELETED" : "UPDATED",
+//             entityType: "Consumable",
+//             entityId: item._id,
+//             performedBy: req.user._id,
+//             description: description,
+//           },
+//         ],
+//         { session },
+//       );
+//     }
+
+//     await session.commitTransaction();
+//     res.status(200).json({
+//       status: "success",
+//       message: "Condition updated successfully",
+//       data: item,
+//     });
+//   } catch (err) {
+//     await session.abortTransaction();
+//     next(err);
+//   } finally {
+//     session.endSession();
+//   }
+// }
+export async function updateCondition(req, res, next) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { actionType, quantity, reason } = req.body;
+    const qty = Number(quantity);
+
+    if (qty <= 0)
+      return next(new AppError("Quantity must be greater than 0", 400));
+
+    const item = await Consumable.findById(req.params.id).session(session);
+    if (!item) throw new AppError("Consumable not found", 404);
+
+    // Calculate warehouse availability (Total - Assigned - already in Maintenance)
+    const available =
+      item.totalQuantity -
+      item.assignedQuantity -
+      (item.maintenanceQuantity || 0);
+
+    if (qty > available) {
+      throw new AppError(
+        `Insufficient stock. Only ${available} available.`,
+        400,
+      );
+    }
+
+    let description = "";
+
+    if (actionType === "SCRAP") {
+      // Permanent removal from physical inventory
+      item.totalQuantity -= qty;
+      description = `Scrapped ${qty} units of ${item.itemName}. Reason: ${reason}`;
+    } else {
+      // ✅ FIX: Don't reduce totalQuantity. Move to maintenanceQuantity instead.
+      item.maintenanceQuantity = (item.maintenanceQuantity || 0) + qty;
+      description = `Moved ${qty} units of ${item.itemName} to REPAIR. Reason: ${reason}`;
+    }
+
+    await item.save({ session });
+
+    if (req.user?._id) {
+      await AuditLog.create(
+        [
+          {
+            action: actionType === "SCRAP" ? "DELETED" : "UPDATED",
+            entityType: "Consumable",
+            entityId: item._id,
+            performedBy: req.user._id,
+            description: description,
+          },
+        ],
+        { session },
+      );
+    }
+
+    await session.commitTransaction();
+    res.status(200).json({ status: "success", data: item });
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+}
+/**
+ * @desc    Return items from Maintenance to Stock OR Scrap them
+ * @route   PATCH /api/consumables/:id/resolve-maintenance
+ */
+export async function resolveMaintenance(req, res, next) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { action, quantity } = req.body; // action: 'RETURN' or 'SCRAP'
+    const qty = Number(quantity);
+
+    const item = await Consumable.findById(req.params.id).session(session);
+    if (!item) throw new AppError("Consumable not found", 404);
+
+    if (qty > (item.maintenanceQuantity || 0)) {
+      throw new AppError(
+        "Quantity exceeds items currently in maintenance",
+        400,
+      );
+    }
+
+    if (action === "RETURN") {
+      // Move from maintenance pool back to available pool
+      item.maintenanceQuantity -= qty;
+    } else if (action === "SCRAP") {
+      // Permanently remove from both maintenance and total count
+      item.maintenanceQuantity -= qty;
+      item.totalQuantity -= qty;
+    }
+
+    await item.save({ session });
+
+    if (req.user?._id) {
+      await AuditLog.create(
+        [
+          {
+            action: action === "RETURN" ? "UPDATED" : "DELETED",
+            entityType: "Consumable",
+            entityId: item._id,
+            performedBy: req.user._id,
+            description: `${action === "RETURN" ? "Restored" : "Scrapped"} ${qty} units from maintenance for ${item.itemName}.`,
+          },
+        ],
+        { session },
+      );
+    }
+
+    await session.commitTransaction();
+    res.status(200).json({ status: "success", data: item });
   } catch (err) {
     await session.abortTransaction();
     next(err);

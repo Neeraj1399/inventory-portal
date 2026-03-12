@@ -1,7 +1,4 @@
-//Since your terminal confirms Next function exists? true, your controller is receiving the next function correctly. However, the syntax errors in the globalErrorHandler you shared previously are likely preventing Express from executing the error-handling logic, leading to the "Internal Server Error" on the frontend.
 
-//🛠️ The Corrected globalErrorHandler.js
-//Here is the fully functional, syntax-cleansed version of your error middleware. Replace your current file content with this to ensure the brackets and logic are properly aligned: JavaScript
 import AppError from "../utils/appError.js";
 
 /* Converts raw DB/System errors into user-friendly AppErrors */

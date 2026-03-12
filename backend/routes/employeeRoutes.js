@@ -19,16 +19,15 @@ router.use(protect);
  */
 router.get("/", getEmployees);
 
-// --- ADMIN ONLY GUARD ---
-// Every route below this line requires Admin privileges
-router.use(isAdmin);
-
-//ADD THIS ROUTE HERE
 /**
  * @route   PATCH /api/employees/:id
  * @desc    Update employee details
  */
 router.patch("/:id", updateEmployee);
+
+// --- ADMIN ONLY GUARD ---
+// Every route below this line requires Admin privileges
+router.use(isAdmin);
 
 /**
  * @route   POST /api/employees

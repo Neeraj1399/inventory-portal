@@ -26,17 +26,24 @@ const consumableSchema = new Schema(
       trim: true,
       uppercase: true, // Standardizes "mouse" and "MOUSE"
     },
-    // ADD THIS LINE
+    
     category: {
       type: String,
       required: [true, "Category is required"],
     },
+    
     totalQuantity: {
       type: Number,
       required: [true, "Total stock is required"],
       min: [0, "Stock cannot be negative"],
     },
+    
     assignedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    maintenanceQuantity: {
       type: Number,
       default: 0,
       min: 0,
@@ -54,11 +61,22 @@ const consumableSchema = new Schema(
     toObject: { virtuals: true },
   },
 );
+/**
+ * UPDATED VIRTUAL: Available Quantity
+ * Now correctly subtracts BOTH assigned and maintenance stock.
+ */
+consumableSchema.virtual("availableQuantity").get(function () {
+  return this.totalQuantity - this.assignedQuantity - (this.maintenanceQuantity || 0);
+});
 
 /**
- * PRO TIP #1: AUTOMATED NORMALIZATION
- * Removing 'next' fixes the TypeError in newer Mongoose versions.
+ * UPDATED VIRTUAL: LOW STOCK ALERT
  */
+consumableSchema.virtual("isLowStock").get(function () {
+  const available = this.totalQuantity - this.assignedQuantity - (this.maintenanceQuantity || 0);
+  return available <= this.lowStockThreshold;
+});
+
 consumableSchema.pre("save", function () {
   if (this.itemName) {
     this.itemName = this.itemName.trim().toUpperCase();

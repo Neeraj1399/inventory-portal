@@ -1,177 +1,10 @@
-// import Employee from "../models/Employee.js";
-// import { processFullOffboard } from "../services/offboardingservice.js";
-// import AppError from "../utils/appError.js";
-// import bcrypt from "bcryptjs";
-// import mongoose from "mongoose";
-
-// /**
-//  * @desc    Get all employees
-//  * @route   GET /api/employees
-//  * @access  Admin
-//  */
-// export async function getEmployees(req, res, next) {
-//   try {
-//     const employees = await Employee.aggregate([
-//       {
-//         $lookup: {
-//           from: "assets",
-//           localField: "_id",
-//           foreignField: "assignedTo",
-//           as: "assignedAssets",
-//         },
-//       },
-//       {
-//         $addFields: {
-//           // If Harri has 0 assets, this will correctly be 0
-//           assignedAssetsCount: { $size: "$assignedAssets" },
-//         },
-//       },
-//       {
-//         $project: {
-//           password: 0,
-//           assignedAssets: 0,
-//           __v: 0,
-//         },
-//       },
-//       // Optional: Ensure we only show ACTIVE employees in the assignment dropdown
-//       { $match: { status: "ACTIVE" } },
-//     ]);
-
-//     res.status(200).json({ status: "success", data: employees });
-//   } catch (err) {
-//     next(err);
-//   }
-// }
-
-// /**
-//  * @desc    Add new employee
-//  * @route   POST /api/employees
-//  * @access  Admin
-//  */
-// // export async function createEmployee(req, res, next) {
-// //   try {
-// //     const { name, email, type, password, role, department } = req.body;
-
-// //     // 1. Validation
-// //     if (!password || password.length < 8) {
-// //       return next(new AppError("Provide a password (min 8 characters)", 400));
-// //     }
-
-// //     // NEW: Restrict role to STAFF only to prevent a second Admin
-// //     if (role === "ADMIN") {
-// //       return next(
-// //         new AppError("Only one administrator is allowed at this time.", 403),
-// //       );
-// //     }
-
-// //     const existing = await Employee.findOne({ email });
-// //     if (existing) return next(new AppError("Email already exists", 400));
-
-// //     // 2. Creation
-// //     const newEmployee = await Employee.create({
-// //       name,
-// //       email,
-// //       department,
-// //       type: type.toUpperCase(), // Supports FULL-TIME, PART-TIME, INTERN, CONTRACT
-// //       password,
-// //       role: "STAFF", // Hardcoded to ensure safety
-// //       status: "ACTIVE",
-// //     });
-
-// //     res.status(201).json({
-// //       status: "success",
-// //       data: {
-// //         id: newEmployee._id,
-// //         name: newEmployee.name,
-// //         email: newEmployee.email,
-// //         role: newEmployee.role,
-// //       },
-// //     });
-// //   } catch (err) {
-// //     next(err);
-// //   }
-// // }
-// export async function createEmployee(req, res, next) {
-//   try {
-//     const { name, email, type, password, role, department } = req.body;
-
-//     // 1. COMPLEXITY VALIDATION
-//     // Regex: 7-12 chars, 1 Upper, 1 Lower, 1 Number, 1 Special
-//     const passwordRegex =
-//       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{10,}$/;
-
-//     if (!password || !passwordRegex.test(password)) {
-//       return next(
-//         new AppError(
-//           "Password must be 10 characters long and include: one uppercase, one lowercase, one number, and one special character (!@#$%^&*)",
-//           400,
-//         ),
-//       );
-//     }
-
-//     // 2. ROLE CHECK
-//     if (role === "ADMIN") {
-//       return next(
-//         new AppError("Only one administrator is allowed at this time.", 403),
-//       );
-//     }
-
-//     const existing = await Employee.findOne({ email });
-//     if (existing) return next(new AppError("Email already exists", 400));
-
-//     // 3. CREATION
-//     const newEmployee = await Employee.create({
-//       name,
-//       email,
-//       department,
-//       type: type.toUpperCase(),
-//       password,
-//       role: "STAFF",
-//       status: "ACTIVE",
-//     });
-
-//     res.status(201).json({
-//       status: "success",
-//       data: {
-//         id: newEmployee._id,
-//         name: newEmployee.name,
-//         email: newEmployee.email,
-//         role: newEmployee.role,
-//       },
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// }
-// /**
-//  * @desc    Offboard an employee
-//  * @route   PATCH /api/employees/:id/offboard
-//  * @access  Admin
-//  */
-// export async function offboardEmployee(req, res, next) {
-//   try {
-//     // This calls the specialized service we discussed
-//     const result = await processFullOffboard(req.params.id, req.user._id);
-
-//     res.status(200).json({
-//       status: "success",
-//       data: result,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// }
 import Employee from "../models/Employee.js";
 import { processFullOffboard } from "../services/offboardingservice.js";
 import AppError from "../utils/appError.js";
 import Asset from "../models/Asset.js";
 import Consumable from "../models/Consumable.js";
 import AuditLog from "../models/AuditLog.js";
-/**
- * @desc    Get all employees
- * @route   GET /api/employees
- * @access  Admin
- */
+
 export async function getEmployees(req, res, next) {
   try {
     const employees = await Employee.aggregate([
@@ -180,18 +13,39 @@ export async function getEmployees(req, res, next) {
           from: "assets",
           localField: "_id",
           foreignField: "assignedTo",
-          as: "assignedAssets",
+          as: "assets",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "consumables",
+          let: { empId: "$_id" },
+          pipeline: [
+            // Flatten the assignments array inside every consumable item
+            { $unwind: "$assignments" },
+            // Filter only those assigned to this specific employee
+            {
+              $match: {
+                $expr: { $eq: ["$assignments.employeeId", "$$empId"] },
+              },
+            },
+          ],
+          as: "personalConsumables",
         },
       },
       {
         $addFields: {
-          assignedAssetsCount: { $size: "$assignedAssets" },
+          assignedAssetsCount: { $size: "$assets" },
+          // Count the flattened assignment entries found
+          assignedConsumablesCount: { $size: "$personalConsumables" },
         },
       },
       {
         $project: {
           password: 0,
-          assignedAssets: 0,
+          assets: 0,
+          personalConsumables: 0,
           __v: 0,
         },
       },
@@ -261,7 +115,7 @@ export async function createEmployee(req, res, next) {
       level,
       type: type.toUpperCase(),
       password,
-      roleAccess: "STAFF", // default role access
+      roleAccess: "STAFF",
       status: "ACTIVE",
     });
 
@@ -286,33 +140,90 @@ export async function createEmployee(req, res, next) {
  * @route   PATCH /api/employees/:id
  * @access  Admin
  */
+// export async function updateEmployee(req, res, next) {
+//   try {
+//     const { name, email, department, role, level, type, status } = req.body;
+
+//     const employee = await Employee.findById(req.params.id);
+//     if (!employee) return next(new AppError("Employee not found", 404));
+
+//     // Prevent updating ADMIN role access accidentally
+//     if (role === "ADMIN") {
+//       return next(
+//         new AppError("Cannot assign ADMIN role through this endpoint", 403),
+//       );
+//     }
+
+//     employee.name = name || employee.name;
+//     employee.email = email || employee.email;
+//     employee.department = department || employee.department;
+//     employee.role = role || employee.role;
+//     employee.level = level || employee.level;
+//     employee.type = type ? type.toUpperCase() : employee.type;
+//     employee.status = status || employee.status;
+
+//     await employee.save();
+
+//     res.status(200).json({
+//       status: "success",
+//       data: employee,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
+/**
+ * @desc    Update employee (Admin or Self)
+ * @route   PATCH /api/employees/:id
+ */
 export async function updateEmployee(req, res, next) {
   try {
     const { name, email, department, role, level, type, status } = req.body;
-
     const employee = await Employee.findById(req.params.id);
+
     if (!employee) return next(new AppError("Employee not found", 404));
 
-    // Prevent updating ADMIN role access accidentally
-    if (role === "ADMIN") {
+    // SECURITY CHECK:
+    // If the person logged in is NOT an admin, they can only update their own ID
+    const isSelfUpdate = req.user._id.toString() === req.params.id;
+    const isAdmin = req.user.role === "ADMIN";
+
+    if (!isAdmin && !isSelfUpdate) {
       return next(
-        new AppError("Cannot assign ADMIN role through this endpoint", 403),
+        new AppError("You do not have permission to update this profile", 403),
       );
     }
 
+    // 1. Basic Info (Always updatable by self or admin)
     employee.name = name || employee.name;
     employee.email = email || employee.email;
-    employee.department = department || employee.department;
-    employee.role = role || employee.role;
-    employee.level = level || employee.level;
-    employee.type = type ? type.toUpperCase() : employee.type;
-    employee.status = status || employee.status;
+
+    // 2. Restricted Info (Only updatable by ADMIN)
+    if (isAdmin) {
+      if (role === "ADMIN" && employee.role !== "ADMIN") {
+        return next(
+          new AppError("Cannot assign ADMIN role through this endpoint", 403),
+        );
+      }
+
+      employee.department = department || employee.department;
+      employee.role = role || employee.role;
+      employee.level = level || employee.level;
+      employee.type = type ? type.toUpperCase() : employee.type;
+      employee.status = status || employee.status;
+    }
 
     await employee.save();
 
     res.status(200).json({
       status: "success",
-      data: employee,
+      data: {
+        _id: employee._id,
+        name: employee.name,
+        email: employee.email,
+        role: employee.role,
+        department: employee.department,
+      },
     });
   } catch (err) {
     next(err);
@@ -396,3 +307,27 @@ export const offboardEmployee = async (req, res) => {
     message: "Employee successfully offboarded",
   });
 };
+/**
+ * @desc    Promote an employee to ADMIN
+ * @route   PATCH /api/employees/:id/promote
+ * @access  Admin Only
+ */
+export async function promoteToAdmin(req, res, next) {
+  try {
+    const employee = await Employee.findByIdAndUpdate(
+      req.params.id,
+      { roleAccess: "ADMIN" },
+      { new: true, runValidators: true },
+    );
+
+    if (!employee) return next(new AppError("Employee not found", 404));
+
+    res.status(200).json({
+      status: "success",
+      message: `${employee.name} is now an Admin.`,
+      data: employee,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
