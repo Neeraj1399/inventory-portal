@@ -18,7 +18,7 @@ import ConsumableList from "./pages/consumables/ConsumableList";
 import EmployeeList from "./pages/employees/EmployeeList";
 
 import DashboardLayout from "./components/layout/DashboardLayout";
-
+// import { CurrencyProvider } from "./context/CurrencyContext";
 // Lazy load AuditLogs for performance
 const AuditLogs = lazy(() => import("./pages/audit/AuditLogs"));
 
@@ -133,7 +133,9 @@ const ProtectedRoute = ({ children }) => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      {/* <CurrencyProvider> */}
+        <AppContent />
+      {/* </CurrencyProvider> */}
     </AuthProvider>
   );
 }

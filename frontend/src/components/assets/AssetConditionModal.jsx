@@ -7,6 +7,7 @@ import {
   Loader2,
   AlertTriangle,
   Layers,
+  Lock,
 } from "lucide-react";
 import api from "../../hooks/api";
 
@@ -22,20 +23,23 @@ const AssetConditionModal = ({
   // Determine if we are in bulk mode or single asset mode
   const isBulk = selectedIds.length > 0 && !asset;
 
+  // LOGIC FIX: Check if the current single asset is already scrapped
+  const isPermanentlyScrapped = !isBulk && asset?.status === "SCRAPPED";
+
   if (!isOpen || (!asset && !isBulk)) return null;
 
   const handleStatusUpdate = async (newStatus) => {
+    if (isPermanentlyScrapped) return; // Guard clause
+
     setLoading(true);
     try {
       if (isBulk) {
-        // Parallel update for all selected assets
         await Promise.all(
           selectedIds.map((id) =>
             api.patch(`/assets/${id}`, { status: newStatus }),
           ),
         );
       } else {
-        // Standard single asset update
         await api.patch(`/assets/${asset._id}`, { status: newStatus });
       }
 
@@ -91,13 +95,19 @@ const AssetConditionModal = ({
           </button>
 
           <div className="flex items-center gap-3 mb-1">
-            {isBulk ? (
+            {isPermanentlyScrapped ? (
+              <Lock size={18} className="text-slate-400" />
+            ) : isBulk ? (
               <Layers size={18} className="text-blue-600" />
             ) : (
               <AlertTriangle size={18} className="text-amber-500" />
             )}
             <h2 className="text-xl font-bold text-slate-800">
-              {isBulk ? "Bulk Condition Update" : "Manage Condition"}
+              {isPermanentlyScrapped
+                ? "Decommissioned Asset"
+                : isBulk
+                  ? "Bulk Condition Update"
+                  : "Manage Condition"}
             </h2>
           </div>
 
@@ -110,32 +120,50 @@ const AssetConditionModal = ({
 
         {/* Action Options */}
         <div className="p-8 pt-6 space-y-3">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-            Apply New Status
-          </h3>
+          {isPermanentlyScrapped ? (
+            <div className="bg-slate-50 border border-slate-100 p-6 rounded-3xl text-center space-y-2">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                <Trash2 className="text-rose-400" size={24} />
+              </div>
+              <p className="text-sm font-bold text-slate-700">
+                Permanent Status
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                This asset has been scrapped and cannot be returned to the
+                active pool. Please contact an administrator if this was a
+                mistake.
+              </p>
+            </div>
+          ) : (
+            <>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                Apply New Status
+              </h3>
 
-          {options
-            .filter((opt) => !opt.hideIf)
-            .map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => handleStatusUpdate(opt.id)}
-                disabled={loading}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 transition-all text-left group ${opt.color} disabled:opacity-50`}
-              >
-                <div className="p-3 bg-white rounded-xl shadow-sm group-hover:shadow-none transition-all">
-                  {opt.icon}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm text-slate-700">
-                    {opt.title}
-                  </span>
-                  <span className="text-xs text-slate-400 leading-tight mt-0.5">
-                    {opt.description}
-                  </span>
-                </div>
-              </button>
-            ))}
+              {options
+                .filter((opt) => !opt.hideIf)
+                .map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => handleStatusUpdate(opt.id)}
+                    disabled={loading}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 transition-all text-left group ${opt.color} disabled:opacity-50`}
+                  >
+                    <div className="p-3 bg-white rounded-xl shadow-sm group-hover:shadow-none transition-all">
+                      {opt.icon}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-slate-700">
+                        {opt.title}
+                      </span>
+                      <span className="text-xs text-slate-400 leading-tight mt-0.5">
+                        {opt.description}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+            </>
+          )}
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-4 gap-2">
