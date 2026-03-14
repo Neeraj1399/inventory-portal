@@ -13,7 +13,7 @@ export const useConsumableModal = (isOpen, item) => {
       setQuantity(1);
 
       api
-        .get("/employees?status=ACTIVE")
+        .get("admin/employees?status=ACTIVE")
         .then((res) => setEmployees(res.data.data))
         .catch((err) => console.error("Failed to load employees", err));
     }

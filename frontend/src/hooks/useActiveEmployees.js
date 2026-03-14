@@ -6,7 +6,7 @@ export const useActiveEmployees = (isOpen) => {
   useEffect(() => {
     if (!isOpen) return;
     api
-      .get("/employees?status=ACTIVE")
+      .get("admin/employees?status=ACTIVE")
       .then((res) => setEmployees(res.data.data))
       .catch((err) => console.error(err));
   }, [isOpen]);

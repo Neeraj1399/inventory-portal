@@ -76,7 +76,7 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
 
     setLoading(true);
     try {
-      // This matches your backend route: PATCH /api/employees/:id
+      // This matches your backend route: PATCH /api/admin/employeess/:id
       await api.patch(`/employees/${empId}`, formData);
       onRefresh();
       onClose();

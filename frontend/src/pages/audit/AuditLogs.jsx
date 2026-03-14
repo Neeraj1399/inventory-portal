@@ -79,14 +79,33 @@ const AuditLogs = () => {
   const [userFilter, setUserFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
 
+  // /* -------- FETCH LOGS -------- */
+
+  // useEffect(() => {
+  //   const fetchLogs = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const data = await getAuditLogs();
+  //       setLogs(data || []);
+  //     } catch (err) {
+  //       console.error(err);
+  //       setError("Failed to load audit logs.");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchLogs();
+  // }, []);
   /* -------- FETCH LOGS -------- */
 
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const data = await getAuditLogs();
-        setLogs(data || []);
+        const response = await getAuditLogs();
+        // FIX: Access the 'data' property of the response object
+        setLogs(response.data || []);
       } catch (err) {
         console.error(err);
         setError("Failed to load audit logs.");

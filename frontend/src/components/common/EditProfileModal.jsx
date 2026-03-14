@@ -32,7 +32,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     setIsSaving(true);
     try {
       // 🟢 The actual API call
-      const res = await api.patch(`/employees/${userId}`, formData);
+      const res = await api.patch(`admin/employees/${userId}`, formData);
 
       // Update global state via the prop passed from UserMenu/Navbar
       onUpdate(res.data.data);

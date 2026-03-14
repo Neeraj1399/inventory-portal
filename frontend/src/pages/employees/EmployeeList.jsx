@@ -4,7 +4,7 @@ import {
   Mail,
   UserMinus,
   Laptop,
-  ArrowRight,
+  // ArrowRight,
   Plus,
   Edit,
   Package,
@@ -29,7 +29,7 @@ const EmployeeList = () => {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get("/employees");
+    const res = await api.get("admin/employees");
       // res.data.data should include assignedAssetsCount and assignedConsumablesCount from backend
       setEmployees(res.data.data || []);
     } catch (err) {
@@ -52,11 +52,11 @@ const EmployeeList = () => {
           )
         )
           return;
-        await api.patch(`/employees/${id}/offboard`);
+        await api.patch(`admin/employees/${id}/offboard`);
         alert("Employee offboarded successfully.");
       } else {
         if (!window.confirm("Reactivate this employee?")) return;
-        await api.patch(`/employees/${id}`, { status: "ACTIVE" });
+        await api.patch(`admin/employees/${id}`, { status: "ACTIVE" });
       }
       fetchEmployees();
     } catch (err) {
@@ -216,9 +216,9 @@ const EmployeeList = () => {
                       </button>
                     </>
                   )}
-                  <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
+                  {/* <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
                     <ArrowRight size={20} />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             );

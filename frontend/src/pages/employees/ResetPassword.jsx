@@ -64,7 +64,24 @@ const ResetPassword = () => {
       setLoading(false);
     }
   };
+  // Calculate strength (0 to 4)
+  const getStrength = () => {
+    let s = 0;
+    if (password.length >= 10) s++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) s++;
+    if (/[0-9]/.test(password)) s++;
+    if (/[!@#$%^&*]/.test(password)) s++;
+    return s;
+  };
 
+  const strength = getStrength();
+  const colors = [
+    "bg-slate-200",
+    "bg-red-400",
+    "bg-orange-400",
+    "bg-yellow-400",
+    "bg-green-500",
+  ];
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">

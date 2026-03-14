@@ -33,9 +33,9 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
   const fetchEmployees = async () => {
     try {
       // Use the timestamp to bypass any browser caching
-      const res = await api.get(`/employees?t=${Date.now()}`);
+      const res = await api.get(`admin/employees?t=${Date.now()}`);
       const data = res.data.data || [];
-      setEmployees(data);
+      set(data);
       // Initialize filtered list with all employees so it's not empty on first click
       setFilteredEmployees(data);
     } catch (err) {
