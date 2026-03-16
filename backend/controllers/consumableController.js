@@ -120,17 +120,17 @@ export async function assignConsumable(req, res, next) {
       );
     }
 
-    // 3. Log it (Using updated field names for consistency)
+    // 3. Log it (Using modified field names for consistency)
     if (req.user && req.user._id) {
       await AuditLog.create(
         [
           {
-            action: "ASSIGNED",
+            action: "ALLOCATED",
             entityType: "Consumable",
             entityId: item._id,
             performedBy: req.user._id,
             targetEmployee: employeeId,
-            description: `Issued ${qty} units of ${item.itemName}.`,
+            description: `Handed over ${qty} units of ${item.itemName}.`,
           },
         ],
         { session },
@@ -169,7 +169,7 @@ export async function restockConsumable(req, res, next) {
     if (!item) return next(new AppError("Consumable not found", 404));
 
     await AuditLog.create({
-      action: "UPDATED",
+      action: "MODIFIED",
       entityType: "Consumable",
       entityId: item._id,
       performedBy: req.user._id,
@@ -185,91 +185,171 @@ export async function restockConsumable(req, res, next) {
  * @desc    Return a consumable item from an employee
  * @route   POST /api/consumables/:id/return
  */
+// export async function returnConsumable(req, res, next) {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { employeeId, quantity, returnStatus } = req.body; // Added returnStatus
+//     const qty = Number(quantity);
+
+//     if (qty <= 0)
+//       return next(new AppError("Return quantity must be greater than 0", 400));
+
+//     // 1. Find the consumable and ensure the employee actually has it
+//     const item = await Consumable.findOne({
+//       _id: req.params.id,
+//       "assignments.employeeId": new mongoose.Types.ObjectId(employeeId),
+//     }).session(session);
+//     // const item = await Consumable.findOne({
+//     //   _id: req.params.id,
+//     //   "assignments.employeeId": employeeId,
+//     // }).session(session);
+
+//     if (!item) throw new AppError("No assignment found for this employee", 404);
+
+//     const assignment = item.assignments.find(
+//       // (a) => a.employeeId.toString() === employeeId,
+//       (a) => a.employeeId._id.toString() === employeeId,
+//     );
+
+//     if (assignment.quantity < qty) {
+//       throw new AppError("Return quantity exceeds allocated quantity", 400);
+//     }
+
+//     // 2. Determine Inventory Impact
+//     // If it's for Repair or Scrapped, it's no longer part of "Total" usable stock.
+//     const updateFields = { $inc: { assignedQuantity: -qty } };
+
+//     if (returnStatus === "UNDER_MAINTENANCE" || returnStatus === "DECOMMISSIONED") {
+//       updateFields.$inc.totalQuantity = -qty;
+//     }
+
+//     // 3. Update the document
+//     if (assignment.quantity === qty) {
+//       // Remove assignment entirely if returning everything
+//       await Consumable.findByIdAndUpdate(
+//         req.params.id,
+//         {
+//           ...updateFields,
+//           $pull: { assignments: { employeeId } },
+//         },
+//         { session },
+//       );
+//     } else {
+//       // Decrease the quantity in the assignment array
+//       await Consumable.updateOne(
+//         { _id: req.params.id, "assignments.employeeId": employeeId },
+//         {
+//           ...updateFields,
+//           $inc: { ...updateFields.$inc, "assignments.$.quantity": -qty },
+//         },
+//         { session },
+//       );
+//     }
+
+//     // 4. Detailed Audit Log
+//     const statusText =
+//       returnStatus === "READY_TO_DEPLOY" ? "to STOCK" : `as ${returnStatus}`;
+
+//     await AuditLog.create(
+//       [
+//         {
+//           action: "RECOVERED",
+//           entityType: "Consumable",
+//           entityId: item._id,
+//           performedBy: req.user._id,
+//           targetEmployee: employeeId,
+//           description: `Returned ${qty} unit(s) of ${item.itemName} ${statusText}.`,
+//         },
+//       ],
+//       { session },
+//     );
+
+//     await session.commitTransaction();
+//     res
+//       .status(200)
+//       .json({ status: "success", message: "Item processed successfully" });
+//   } catch (err) {
+//     await session.abortTransaction();
+//     next(err);
+//   } finally {
+//     session.endSession();
+//   }
+// }
 export async function returnConsumable(req, res, next) {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { employeeId, quantity, returnStatus } = req.body; // Added returnStatus
+    const { employeeId, quantity, returnStatus } = req.body;
     const qty = Number(quantity);
 
-    if (qty <= 0)
-      return next(new AppError("Return quantity must be greater than 0", 400));
+    if (qty <= 0) return next(new AppError("Return quantity must be greater than 0", 400));
 
-    // 1. Find the consumable and ensure the employee actually has it
+    // 1. Verify assignment exists
     const item = await Consumable.findOne({
       _id: req.params.id,
       "assignments.employeeId": new mongoose.Types.ObjectId(employeeId),
     }).session(session);
-    // const item = await Consumable.findOne({
-    //   _id: req.params.id,
-    //   "assignments.employeeId": employeeId,
-    // }).session(session);
 
     if (!item) throw new AppError("No assignment found for this employee", 404);
 
     const assignment = item.assignments.find(
-      // (a) => a.employeeId.toString() === employeeId,
-      (a) => a.employeeId._id.toString() === employeeId,
+      (a) => a.employeeId.toString() === employeeId
     );
 
     if (assignment.quantity < qty) {
-      throw new AppError("Return quantity exceeds assigned quantity", 400);
+      throw new AppError("Return quantity exceeds allocated quantity", 400);
     }
 
-    // 2. Determine Inventory Impact
-    // If it's for Repair or Scrapped, it's no longer part of "Total" usable stock.
-    const updateFields = { $inc: { assignedQuantity: -qty } };
+    // 2. Consistent Inventory Impact Logic
+    // We always decrement assignedQuantity. 
+    // We only decrement totalQuantity if DECOMMISSIONED.
+    // We increment maintenanceQuantity if UNDER_MAINTENANCE.
+    const incFields = { assignedQuantity: -qty };
 
-    if (returnStatus === "REPAIR" || returnStatus === "SCRAPPED") {
-      updateFields.$inc.totalQuantity = -qty;
+    if (returnStatus === "DECOMMISSIONED") {
+      incFields.totalQuantity = -qty;
+    } else if (returnStatus === "UNDER_MAINTENANCE") {
+      incFields.maintenanceQuantity = qty;
     }
 
-    // 3. Update the document
-    if (assignment.quantity === qty) {
-      // Remove assignment entirely if returning everything
-      await Consumable.findByIdAndUpdate(
-        req.params.id,
-        {
-          ...updateFields,
-          $pull: { assignments: { employeeId } },
-        },
-        { session },
-      );
+    // 3. Atomic Update to prevent property overwriting
+    const isReturningAll = assignment.quantity === qty;
+    
+    const updatePayload = { $inc: incFields };
+    if (isReturningAll) {
+      updatePayload.$pull = { assignments: { employeeId } };
     } else {
-      // Decrease the quantity in the assignment array
-      await Consumable.updateOne(
-        { _id: req.params.id, "assignments.employeeId": employeeId },
-        {
-          ...updateFields,
-          $inc: { ...updateFields.$inc, "assignments.$.quantity": -qty },
-        },
-        { session },
-      );
+      // Use the positional operator to update the specific assignment
+      updatePayload.$inc["assignments.$.quantity"] = -qty;
     }
 
-    // 4. Detailed Audit Log
-    const statusText =
-      returnStatus === "AVAILABLE" ? "to STOCK" : `as ${returnStatus}`;
-
-    await AuditLog.create(
-      [
-        {
-          action: "RETURNED",
-          entityType: "Consumable",
-          entityId: item._id,
-          performedBy: req.user._id,
-          targetEmployee: employeeId,
-          description: `Returned ${qty} unit(s) of ${item.itemName} ${statusText}.`,
-        },
-      ],
-      { session },
+    const updatedItem = await Consumable.findOneAndUpdate(
+      { 
+        _id: req.params.id, 
+        ...(isReturningAll ? {} : { "assignments.employeeId": employeeId }) 
+      },
+      updatePayload,
+      { session, new: true }
     );
 
+    // 4. Audit Logging
+    const statusText = returnStatus === "READY_TO_DEPLOY" ? "to STOCK" : `as ${returnStatus}`;
+    if (req.user?._id) {
+      await AuditLog.create([{
+        action: "RECOVERED",
+        entityType: "Consumable",
+        entityId: item._id,
+        performedBy: req.user._id,
+        targetEmployee: employeeId,
+        description: `Returned ${qty} unit(s) of ${item.itemName} ${statusText}.`,
+      }], { session });
+    }
+
     await session.commitTransaction();
-    res
-      .status(200)
-      .json({ status: "success", message: "Item processed successfully" });
+    res.status(200).json({ status: "success", data: updatedItem });
   } catch (err) {
     await session.abortTransaction();
     next(err);
@@ -293,12 +373,12 @@ export const deleteConsumable = async (req, res) => {
       });
     }
 
-    // Optional: Prevent deletion if items are still assigned to employees
+    // Optional: Prevent deletion if items are still allocated to employees
     if (consumable.assignedQuantity > 0) {
       return res.status(400).json({
         status: "fail",
         message:
-          "Cannot delete item while units are still assigned to employees. Return them first.",
+          "Cannot delete item while units are still allocated to employees. Return them first.",
       });
     }
 
@@ -387,7 +467,7 @@ export const deleteConsumable = async (req, res) => {
 //       await AuditLog.create(
 //         [
 //           {
-//             action: actionType === "SCRAP" ? "DELETED" : "UPDATED",
+//             action: actionType === "SCRAP" ? "DELETED" : "MODIFIED",
 //             entityType: "Consumable",
 //             entityId: item._id,
 //             performedBy: req.user._id,
@@ -401,7 +481,7 @@ export const deleteConsumable = async (req, res) => {
 //     await session.commitTransaction();
 //     res.status(200).json({
 //       status: "success",
-//       message: "Condition updated successfully",
+//       message: "Condition modified successfully",
 //       data: item,
 //     });
 //   } catch (err) {
@@ -425,7 +505,7 @@ export async function updateCondition(req, res, next) {
     const item = await Consumable.findById(req.params.id).session(session);
     if (!item) throw new AppError("Consumable not found", 404);
 
-    // Calculate warehouse availability (Total - Assigned - already in Maintenance)
+    // Calculate warehouse availability (Total - Allocated - already in Maintenance)
     const available =
       item.totalQuantity -
       item.assignedQuantity -
@@ -447,7 +527,7 @@ export async function updateCondition(req, res, next) {
     } else {
       // ✅ FIX: Don't reduce totalQuantity. Move to maintenanceQuantity instead.
       item.maintenanceQuantity = (item.maintenanceQuantity || 0) + qty;
-      description = `Moved ${qty} units of ${item.itemName} to REPAIR. Reason: ${reason}`;
+      description = `Moved ${qty} units of ${item.itemName} to UNDER_MAINTENANCE. Reason: ${reason}`;
     }
 
     await item.save({ session });
@@ -456,7 +536,7 @@ export async function updateCondition(req, res, next) {
       await AuditLog.create(
         [
           {
-            action: actionType === "SCRAP" ? "DELETED" : "UPDATED",
+            action: actionType === "SCRAP" ? "DELETED" : "MODIFIED",
             entityType: "Consumable",
             entityId: item._id,
             performedBy: req.user._id,
@@ -513,7 +593,7 @@ export async function resolveMaintenance(req, res, next) {
       await AuditLog.create(
         [
           {
-            action: action === "RETURN" ? "UPDATED" : "DELETED",
+            action: action === "RETURN" ? "MODIFIED" : "DELETED",
             entityType: "Consumable",
             entityId: item._id,
             performedBy: req.user._id,

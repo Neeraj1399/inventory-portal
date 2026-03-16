@@ -1,18 +1,3 @@
-// import express from "express";
-// const router = express.Router();
-// import { protect, isAdmin } from "../middleware/authMiddleware.js";
-// import {
-//   archiveAndPurgeLogs,
-//   getSystemStats,
-// } from "../controllers/adminController.js";
-
-// // All routes here are protected and Admin-only
-// router.use(protect, isAdmin);
-
-// router.get("/stats", getSystemStats);
-// router.post("/archive-logs", archiveAndPurgeLogs);
-
-// export default router;
 import express from "express";
 const router = express.Router();
 
@@ -22,6 +7,7 @@ import {
   archiveAndPurgeLogs,
   forgotPassword,
   resetPasswordWithToken,
+  getResetRequests,
 } from "../controllers/adminController.js";
 
 // 2. Employee Management Logic (from employeeController.js)
@@ -49,10 +35,13 @@ router.patch("/reset-password/:token", resetPasswordWithToken);
 router.use(protect, isAdmin);
 
 // Employee Management (Admin Dashboard)
-router.get("/employees", getEmployees); // GET /api/admin/system/employees
-router.post("/employees", createEmployee); // POST /api/admin/system/employees
-router.patch("/employees/:id", updateEmployee); // PATCH /api/admin/system/employees/:id
-router.patch("/employees/:id/offboard", offboardEmployee); // PATCH /api/admin/system/employees/:id/offboard
+router.get("/employees", getEmployees); // GET /api/admin/employees
+router.post("/employees", createEmployee); // POST /api/admin/employees
+router.patch("/employees/:id", updateEmployee); // PATCH /api/admin/employees/:id
+router.patch("/employees/:id/offboard", offboardEmployee); // PATCH /api/admin/employees/:id/offboard
+
+// Reset Requests Dashboard
+router.get("/reset-requests", getResetRequests); // GET /api/admin/reset-requests
 
 // System Health & Maintenance
 router.get("/stats", getSystemStats); // GET /api/admin/system/stats

@@ -9,21 +9,16 @@ import catchAsync from "../utils/catchAsync.js";
 
 // --- 1. RETRIEVAL CONTROLLERS ---
 
-/**
- * @desc    Get all assets with filtering, search, and role-based access
- * @route   GET /api/assets
- */
 export const getAssets = catchAsync(async (req, res, next) => {
-  const { search, status, category, assignedTo } = req.query;
+  const { search, status, category, allocatedTo } = req.query;
   let query = {};
 
   if (req.user.role === "STAFF") {
-    // Staff only see what is assigned to them
-    query.assignedTo = req.user._id;
+    query.allocatedTo = req.user._id;
   } else {
-    // Admin Filtering
-    if (assignedTo) query.assignedTo = assignedTo;
+    if (allocatedTo) query.allocatedTo = allocatedTo;
 
+    // Search by Model or Serial
     if (search?.trim()) {
       query.$or = [
         { model: { $regex: search.trim(), $options: "i" } },
@@ -33,13 +28,15 @@ export const getAssets = catchAsync(async (req, res, next) => {
 
     if (status && status !== "ALL") query.status = status;
 
+    // MODIFIED: Asset Classification filtering now supports partial text search
+    // since it is no longer a fixed dropdown
     if (category?.trim()) {
-      query.category = { $in: category.split(",") };
+      query.category = { $regex: category.trim(), $options: "i" };
     }
   }
 
   const assets = await Asset.find(query)
-    .populate({ path: "assignedTo", select: "name email" })
+    .populate({ path: "allocatedTo", select: "name email" })
     .sort("-createdAt");
 
   res.status(200).json({
@@ -49,28 +46,19 @@ export const getAssets = catchAsync(async (req, res, next) => {
   });
 });
 
-/**
- * @desc    Get a single asset by ID
- * @route   GET /api/assets/:id
- */
 export const getAsset = catchAsync(async (req, res, next) => {
   const asset = await Asset.findById(req.params.id).populate({
-    path: "assignedTo",
+    path: "allocatedTo",
     select: "name email department",
   });
-
   if (!asset) return next(new AppError("No asset found with that ID", 404));
-
   res.status(200).json({ status: "success", data: asset });
 });
 
 // --- 2. CREATION & UPDATE CONTROLLERS ---
 
-/**
- * @desc    Create a new asset with optional receipt
- * @route   POST /api/assets
- */
 export const createAsset = catchAsync(async (req, res, next) => {
+  // Asset Classification is now just a string from req.body
   const {
     category,
     model,
@@ -79,6 +67,7 @@ export const createAsset = catchAsync(async (req, res, next) => {
     purchaseDate,
     warrantyMonths,
   } = req.body;
+
   let receiptUrl = "";
 
   if (req.file) {
@@ -91,7 +80,7 @@ export const createAsset = catchAsync(async (req, res, next) => {
   }
 
   const newAsset = await Asset.create({
-    category,
+    category, // Passed directly as string
     model,
     serialNumber,
     purchasePrice: Number(purchasePrice) || 0,
@@ -103,10 +92,6 @@ export const createAsset = catchAsync(async (req, res, next) => {
   res.status(201).json({ status: "success", data: newAsset });
 });
 
-/**
- * @desc    Update asset details (The "Edit" functionality)
- * @route   PATCH /api/assets/:id
- */
 export const updateAsset = catchAsync(async (req, res, next) => {
   const asset = await Asset.findById(req.params.id);
   if (!asset) {
@@ -116,13 +101,11 @@ export const updateAsset = catchAsync(async (req, res, next) => {
 
   const updateData = { ...req.body };
 
-  // Ensure numeric types
   if (updateData.purchasePrice)
     updateData.purchasePrice = Number(updateData.purchasePrice);
   if (updateData.warrantyMonths)
     updateData.warrantyMonths = Number(updateData.warrantyMonths);
 
-  // Handle new receipt upload if provided
   if (req.file) {
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "assets/receipts",
@@ -139,11 +122,11 @@ export const updateAsset = catchAsync(async (req, res, next) => {
   );
 
   await AuditLog.create({
-    action: "UPDATED",
+    action: "MODIFIED",
     entityType: "Asset",
     entityId: asset._id,
     performedBy: req.user._id,
-    description: `Updated details for ${updatedAsset.model}.`,
+    description: `Modified details for ${updatedAsset.model}.`,
   });
 
   res.status(200).json({ status: "success", data: updatedAsset });
@@ -177,7 +160,7 @@ export const uploadAssetReceipt = catchAsync(async (req, res, next) => {
     .json({ status: "success", data: { receiptUrl: asset.receiptUrl } });
 });
 
-// --- 3. LIFECYCLE (ASSIGN/RETURN/REPAIR) CONTROLLERS ---
+// --- 3. LIFECYCLE (ASSIGN/RETURN/UNDER_MAINTENANCE) CONTROLLERS ---
 
 /**
  * @desc    Assign asset to employee
@@ -192,16 +175,16 @@ export const assignAsset = catchAsync(async (req, res, next) => {
 
     if (!existingAsset) throw new AppError("Asset not found", 404);
     if (
-      existingAsset.status === "ASSIGNED" &&
-      existingAsset.assignedTo?.toString() === employeeId
+      existingAsset.status === "ALLOCATED" &&
+      existingAsset.allocatedTo?.toString() === employeeId
     ) {
       await session.commitTransaction();
       return res.status(200).json({ status: "success", data: existingAsset });
     }
 
     const asset = await Asset.findOneAndUpdate(
-      { _id: req.params.id, status: "AVAILABLE" },
-      { $set: { status: "ASSIGNED", assignedTo: employeeId } },
+      { _id: req.params.id, status: "READY_TO_DEPLOY" },
+      { $set: { status: "ALLOCATED", allocatedTo: employeeId } },
       { new: true, session },
     );
 
@@ -216,12 +199,12 @@ export const assignAsset = catchAsync(async (req, res, next) => {
     await AuditLog.create(
       [
         {
-          action: "ASSIGNED",
+          action: "ALLOCATED",
           entityType: "Asset",
           entityId: asset._id,
           performedBy: req.user._id,
           targetEmployee: employeeId,
-          description: `Assigned ${asset.model} (SN: ${asset.serialNumber}) to employee.`,
+          description: `Allocated ${asset.model} (SN: ${asset.serialNumber}) to employee.`,
         },
       ],
       { session },
@@ -245,11 +228,11 @@ export const returnAsset = catchAsync(async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const returnStatus = req.body?.returnStatus || "AVAILABLE";
+    const returnStatus = req.body?.returnStatus || "READY_TO_DEPLOY";
     const asset = await Asset.findById(req.params.id).session(session);
 
     if (!asset) throw new AppError("Asset not found", 404);
-    if (asset.status !== "ASSIGNED") {
+    if (asset.status !== "ALLOCATED") {
       await session.commitTransaction();
       return res.status(200).json({
         status: "success",
@@ -258,9 +241,9 @@ export const returnAsset = catchAsync(async (req, res, next) => {
       });
     }
 
-    const previousHolder = asset.assignedTo;
+    const previousHolder = asset.allocatedTo;
     asset.status = returnStatus;
-    asset.assignedTo = null;
+    asset.allocatedTo = null;
     await asset.save({ session });
 
     if (previousHolder) {
@@ -274,7 +257,7 @@ export const returnAsset = catchAsync(async (req, res, next) => {
     await AuditLog.create(
       [
         {
-          action: "RETURNED",
+          action: "RECOVERED",
           entityType: "Asset",
           entityId: asset._id,
           performedBy: req.user._id,
@@ -302,8 +285,8 @@ export const returnAsset = catchAsync(async (req, res, next) => {
  */
 export const completeRepair = catchAsync(async (req, res, next) => {
   const asset = await Asset.findOneAndUpdate(
-    { _id: req.params.id, status: "REPAIR" },
-    { $set: { status: "AVAILABLE" } },
+    { _id: req.params.id, status: "UNDER_MAINTENANCE" },
+    { $set: { status: "READY_TO_DEPLOY" } },
     { new: true },
   );
 
@@ -311,7 +294,7 @@ export const completeRepair = catchAsync(async (req, res, next) => {
     return next(new AppError("Asset not found or not in repair", 404));
 
   await AuditLog.create({
-    action: "UPDATED",
+    action: "MODIFIED",
     entityType: "Asset",
     entityId: asset._id,
     performedBy: req.user._id,
@@ -332,11 +315,11 @@ export const deleteAsset = catchAsync(async (req, res, next) => {
     return next(new AppError("No asset found with that ID", 404));
   }
 
-  // 1. Prevent deletion if currently assigned
-  if (asset.status === "ASSIGNED") {
+  // 1. Prevent deletion if currently allocated
+  if (asset.status === "ALLOCATED") {
     return next(
       new AppError(
-        "Cannot delete an asset that is currently assigned to an employee. Return it first.",
+        "Cannot delete an asset that is currently allocated to an employee. Return it first.",
         400,
       ),
     );

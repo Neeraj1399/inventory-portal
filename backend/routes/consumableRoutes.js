@@ -9,31 +9,45 @@ import {
   returnConsumable,
   deleteConsumable,
   updateCondition,
-  resolveMaintenance
+  resolveMaintenance,
 } from "../controllers/consumableController.js";
 import { protect, isAdmin } from "../middleware/authMiddleware.js";
 
-// --- AUTHENTICATION GUARD ---
+/**
+ * --- AUTHENTICATION GUARD ---
+ * All users must be logged in to view or interact with consumables.
+ */
 router.use(protect);
 
+// Public/General Private Routes
 router.get("/", getConsumables);
 router.get("/:id", getConsumableById);
 
-// --- ADMIN AUTHORIZATION GUARD ---
-router.use((req, res, next) => isAdmin(req, res, next));
+/**
+ * --- ADMIN AUTHORIZATION GUARD ---
+ * Only Admins can modify inventory levels, assign items, or manage maintenance.
+ * Simplified from (req, res, next) => isAdmin(req, res, next)
+ */
+router.use(isAdmin);
 
 /**
- * Inventory Management
+ * Inventory Lifecycle Management
  */
-router.post("/", createConsumable);
-router.post("/:id/assign", assignConsumable);
-router.post("/:id/return", returnConsumable);
-router.patch("/:id/restock", restockConsumable);
 
-// 2. REGISTER THE CONDITION ROUTE
-// This matches the frontend call: PATCH /api/consumables/:id/condition
+// 1. Acquisition & Basic Management
+router.post("/", createConsumable); // Create new SKU
+router.patch("/:id/restock", restockConsumable); // Increase existing stock
+router.delete("/:id", deleteConsumable); // Remove SKU permanently
+
+// 2. Employee Assignment Flow
+router.post("/:id/assign", assignConsumable); // Issue to employee
+router.post("/:id/return", returnConsumable); // Return to warehouse (Stock or Repair)
+
+// 3. Quality & Maintenance Flow
+// Handles moving "In-Warehouse" stock to maintenance or scrapping it
 router.patch("/:id/condition", updateCondition);
+
+// Handles returning items from the "Maintenance Pool" back to stock or scrapping them
 router.patch("/:id/resolve-maintenance", resolveMaintenance);
-router.delete("/:id", deleteConsumable);
 
 export default router;

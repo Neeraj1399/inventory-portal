@@ -4,8 +4,8 @@ const AssetSchema = new Schema(
   {
     category: {
       type: String,
-      required: [true, "Category is required (e.g., Laptop)"],
-      trim: true,
+      required: [true, "Please enter a category (e.g., Laptop, Furniture)"],
+      trim: true, // This ensures " Laptop " becomes "Laptop"
     },
     model: {
       type: String,
@@ -22,12 +22,12 @@ const AssetSchema = new Schema(
     status: {
       type: String,
       enum: {
-        values: ["AVAILABLE", "ASSIGNED", "REPAIR", "SCRAPPED", "ARCHIVED"],
+        values: ["READY_TO_DEPLOY", "ALLOCATED", "UNDER_MAINTENANCE", "DECOMMISSIONED", "ARCHIVED"],
         message: "{VALUE} is not a supported status",
       },
-      default: "AVAILABLE",
+      default: "READY_TO_DEPLOY",
     },
-    assignedTo: {
+    allocatedTo: {
       type: Schema.Types.ObjectId,
       ref: "Employee",
       default: null,
@@ -37,6 +37,7 @@ const AssetSchema = new Schema(
     purchasePrice: {
       type: Number,
       min: [0, "Price cannot be negative"],
+      default: 0,
     },
     warrantyMonths: {
       type: Number,
@@ -75,59 +76,45 @@ const AssetSchema = new Schema(
  * 1. INDEXES
  */
 AssetSchema.index({ status: 1 });
-AssetSchema.index({ assignedTo: 1 });
+AssetSchema.index({ allocatedTo: 1 });
+AssetSchema.index({ category: 1 }); // Added index for faster filtering by category
 
 /**
  * 2. DATA INTEGRITY MIDDLEWARE
  */
-AssetSchema.pre("save", function (next) {
-  if (this.isModified("status") && this.status !== "ASSIGNED") {
-    this.assignedTo = null;
-  }
-  if (typeof next === "function") {
-    next();
+AssetSchema.pre("save", function () {
+  if (this.isModified("status") && this.status !== "ALLOCATED") {
+    this.allocatedTo = null;
   }
 });
 
 /**
  * 3. QUERY MIDDLEWARE (Soft Delete)
  */
-AssetSchema.pre(/^find/, function (next) {
-  // Use 'this.getOptions()' to check for custom flags
+AssetSchema.pre(/^find/, function () {
   const options = this.getOptions();
-
   if (!options || !options.includeDeleted) {
     this.where({ isDeleted: { $ne: true } });
   }
-
-  // Ensure next is a function before calling it to prevent the 500 error
-  if (typeof next === "function") {
-    next();
-  }
 });
+
 /**
- * 4. VIRTUAL: Asset Age (CRASH-PROOF)
+ * 4. VIRTUALS (Asset Age, Warranty, Maintenance)
  */
 AssetSchema.virtual("assetAge").get(function () {
   if (!this.purchaseDate) return "N/A";
-
   try {
     const now = new Date();
     const purchase = new Date(this.purchaseDate);
-
     if (isNaN(purchase.getTime())) return "Invalid Date";
-
     let years = now.getFullYear() - purchase.getFullYear();
     let months = now.getMonth() - purchase.getMonth();
-
     if (months < 0) {
       years--;
       months += 12;
     }
-
     const yearStr = years > 0 ? `${years}y` : "";
     const monthStr = months > 0 ? `${months}m` : "";
-
     return years === 0 && months === 0
       ? "New"
       : [yearStr, monthStr].filter(Boolean).join(" ") || "0m";
@@ -136,35 +123,22 @@ AssetSchema.virtual("assetAge").get(function () {
   }
 });
 
-/**
- * 5. VIRTUAL: WARRANTY COUNTDOWN (CRASH-PROOF)
- */
 AssetSchema.virtual("warrantyStatus").get(function () {
   if (!this.purchaseDate || !this.warrantyMonths) return "No Info";
-
   try {
     const expiryDate = new Date(this.purchaseDate);
-    if (isNaN(expiryDate.getTime())) return "Invalid Date";
-
     expiryDate.setMonth(expiryDate.getMonth() + this.warrantyMonths);
-
     const now = new Date();
     if (now > expiryDate) return "Expired";
-
-    const diffTime = expiryDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
     return `${diffDays} days left`;
   } catch (err) {
     return "N/A";
   }
 });
 
-/**
- * 6. VIRTUAL: MAINTENANCE ALERTS
- */
 AssetSchema.virtual("needsMaintenance").get(function () {
   if (!this.lastMaintenance) return true;
-
   try {
     const nextDueDate = new Date(this.lastMaintenance);
     nextDueDate.setMonth(nextDueDate.getMonth() + this.maintenanceCycle);

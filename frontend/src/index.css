@@ -1,9 +1,6 @@
 @import "tailwindcss";
-@theme {
-  --color-brand: #3b82f6; 
-  --color-surface: #f9fafb;
-}
 
 body {
-  @apply bg-surface text-slate-900;
+  @apply bg-zinc-950 text-zinc-200 antialiased min-h-screen;
+  background-color: #09090b;
 }

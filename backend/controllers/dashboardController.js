@@ -55,10 +55,10 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
   // Map asset stats for frontend
   const assetCounts = {
     TOTAL: assetStats.reduce((acc, curr) => acc + curr.count, 0),
-    AVAILABLE: assetStats.find((a) => a._id === "AVAILABLE")?.count || 0,
-    ASSIGNED: assetStats.find((a) => a._id === "ASSIGNED")?.count || 0,
-    REPAIR: assetStats.find((a) => a._id === "REPAIR")?.count || 0,
-    SCRAPPED: assetStats.find((a) => a._id === "SCRAPPED")?.count || 0,
+    READY_TO_DEPLOY: assetStats.find((a) => a._id === "READY_TO_DEPLOY")?.count || 0,
+    ALLOCATED: assetStats.find((a) => a._id === "ALLOCATED")?.count || 0,
+    UNDER_MAINTENANCE: assetStats.find((a) => a._id === "UNDER_MAINTENANCE")?.count || 0,
+    DECOMMISSIONED: assetStats.find((a) => a._id === "DECOMMISSIONED")?.count || 0,
   };
 
   // Format audit logs for frontend
@@ -97,9 +97,9 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
 export const getStaffDashboard = catchAsync(async (req, res) => {
   const employeeId = req.user._id;
 
-  // Fetch staff assigned assets and consumables
+  // Fetch staff allocated assets and consumables
   const [myAssets, myConsumables] = await Promise.all([
-    Asset.find({ assignedTo: employeeId, isDeleted: { $ne: true } })
+    Asset.find({ allocatedTo: employeeId, isDeleted: { $ne: true } })
       .select("category model serialNumber status updatedAt")
       .lean(),
     Consumable.find({ "assignments.employeeId": employeeId })
@@ -110,7 +110,7 @@ export const getStaffDashboard = catchAsync(async (req, res) => {
   res.status(200).json({
     status: "success",
     data: {
-      assignedAssets: myAssets || [],
+      allocatedAssets: myAssets || [],
       consumables: (myConsumables || []).map((item) => ({
         name: item.itemName,
         quantity: item.assignments[0]?.quantity || 0,

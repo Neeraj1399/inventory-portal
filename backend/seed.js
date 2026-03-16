@@ -58,8 +58,8 @@ const seedDB = async () => {
         category: "Laptop",
         model: "MacBook Pro M3 Max",
         serialNumber: "SN-MBP-M3-9901",
-        status: "ASSIGNED",
-        assignedTo: john._id,
+        status: "ALLOCATED",
+        allocatedTo: john._id,
         purchasePrice: 3499,
         purchaseDate: new Date("2024-01-15"),
         warrantyMonths: 36,
@@ -70,7 +70,7 @@ const seedDB = async () => {
         category: "Laptop",
         model: "MacBook Air M2",
         serialNumber: "SN-MBA-7733",
-        status: "AVAILABLE",
+        status: "READY_TO_DEPLOY",
         purchasePrice: 1199,
         purchaseDate: new Date("2024-03-01"),
         warrantyMonths: 12,
@@ -81,8 +81,8 @@ const seedDB = async () => {
         category: "Monitor",
         model: "Dell UltraSharp 27",
         serialNumber: "SN-DELL-9921",
-        status: "ASSIGNED",
-        assignedTo: john._id,
+        status: "ALLOCATED",
+        allocatedTo: john._id,
         purchasePrice: 450,
         purchaseDate: new Date("2024-02-10"),
         warrantyMonths: 24,
@@ -93,7 +93,7 @@ const seedDB = async () => {
         category: "Laptop",
         model: "ThinkPad X1 Carbon",
         serialNumber: "SN-TP-8822",
-        status: "REPAIR",
+        status: "UNDER_MAINTENANCE",
         purchasePrice: 1800,
         purchaseDate: new Date("2023-11-05"),
         warrantyMonths: 12,
@@ -108,30 +108,30 @@ const seedDB = async () => {
     // 5️⃣ Create Audit Logs
     const auditLogsData = [
       {
-        action: "ASSIGNED",
+        action: "ALLOCATED",
         entityType: "Asset",
         entityId: createdAssets[0]._id,
         performedBy: admin._id,
         targetEmployee: john._id,
-        description: `Assigned ${createdAssets[0].model} to ${john.name}`,
+        description: `Allocated ${createdAssets[0].model} to ${john.name}`,
       },
       {
-        action: "ASSIGNED",
+        action: "ALLOCATED",
         entityType: "Asset",
         entityId: createdAssets[2]._id,
         performedBy: admin._id,
         targetEmployee: john._id,
-        description: `Assigned ${createdAssets[2].model} to ${john.name}`,
+        description: `Allocated ${createdAssets[2].model} to ${john.name}`,
       },
     ];
 
     await AuditLog.insertMany(auditLogsData);
     console.log("🧾 Audit logs created successfully");
 
-    // 6️⃣ Update John's assigned asset count
+    // 6️⃣ Update John's allocated asset count
     const johnAssignedCount = createdAssets.filter(
       (asset) =>
-        asset.assignedTo && asset.assignedTo.toString() === john._id.toString(),
+        asset.allocatedTo && asset.allocatedTo.toString() === john._id.toString(),
     ).length;
 
     await Employee.findByIdAndUpdate(john._id, {
@@ -142,7 +142,7 @@ const seedDB = async () => {
     console.log("✅ SEED SUCCESSFUL");
     console.log(`Employees created: ${createdEmployees.length}`);
     console.log(`Assets created: ${createdAssets.length}`);
-    console.log(`Assets assigned to John: ${johnAssignedCount}`);
+    console.log(`Assets allocated to John: ${johnAssignedCount}`);
     console.log("------------------------------------------");
 
     process.exit(0);

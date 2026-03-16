@@ -27,7 +27,7 @@ const consumableSchema = new Schema(
     },
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: [true, "Asset Classification is required"],
     },
     // 🟢 ADDED: Unit Cost field
     unitCost: {
@@ -66,7 +66,7 @@ const consumableSchema = new Schema(
 
 /**
  * VIRTUAL: Available Quantity
- * Subtracts both assigned and maintenance stock.
+ * Subtracts both allocated and maintenance stock.
  */
 consumableSchema.virtual("availableQuantity").get(function () {
   return (

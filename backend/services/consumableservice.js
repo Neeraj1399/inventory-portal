@@ -4,8 +4,8 @@ import AppError from "../utils/appError.js";
 /**
  * Pure Logic Helper (Optional: for Unit Testing)
  */
-export const checkAvailability = (total, assigned, requested) =>
-  total - assigned >= requested;
+export const checkAvailability = (total, allocated, requested) =>
+  total - allocated >= requested;
 
 /**
  * Atomic Stock Service

@@ -16,17 +16,17 @@ export async function processFullOffboard(employeeId, adminId) {
       throw new AppError("Employee is already offboarded", 400);
     }
 
-    // 2. THE CHECK: Block if assets are still assigned
-    // We search for any asset where the status is "ASSIGNED" to this person
+    // 2. THE CHECK: Block if assets are still allocated
+    // We search for any asset where the status is "ALLOCATED" to this person
     const activeAssetsCount = await Asset.countDocuments({
-      assignedTo: employeeId,
-      status: "ASSIGNED",
+      allocatedTo: employeeId,
+      status: "ALLOCATED",
     }).session(session);
 
     if (activeAssetsCount > 0) {
       // We throw a 400 error which the frontend alert will catch
       throw new AppError(
-        `Offboarding blocked: This employee still has ${activeAssetsCount} hardware asset(s) assigned. Please return gear to inventory before offboarding.`,
+        `Offboarding blocked: This employee still has ${activeAssetsCount} hardware asset(s) allocated. Please return gear to inventory before offboarding.`,
         400,
       );
     }

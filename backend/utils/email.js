@@ -1,36 +1,23 @@
-// import nodemailer from "nodemailer";
-
-// const sendEmail = async (options) => {
-//   const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//       user: process.env.EMAIL_USER, // Your Gmail address
-//       pass: process.env.EMAIL_PASS, // Your Google App Password
-//     },
-//   });
-
-//   const mailOptions = {
-//     from: `"Asset Manager" <${process.env.EMAIL_USER}>`,
-//     to: options.email,
-//     subject: options.subject,
-//     html: options.html,
-//   };
-
-//   await transporter.sendMail(mailOptions);
-// };
-
-// export default sendEmail;
 import nodemailer from "nodemailer";
 
+/**
+ * @desc    Utility to send plain text or HTML emails
+ * @param   {Object} options - { email, subject, message, html }
+ */
 const sendEmail = async (options) => {
   // 1) Create a transporter
+  // Note: secure: true is usually for port 465, false for 587 or 25
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
-    secure: false, // true for 465, false for other ports
+    secure: process.env.EMAIL_PORT == 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
+    },
+    // Useful for self-signed certificates in some dev environments
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 
@@ -40,11 +27,16 @@ const sendEmail = async (options) => {
     to: options.email,
     subject: options.subject,
     text: options.message,
-    // html: options.html (Optional: you can add HTML templates later)
+    html: options.html, // Enabled so you can send styled reset links later
   };
 
   // 3) Actually send the email
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.error("📧 Email Service Error:", err);
+    throw new Error("Email could not be sent.");
+  }
 };
 
 export default sendEmail;

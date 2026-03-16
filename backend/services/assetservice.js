@@ -13,24 +13,24 @@ export async function assignAssetToEmployee(assetId, employeeId, adminId) {
   try {
     const asset = await Asset.findById(assetId).session(session);
 
-    if (!asset || asset.status !== "AVAILABLE") {
+    if (!asset || asset.status !== "READY_TO_DEPLOY") {
       throw new Error("Asset unavailable or not found");
     }
 
-    asset.status = "ASSIGNED";
-    asset.assignedTo = employeeId;
+    asset.status = "ALLOCATED";
+    asset.allocatedTo = employeeId;
     asset.assignedAt = Date.now();
     await asset.save({ session });
 
     await AuditLog.create(
       [
         {
-          action: "ASSIGNED",
+          action: "ALLOCATED",
           entityType: "Asset",
           entityId: asset._id,
           performedBy: adminId,
           targetEmployee: employeeId,
-          description: `Assigned ${asset.assetName}`,
+          description: `Allocated ${asset.assetName}`,
         },
       ],
       { session },

@@ -5,142 +5,242 @@ import api from "../../hooks/api";
 import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+ const [email, setEmail] = useState("");
+ const [password, setPassword] = useState("");
+ const [showPassword, setShowPassword] = useState(false);
+ const [loading, setLoading] = useState(false);
+ const [error, setError] = useState("");
+ const [successMessage, setSuccessMessage] = useState("");
 
-  const navigate = useNavigate();
-  const { login } = useAuth();
+ const [isForgotPassword, setIsForgotPassword] = useState(false);
+ const [resetEmail, setResetEmail] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (loading) return;
+ const navigate = useNavigate();
+ const { login } = useAuth();
 
-    setLoading(true);
-    setError("");
+ const handleLogin = async (e) => {
+ e.preventDefault();
+ if (loading) return;
 
-    try {
-      const { data: resBody } = await api.post("/auth/login", {
-        email: email.trim(),
-        password,
-      });
+ setLoading(true);
+ setError("");
 
-      // //update: Access data correctly based on your authController structure
-      const userData = resBody.data.user;
-      const accessToken = resBody.accessToken;
+ try {
+ const { data: resBody } = await api.post("/auth/login", {
+ email: email.trim(),
+ password,
+ });
 
-      if (resBody.mustChangePassword) {
-        localStorage.setItem("token", accessToken);
-        navigate("/reset-password");
-        return;
-      }
+ // //update: Access data correctly based on your authController structure
+ const userData = resBody.data.user;
+ const accessToken = resBody.accessToken;
 
-      // //update: Use the login function from context to handle the state
-      login(userData, accessToken);
-      navigate("/");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.message || "Invalid login credentials");
-    } finally {
-      setLoading(false);
-    }
-  };
+ if (resBody.mustChangePassword) {
+ localStorage.setItem("token", accessToken);
+ navigate("/reset-password");
+ return;
+ }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4 shadow-lg shadow-blue-200">
-            <ShieldCheck className="text-white w-10 h-10" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Inventory Portal
-          </h1>
-          <p className="text-slate-500 mt-2">
-            Sign in to manage company assets
-          </p>
-        </div>
+ login(userData, accessToken);
+ navigate("/");
+ } catch (err) {
+ console.error("Login error:", err);
+ setError(err.response?.data?.message || "Invalid login credentials");
+ } finally {
+ setLoading(false);
+ }
+ };
 
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+ const handleForgotPasswordSubmit = async (e) => {
+ e.preventDefault();
+ if (loading) return;
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="text-xs font-semibold uppercase text-slate-500 ml-1 mb-2 block">
-              Work Email
-            </label>
-            <div className="relative group">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 w-5 h-5" />
-              <input
-                autoFocus
-                type="email"
-                required
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (error) setError("");
-                }}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none"
-              />
-            </div>
-          </div>
+ setLoading(true);
+ setError("");
+ setSuccessMessage("");
 
-          <div>
-            <label className="text-xs font-semibold uppercase text-slate-500 ml-1 mb-2 block">
-              Password
-            </label>
-            <div className="relative group">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 w-5 h-5" />
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (error) setError("");
-                }}
-                className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
+ try {
+ const res = await api.post("/auth/forgot-password-request", {
+ email: resetEmail.trim(),
+ });
+ setSuccessMessage(res.data.message || "Reset request sent successfully.");
+ setResetEmail("");
+ } catch (err) {
+ console.error("Forgot password error:", err);
+ setError(err.response?.data?.message || "Error submitting request. Please try again.");
+ } finally {
+ setLoading(false);
+ }
+ };
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin w-5 h-5" />
-                Signing in...
-              </>
-            ) : (
-              "Login to Dashboard"
-            )}
-          </button>
-        </form>
+ return (
+ <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
+ {/* Decorative Blob */}
+ <div className="absolute top-10 left-10 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob"></div>
+ <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000"></div>
+ <div className="absolute -bottom-8 left-20 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-4000"></div>
+ 
+ <div className="max-w-md w-full bg-zinc-900 rounded-2xl shadow-2xl shadow-indigo-500/10 p-8 border border-zinc-800 relative z-10 transition-all duration-500">
+ <div className="text-center mb-8">
+ <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mb-4 shadow-lg shadow-black/20 transform hover:scale-105 transition-transform duration-300">
+ <ShieldCheck className="text-white w-10 h-10" />
+ </div>
+ <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+ Inventory Portal
+ </h1>
+ <p className="text-zinc-400 mt-2">
+ {isForgotPassword ? "Request a password reset" : "Sign in to manage company assets"}
+ </p>
+ </div>
 
-        <p className="text-center text-slate-400 text-sm mt-8">
-          Forgot your password?{" "}
-          <span className="text-blue-600 font-medium">Contact Admin</span>
-        </p>
-      </div>
-    </div>
-  );
+ {error && (
+ <div className="mb-6 p-4 bg-red-500/100/10 border-l-4 border-red-500 text-red-400 text-sm rounded-r-lg shadow-sm">
+ {error}
+ </div>
+ )}
+
+ {successMessage && (
+ <div className="mb-6 p-4 bg-emerald-500/100/10 border-l-4 border-emerald-500 text-emerald-400 text-sm rounded-r-lg shadow-sm">
+ {successMessage}
+ </div>
+ )}
+
+ {isForgotPassword ? (
+ <form onSubmit={handleForgotPasswordSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+ <div>
+ <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
+ Work Email
+ </label>
+ <div className="relative group">
+ <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
+ <input
+ autoFocus
+ type="email"
+ required
+ placeholder="name@company.com"
+ value={resetEmail}
+ onChange={(e) => {
+ setResetEmail(e.target.value);
+ if (error) setError("");
+ if (successMessage) setSuccessMessage("");
+ }}
+ className="w-full pl-11 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
+ />
+ </div>
+ </div>
+
+ <button
+ type="submit"
+ disabled={loading}
+ className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 transition-all active:scale-[0.98] hover:shadow-xl disabled:opacity-70 disabled:hover:scale-100"
+ >
+ {loading ? (
+ <>
+ <Loader2 className="animate-spin w-5 h-5" />
+ Sending Request...
+ </>
+ ) : (
+ "Request Reset"
+ )}
+ </button>
+
+ <p className="text-center text-zinc-400 text-sm mt-8">
+ Remember your password?{" "}
+ <button 
+ type="button"
+ onClick={() => {
+ setIsForgotPassword(false);
+ setError("");
+ setSuccessMessage("");
+ }}
+ className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
+ >
+ Sign In
+ </button>
+ </p>
+ </form>
+ ) : (
+ <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+ <div>
+ <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
+ Work Email
+ </label>
+ <div className="relative group">
+ <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
+ <input
+ autoFocus
+ type="email"
+ required
+ placeholder="name@company.com"
+ value={email}
+ onChange={(e) => {
+ setEmail(e.target.value);
+ if (error) setError("");
+ }}
+ className="w-full pl-11 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
+ Password
+ </label>
+ <div className="relative group">
+ <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
+ <input
+ type={showPassword ? "text" : "password"}
+ required
+ placeholder="••••••••"
+ value={password}
+ onChange={(e) => {
+ setPassword(e.target.value);
+ if (error) setError("");
+ }}
+ className="w-full pl-11 pr-10 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
+ />
+ <button
+ type="button"
+ onClick={() => setShowPassword(!showPassword)}
+ className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-indigo-400 transition-colors"
+ >
+ {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+ </button>
+ </div>
+ </div>
+
+ <button
+ type="submit"
+ disabled={loading}
+ className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 transition-all active:scale-[0.98] hover:shadow-xl disabled:opacity-70 disabled:hover:scale-100"
+ >
+ {loading ? (
+ <>
+ <Loader2 className="animate-spin w-5 h-5" />
+ Signing in...
+ </>
+ ) : (
+ "Login to Dashboard"
+ )}
+ </button>
+ <p className="text-center text-zinc-400 text-sm mt-8">
+ Forgot your password?{" "}
+ <button 
+ type="button"
+ onClick={() => {
+ setIsForgotPassword(true);
+ setError("");
+ }}
+ className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
+ >
+ Reset it here
+ </button>
+ </p>
+ </form>
+ )}
+ </div>
+ </div>
+ );
 };
 
 export default Login;
