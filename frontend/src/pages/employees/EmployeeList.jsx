@@ -16,6 +16,7 @@ import { useToast } from "../../context/ToastContext";
 import AddEmployeeModal from "../../components/employees/AddEmployeeModal";
 import EditEmployeeModal from "../../components/employees/EditEmployeeModal";
 import ManageAssetsModal from "../assets/ManageAssetsModal";
+import ManageConsumablesModal from "../consumables/ManageConsumablesModal";
 
 const EmployeeList = () => {
  const [employees, setEmployees] = useState([]);
@@ -24,6 +25,7 @@ const EmployeeList = () => {
  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isConsumableModalOpen, setIsConsumableModalOpen] = useState(false);
  const [viewStatus, setViewStatus] = useState("ACTIVE");
  const [selectedEmployee, setSelectedEmployee] = useState(null);
  const [resetRequests, setResetRequests] = useState([]);
@@ -196,7 +198,7 @@ const EmployeeList = () => {
  ) : (
  <div className="flex flex-col gap-3">
  {/* Table Header (Desktop Only) */}
- <div className="hidden md:grid grid-cols-[3fr_1.5fr_1.5fr_240px] gap-6 px-6 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
+  <div className="hidden md:grid grid-cols-[3fr_1.2fr_1.2fr_380px] gap-6 px-6 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
  <div>Employee</div>
  <div className="flex items-center">Hardware</div>
  <div className="flex items-center">Consumables</div>
@@ -211,8 +213,8 @@ const EmployeeList = () => {
  return (
  <div
  key={emp._id}
- className="group bg-zinc-900 border border-zinc-800 rounded-3xl p-6 grid grid-cols-1 md:grid-cols-[3fr_1.5fr_1.5fr_240px] gap-4 md:gap-6 items-center hover:shadow-2xl hover:-translate-y-1 hover:border-indigo-500/50 hover:bg-zinc-800/90 transition-all duration-300 w-full"
- >
+  className="group bg-zinc-900 border border-zinc-800 rounded-3xl p-6 grid grid-cols-1 md:grid-cols-[3fr_1.2fr_1.2fr_380px] gap-4 md:gap-6 items-center hover:shadow-2xl hover:-translate-y-1 hover:border-indigo-500/50 hover:bg-zinc-800/90 transition-all duration-300 w-full"
+  >
  <div className="flex items-center gap-5">
  <div className="h-14 w-14 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner border border-indigo-500/30">
  {emp.name?.charAt(0) || "U"}
@@ -269,16 +271,27 @@ const EmployeeList = () => {
  <div className="flex items-center justify-end gap-3 border-t border-zinc-800 md:border-t-0 pt-4 md:pt-0">
  {emp.status === "ACTIVE" && (
  <>
- <button
- onClick={() => {
- setSelectedEmployee(emp);
- setIsAssetModalOpen(true);
- }}
- className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors shadow-sm"
- >
- <Plus size={16} />
- Allocate Asset
- </button>
+  <button
+  onClick={() => {
+  setSelectedEmployee(emp);
+  setIsAssetModalOpen(true);
+  }}
+  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors shadow-sm"
+  >
+  <Laptop size={16} />
+  Hardware
+  </button>
+
+  <button
+  onClick={() => {
+  setSelectedEmployee(emp);
+  setIsConsumableModalOpen(true);
+  }}
+  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors shadow-sm"
+  >
+  <Package size={16} />
+  Consumables
+  </button>
 
  <button
  onClick={() => {
@@ -338,17 +351,27 @@ const EmployeeList = () => {
  onRefresh={fetchEmployees}
  />
 
- <ManageAssetsModal
- isOpen={isAssetModalOpen}
- employee={selectedEmployee}
- onClose={() => {
- setIsAssetModalOpen(false);
- setSelectedEmployee(null);
- }}
- onRefresh={fetchEmployees}
- />
- </>
- )}
+  <ManageAssetsModal
+  isOpen={isAssetModalOpen}
+  employee={selectedEmployee}
+  onClose={() => {
+  setIsAssetModalOpen(false);
+  setSelectedEmployee(null);
+  }}
+  onRefresh={fetchEmployees}
+  />
+
+  <ManageConsumablesModal
+  isOpen={isConsumableModalOpen}
+  employee={selectedEmployee}
+  onClose={() => {
+  setIsConsumableModalOpen(false);
+  setSelectedEmployee(null);
+  }}
+  onRefresh={fetchEmployees}
+  />
+  </>
+  )}
  </div>
  );
 };
