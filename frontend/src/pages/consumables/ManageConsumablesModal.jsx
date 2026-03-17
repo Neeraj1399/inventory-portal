@@ -11,7 +11,7 @@ import api from "../../hooks/api";
 import ReturnConsumableModal from "../../components/consumables/ReturnConsumableModal";
 import IssueConsumableModal from "../../components/consumables/IssueConsumableModal";
 
-const ManageConsumablesModal = ({ employee, onClose, onRefresh }) => {
+const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
   const [consumables, setConsumables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

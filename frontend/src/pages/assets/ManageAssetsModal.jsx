@@ -11,7 +11,7 @@ import api from "../../hooks/api";
 import ReturnAssetModal from "../../components/assets/ReturnAssetModal";
 import AssetConditionModal from "../../components/assets/AssetConditionModal";
 
-const ManageAssetsModal = ({ employee, onClose, onRefresh }) => {
+const ManageAssetsModal = ({ isOpen, employee, onClose, onRefresh }) => {
  const [assignedAssets, setAssignedAssets] = useState([]);
  const [availableAssets, setAvailableAssets] = useState([]);
  const [loading, setLoading] = useState(true);
