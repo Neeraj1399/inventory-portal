@@ -74,7 +74,9 @@ app.use(cookieParser());
 if (process.env.NODE_ENV !== "production") {
   app.use("/uploads", express.static("uploads"));
 }
-
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 // --- 3. MOUNT ROUTES ---
 // HEALTH CHECK ROUTE (Add this to verify backend is live)
 app.get("/api/health", (req, res) => {
