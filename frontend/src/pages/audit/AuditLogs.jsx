@@ -201,7 +201,7 @@ const AuditLogs = () => {
         <div>
           <h1 className="text-3xl font-black text-zinc-50 tracking-tight flex items-center gap-3">
             <History className="text-indigo-500" size={32} />
-            Logs
+            Audit Trail
           </h1>
           <p className="text-zinc-500 text-sm mt-1">
             Immutable record of all administrative actions

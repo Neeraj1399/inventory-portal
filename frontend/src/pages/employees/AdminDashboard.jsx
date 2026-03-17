@@ -70,7 +70,7 @@ const AuditLogItem = ({ log }) => {
       onClick={() => setExpanded(!expanded)}
     >
       {/* 1. Action Badge Column (Fixed Width on Desktop) */}
-      <div className="md:w-40 flex-shrink-0">
+      <div className="md:w-28 flex-shrink-0">
         <div
           className={`text-center py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-[0.15em] ${
             log.action === "RECOVERED" || log.action === "RETURNED"
@@ -90,7 +90,7 @@ const AuditLogItem = ({ log }) => {
 
       {/* 2. Content Column (Main info) */}
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-sm font-bold text-zinc-100 group-hover:text-white transition-colors">
+        <p className="text-sm font-bold text-zinc-100 truncate group-hover:text-white transition-colors">
           {log.description || "No details provided"}
         </p>
 
@@ -124,7 +124,7 @@ const AuditLogItem = ({ log }) => {
 
       {/* EXPANDED DETAILS */}
       {expanded && log.details && (
-        <div className="w-full md:pl-44 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="w-full md:pl-36 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="relative">
              <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500/30 rounded-full" />
              <pre className="bg-black/40 border border-zinc-800/50 p-4 rounded-2xl text-[11px] font-mono text-indigo-300/60 overflow-x-auto shadow-inner ml-3">
@@ -195,10 +195,10 @@ const AdminDashboard = () => {
  <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
  <div>
  <h1 className="text-2xl font-bold text-zinc-50 tracking-tight">
- Inventory Analytics Hub
+ Operations Dashboard
  </h1>
  <p className="text-zinc-400 text-sm">
- Infrastructure & Equipment Monitoring
+ Hardware & Inventory Lifecycle Monitoring
  </p>
  </div>
 
@@ -211,35 +211,35 @@ const AdminDashboard = () => {
 
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
  <StatCard
- title="Workforce Directory"
+ title="Active Personnel"
  value={summary.employees}
  icon={<Users />}
  variant="blue"
  />
 
  <StatCard
- title="Enterprise Infrastructure"
+ title="Hardware Inventory"
  value={summary.assets.TOTAL}
  icon={<Monitor />}
  variant="indigo"
  />
 
  <StatCard
- title="Active Deployments"
+ title="Deployed Assets"
  value={summary.assets.ALLOCATED}
  icon={<Activity />}
  variant="green"
  />
 
  <StatCard
- title="Maintenance Pipeline"
+ title="Assets in Repair"
  value={summary.assets.UNDER_MAINTENANCE}
  icon={<Wrench />}
  variant="amber"
  />
 
  <StatCard
- title="Scrapped"
+ title="Retired Assets"
  value={summary.assets.DECOMMISSIONED}
  icon={<Trash2 />}
  variant="red"
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
  onClick={() => setIssueItem(item)}
  className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
  >
- Provision
+ Allocate
  </button>
 
  <button

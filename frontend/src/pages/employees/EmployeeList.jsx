@@ -116,10 +116,10 @@ const EmployeeList = () => {
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
   <div className="flex-1">
   <h1 className="text-3xl font-black text-zinc-50 tracking-tight">
-  Workforce Registry
+  Employee Directory
   </h1>
   <p className="text-zinc-400 text-sm mt-1">
-  Centralized personnel management and equipment provisioning
+  Organization directory and asset allocation management
   </p>
   </div>
 
@@ -127,7 +127,7 @@ const EmployeeList = () => {
   <div className="relative flex-1 sm:w-64">
   <input
     type="text"
-    placeholder="Search workforce..."
+    placeholder="Search directory..."
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
     className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all pl-12"
@@ -144,7 +144,7 @@ const EmployeeList = () => {
   className="bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold shadow-xl shadow-indigo-200 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap"
   >
   <UserPlus size={20} />
-  Register Member
+  Add Employee
   </button>
   </div>
   </div>

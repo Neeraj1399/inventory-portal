@@ -87,7 +87,7 @@ const RequestList = () => {
         <div>
           <h1 className="text-3xl font-black text-zinc-50 tracking-tight flex items-center gap-3">
             <ClipboardList className="text-indigo-500" size={32} />
-            Service Tickets
+            Allocation Requests
           </h1>
           <p className="text-zinc-500 text-sm mt-1">
             {isAdmin ? "Manage staff inventory requests and incident reports" : "Track status of your equipment and service requests"}

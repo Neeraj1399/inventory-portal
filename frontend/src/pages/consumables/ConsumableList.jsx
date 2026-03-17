@@ -135,7 +135,7 @@ const ConsumableList = () => {
               onClick={() => openModal("ADD")}
               className="flex-1 sm:flex-none bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 font-bold transition-all"
             >
-              <Plus size={20} /> Add Item
+              <Plus size={20} /> Add Consumable
             </button>
           ) : (
             <button
@@ -300,7 +300,7 @@ const ConsumableList = () => {
  disabled={available === 0}
  onClick={() => openModal("ISSUE", item)}
  className="p-3 bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-2xl hover:bg-indigo-600 hover:text-white disabled:opacity-20 transition-all shadow-md"
- title="Provision to Employee"
+ title="Allocate to Employee"
  >
  <UserPlus size={20} />
  </button>

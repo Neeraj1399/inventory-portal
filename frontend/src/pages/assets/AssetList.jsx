@@ -190,7 +190,7 @@ const AssetList = () => {
  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-800/60 pb-6">
  <div>
  <h1 className="text-3xl font-black text-zinc-50 tracking-tight">
- Hardware
+ Hardware Inventory
  </h1>
  <p className="text-zinc-400 font-medium text-sm mt-1">
  {loading ? "Refreshing..." : `${assets.length} Assets Registered`}
@@ -211,7 +211,7 @@ const AssetList = () => {
               }}
               className="flex-1 sm:flex-none bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg font-bold transition-all"
             >
-              <Plus size={20} /> New Asset
+              <Plus size={20} /> Add Asset
             </button>
           ) : (
             <button
@@ -304,7 +304,7 @@ const AssetList = () => {
  {/* 4. ASSET LIST */}
  <div className="space-y-3">
  {/* Table Header (Desktop Only) */}
- <div className="hidden md:grid grid-cols-[60px_3fr_2fr_160px_240px] gap-6 px-5 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
+ <div className="hidden md:grid grid-cols-[60px_3fr_2fr_120px_240px] gap-6 px-5 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
  <div className="flex items-center justify-center">
  <button
  onClick={() =>
@@ -361,7 +361,7 @@ const AssetList = () => {
  setSelectedAsset(asset);
  setSidebarOpen(true);
  }}
- className={`grid grid-cols-[auto_1fr] md:grid-cols-[60px_3fr_2fr_160px_240px] gap-4 md:gap-6 items-center p-5 rounded-3xl border transition-all cursor-pointer group w-full ${
+ className={`grid grid-cols-[auto_1fr] md:grid-cols-[60px_3fr_2fr_120px_240px] gap-4 md:gap-6 items-center p-5 rounded-3xl border transition-all cursor-pointer group w-full ${
  selectedIds.includes(asset._id)
  ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
  : "border-zinc-800/40 bg-zinc-800/40 hover:border-zinc-700 hover:bg-zinc-800 hover:shadow-xl"
@@ -580,7 +580,7 @@ const StatusBadge = ({ status }) => {
 
  return (
  <span
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border tracking-widest shadow-sm transition-all inline-block whitespace-nowrap ${
+ className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border tracking-widest shadow-sm transition-all inline-block truncate max-w-full ${
  themes[status] || "bg-zinc-700/50 text-zinc-300 border-zinc-700"
  }`}
  >

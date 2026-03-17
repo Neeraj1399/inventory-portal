@@ -83,7 +83,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
  {/* Header */}
  <div className="px-6 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
  <h2 className="text-xl font-bold text-zinc-50">
- {asset ? "Edit Asset Details" : "Register New Asset"}
+ {asset ? "Edit Asset Details" : "Add New Asset"}
  </h2>
  <button
  onClick={onClose}
@@ -99,7 +99,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
  {/* Asset Classification - Now a Manual Text Input */}
  <div>
  <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Asset Classification
+ Asset Category
  </label>
  <div className="relative flex items-center">
  <input
@@ -151,7 +151,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
  <div className="space-y-4">
  <div>
  <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Provisioning Date
+ Purchase Date
  </label>
  <input
  type="date"
@@ -244,7 +244,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
  ) : asset ? (
  "Update Changes"
  ) : (
- "Save Asset"
+ "Register Asset"
  )}
  </button>
  </div>

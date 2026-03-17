@@ -92,7 +92,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
  <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
  <div>
  <h2 className="text-xl font-bold text-zinc-50">
- Provision Infrastructure
+ Allocate Hardware
  </h2>
  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
  Inventory Management
@@ -198,7 +198,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
  <Loader2 className="animate-spin" size={20} />
  ) : (
  <>
- <UserPlus size={18} /> Provision Infrastructure
+ <UserPlus size={18} /> Allocate Hardware
  </>
  )}
  </button>

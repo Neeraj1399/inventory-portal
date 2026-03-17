@@ -44,7 +44,7 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
  <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
  <div>
  <h2 className="text-xl font-bold text-zinc-50">
- Provision Accessory
+ Allocate Consumable
  </h2>
  <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
  Inventory Distribution
@@ -142,7 +142,7 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
  <Loader2 className="animate-spin" size={20} />
  ) : (
  <>
- <Send size={18} /> Confirm Provision
+ <Send size={18} /> Confirm Allocation
  </>
  )}
  </button>
