@@ -3,9 +3,17 @@ import axios from "axios";
 /**
  * Axios Instance Configuration
  */
+const getBaseURL = () => {
+  const envURL = import.meta.env.VITE_API_URL;
+  if (!envURL) return "http://localhost:5000/api";
+  
+  // Ensure the URL ends with /api (without double slashes)
+  return envURL.replace(/\/$/, "") + (envURL.includes("/api") ? "" : "/api");
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-  withCredentials: true, // Crucial for receiving/sending HttpOnly cookies
+  baseURL: getBaseURL(),
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
