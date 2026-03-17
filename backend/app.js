@@ -75,7 +75,7 @@ if (process.env.NODE_ENV !== "production") {
   app.use("/uploads", express.static("uploads"));
 }
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Server is running!");
 });
 // --- 3. MOUNT ROUTES ---
 // HEALTH CHECK ROUTE (Add this to verify backend is live)
