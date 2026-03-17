@@ -207,8 +207,8 @@ const EmployeeList = () => {
 
  {filteredEmployees.map((emp) => {
  // Check if employee has ANY company property
- const hasItemsAssigned =
- emp.assignedAssetsCount > 0 || emp.assignedConsumablesCount > 0;
+  const hasItemsAssigned =
+  (emp.assignedAssetsCount || 0) > 0 || (emp.assignedConsumablesCount || 0) > 0;
 
  return (
  <div

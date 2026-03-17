@@ -13,7 +13,7 @@ export const getAssets = catchAsync(async (req, res, next) => {
   const { search, status, category, allocatedTo } = req.query;
   let query = {};
 
-  if (req.user.role === "STAFF") {
+  if (req.user.roleAccess === "STAFF") {
     query.allocatedTo = req.user._id;
   } else {
     if (allocatedTo) query.allocatedTo = allocatedTo;

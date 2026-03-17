@@ -2,80 +2,68 @@ import Consumable from "../models/Consumable.js";
 import AuditLog from "../models/AuditLog.js";
 import AppError from "../utils/appError.js";
 import mongoose from "mongoose";
+import catchAsync from "../utils/catchAsync.js";
 
 /**
  * @desc    Get all consumables
  * @route   GET /api/consumables
  * @access  Private
  */
-export async function getConsumables(req, res, next) {
-  try {
-    const items = await Consumable.find()
-      .populate("assignments.employeeId", "name email")
-      .lean();
-    res
-      .status(200)
-      .json({ status: "success", results: items.length, data: items });
-  } catch (err) {
-    next(err);
-  }
-}
+export const getConsumables = catchAsync(async (req, res, next) => {
+  const items = await Consumable.find()
+    .populate("assignments.employeeId", "name email")
+    .lean();
+  res
+    .status(200)
+    .json({ status: "success", results: items.length, data: items });
+});
 
 /**
  * @desc    Get single consumable by ID
  * @route   GET /api/consumables/:id
  * @access  Private
  */
-export async function getConsumableById(req, res, next) {
-  try {
-    const item = await Consumable.findById(req.params.id)
-      .populate("assignments.employeeId", "name email")
-      .lean();
-    if (!item) return next(new AppError("Consumable not found", 404));
+export const getConsumableById = catchAsync(async (req, res, next) => {
+  const item = await Consumable.findById(req.params.id)
+    .populate("assignments.employeeId", "name email")
+    .lean();
+  if (!item) return next(new AppError("Consumable not found", 404));
 
-    res.status(200).json({ status: "success", data: item });
-  } catch (err) {
-    next(err);
-  }
-}
+  res.status(200).json({ status: "success", data: item });
+});
 /**
  * @desc    Create new consumable type
  * @route   POST /api/consumables
  * @access  Admin
  */
 
-export async function createConsumable(req, res, next) {
-  try {
-    // 1. Create the item
-    const newItem = await Consumable.create({
-      ...req.body,
-      totalQuantity: Number(req.body.totalQuantity),
-      lowStockThreshold: Number(req.body.lowStockThreshold),
+export const createConsumable = catchAsync(async (req, res, next) => {
+  // 1. Create the item
+  const newItem = await Consumable.create({
+    ...req.body,
+    totalQuantity: Number(req.body.totalQuantity),
+    lowStockThreshold: Number(req.body.lowStockThreshold),
+  });
+
+  // 2. Safety check for AuditLog
+  if (req.user?._id) {
+    await AuditLog.create({
+      action: "CREATED",
+      entityType: "Consumable",
+      entityId: newItem._id,
+      performedBy: req.user._id,
+      description: `Added ${newItem.itemName} to inventory.`,
     });
-
-    // 2. Safety check for AuditLog to prevent crashing if req.user is missing
-    if (req.user && req.user._id) {
-      await AuditLog.create({
-        action: "CREATED",
-        entityType: "Consumable",
-        entityId: newItem._id,
-        performedBy: req.user._id,
-        description: `Added ${newItem.itemName} to inventory.`,
-      });
-    }
-
-    res.status(201).json({ status: "success", data: newItem });
-  } catch (err) {
-    // If this fails, 'next' must be a valid function from the route
-    next(err);
   }
-}
+
+  res.status(201).json({ status: "success", data: newItem });
+});
 /**
  * @desc    Assign consumable to employee
  * @route   POST /api/consumables/:id/assign
  * @access  Admin
  */
-export async function assignConsumable(req, res, next) {
+export const assignConsumable = catchAsync(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -87,7 +75,6 @@ export async function assignConsumable(req, res, next) {
       return next(new AppError("Quantity must be greater than 0", 400));
 
     // 1. ATOMIC UPDATE
-    // Updates ONLY if stock is sufficient to prevent race conditions
     const item = await Consumable.findOneAndUpdate(
       {
         _id: req.params.id,
@@ -120,8 +107,8 @@ export async function assignConsumable(req, res, next) {
       );
     }
 
-    // 3. Log it (Using modified field names for consistency)
-    if (req.user && req.user._id) {
+    // 3. Log it
+    if (req.user?._id) {
       await AuditLog.create(
         [
           {
@@ -141,46 +128,42 @@ export async function assignConsumable(req, res, next) {
     res.status(200).json({ status: "success", data: item });
   } catch (err) {
     await session.abortTransaction();
-    next(err);
+    throw err;
   } finally {
     session.endSession();
   }
-}
+});
 
 /**
  * @desc    Add stock to existing consumable
  * @route   PATCH /api/consumables/:id/restock
  * @access  Admin
  */
-export async function restockConsumable(req, res, next) {
-  try {
-    const { quantity } = req.body;
-    const qty = Number(quantity);
+export const restockConsumable = catchAsync(async (req, res, next) => {
+  const { quantity } = req.body;
+  const qty = Number(quantity);
 
-    if (qty <= 0)
-      return next(new AppError("Restock amount must be positive", 400));
+  if (qty <= 0)
+    return next(new AppError("Restock amount must be positive", 400));
 
-    const item = await Consumable.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { totalQuantity: qty } },
-      { new: true, runValidators: true },
-    );
+  const item = await Consumable.findByIdAndUpdate(
+    req.params.id,
+    { $inc: { totalQuantity: qty } },
+    { new: true, runValidators: true },
+  );
 
-    if (!item) return next(new AppError("Consumable not found", 404));
+  if (!item) return next(new AppError("Consumable not found", 404));
 
-    await AuditLog.create({
-      action: "REPLENISHED",
-      entityType: "Consumable",
-      entityId: item._id,
-      performedBy: req.user._id,
-      description: `Restocked ${qty} units for ${item.itemName}.`,
-    });
+  await AuditLog.create({
+    action: "REPLENISHED",
+    entityType: "Consumable",
+    entityId: item._id,
+    performedBy: req.user._id,
+    description: `Restocked ${qty} units for ${item.itemName}.`,
+  });
 
-    res.status(200).json({ status: "success", data: item });
-  } catch (err) {
-    next(err);
-  }
-}
+  res.status(200).json({ status: "success", data: item });
+});
 /**
  * @desc    Return a consumable item from an employee
  * @route   POST /api/consumables/:id/return
@@ -277,7 +260,7 @@ export async function restockConsumable(req, res, next) {
 //     session.endSession();
 //   }
 // }
-export async function returnConsumable(req, res, next) {
+export const returnConsumable = catchAsync(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -304,9 +287,6 @@ export async function returnConsumable(req, res, next) {
     }
 
     // 2. Consistent Inventory Impact Logic
-    // We always decrement assignedQuantity. 
-    // We only decrement totalQuantity if DECOMMISSIONED.
-    // We increment maintenanceQuantity if UNDER_MAINTENANCE.
     const incFields = { assignedQuantity: -qty };
 
     if (returnStatus === "DECOMMISSIONED") {
@@ -315,14 +295,13 @@ export async function returnConsumable(req, res, next) {
       incFields.maintenanceQuantity = qty;
     }
 
-    // 3. Atomic Update to prevent property overwriting
+    // 3. Atomic Update
     const isReturningAll = assignment.quantity === qty;
     
     const updatePayload = { $inc: incFields };
     if (isReturningAll) {
       updatePayload.$pull = { assignments: { employeeId } };
     } else {
-      // Use the positional operator to update the specific assignment
       updatePayload.$inc["assignments.$.quantity"] = -qty;
     }
 
@@ -352,65 +331,51 @@ export async function returnConsumable(req, res, next) {
     res.status(200).json({ status: "success", data: updatedItem });
   } catch (err) {
     await session.abortTransaction();
-    next(err);
+    throw err;
   } finally {
     session.endSession();
   }
-}
+});
 /**
  * @desc    Delete/Scrap a consumable item permanently
  * @route   DELETE /api/consumables/:id
  * @access  Private/Admin
  */
-export const deleteConsumable = async (req, res) => {
-  try {
-    const consumable = await Consumable.findById(req.params.id);
+export const deleteConsumable = catchAsync(async (req, res, next) => {
+  const consumable = await Consumable.findById(req.params.id);
 
-    if (!consumable) {
-      return res.status(404).json({
-        status: "fail",
-        message: "Consumable not found",
-      });
-    }
+  if (!consumable) {
+    return next(new AppError("Consumable not found", 404));
+  }
 
-    // Optional: Prevent deletion if items are still allocated to employees
-    if (consumable.assignedQuantity > 0) {
-      return res.status(400).json({
-        status: "fail",
-        message:
-          "Cannot delete item while units are still allocated to employees. Return them first.",
-      });
-    }
+  // Prevent deletion if items are still allocated to employees
+  if (consumable.assignedQuantity > 0) {
+    return next(
+      new AppError(
+        "Cannot delete item while units are still allocated to employees. Return them first.",
+        400,
+      ),
+    );
+  }
 
-    // 1. Store name before deletion for the log description
-    const deletedItemName = consumable.itemName;
+  const deletedItemName = consumable.itemName;
+  await consumable.deleteOne();
 
-    // 2. Delete the item
-    await consumable.deleteOne();
-
-    // 3. 🔴 THE FIX: Create the Audit Log entry
-    if (req.user && req.user._id) {
-      await AuditLog.create({
-        action: "DELETED",
-        entityType: "Consumable",
-        entityId: req.params.id, // The ID of the item that was just removed
-        performedBy: req.user._id,
-        description: `Permanently deleted "${deletedItemName}" from the inventory.`,
-      });
-    }
-
-    // Note: 204 status does not send a body, so the "data: null" is symbolic
-    res.status(204).json({
-      status: "success",
-      data: null,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: error.message,
+  if (req.user?._id) {
+    await AuditLog.create({
+      action: "DELETED",
+      entityType: "Consumable",
+      entityId: req.params.id,
+      performedBy: req.user._id,
+      description: `Permanently deleted "${deletedItemName}" from the inventory.`,
     });
   }
-};
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
 /**
  * @desc    Adjust consumable stock for Maintenance or Scrap
  * @route   PATCH /api/consumables/:id/condition
@@ -491,7 +456,7 @@ export const deleteConsumable = async (req, res) => {
 //     session.endSession();
 //   }
 // }
-export async function updateCondition(req, res, next) {
+export const updateCondition = catchAsync(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -505,7 +470,6 @@ export async function updateCondition(req, res, next) {
     const item = await Consumable.findById(req.params.id).session(session);
     if (!item) throw new AppError("Consumable not found", 404);
 
-    // Calculate warehouse availability (Total - Allocated - already in Maintenance)
     const available =
       item.totalQuantity -
       item.assignedQuantity -
@@ -521,11 +485,9 @@ export async function updateCondition(req, res, next) {
     let description = "";
 
     if (actionType === "SCRAP") {
-      // Permanent removal from physical inventory
       item.totalQuantity -= qty;
       description = `Scrapped ${qty} units of ${item.itemName}. Reason: ${reason}`;
     } else {
-      // ✅ FIX: Don't reduce totalQuantity. Move to maintenanceQuantity instead.
       item.maintenanceQuantity = (item.maintenanceQuantity || 0) + qty;
       description = `Moved ${qty} units of ${item.itemName} to UNDER_MAINTENANCE. Reason: ${reason}`;
     }
@@ -551,16 +513,16 @@ export async function updateCondition(req, res, next) {
     res.status(200).json({ status: "success", data: item });
   } catch (err) {
     await session.abortTransaction();
-    next(err);
+    throw err;
   } finally {
     session.endSession();
   }
-}
+});
 /**
  * @desc    Return items from Maintenance to Stock OR Scrap them
  * @route   PATCH /api/consumables/:id/resolve-maintenance
  */
-export async function resolveMaintenance(req, res, next) {
+export const resolveMaintenance = catchAsync(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -579,10 +541,8 @@ export async function resolveMaintenance(req, res, next) {
     }
 
     if (action === "RETURN") {
-      // Move from maintenance pool back to available pool
       item.maintenanceQuantity -= qty;
     } else if (action === "SCRAP") {
-      // Permanently remove from both maintenance and total count
       item.maintenanceQuantity -= qty;
       item.totalQuantity -= qty;
     }
@@ -608,8 +568,8 @@ export async function resolveMaintenance(req, res, next) {
     res.status(200).json({ status: "success", data: item });
   } catch (err) {
     await session.abortTransaction();
-    next(err);
+    throw err;
   } finally {
     session.endSession();
   }
-}
+});
