@@ -61,7 +61,7 @@ const ConsumableMaintenanceResolveModal = ({
  onClick={onClose}
  />
 
- <div className="relative bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="relative bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
  <div className="p-8">
  {/* Header */}
  <div className="flex justify-between items-start mb-8">

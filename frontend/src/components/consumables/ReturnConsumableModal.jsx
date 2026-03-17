@@ -84,7 +84,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
  return (
  <div className="fixed inset-0 z-[80] flex items-center justify-center bg-zinc-900 p-4">
- <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
  {/* HEADER */}
  <div className="flex justify-between items-center p-6 border-b bg-zinc-900">
  <div>

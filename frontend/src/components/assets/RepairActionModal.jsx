@@ -6,7 +6,7 @@ const RepairActionModal = ({ isOpen, asset, onClose, onAction }) => {
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900 ">
- <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+ <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
  {/* Header */}
  <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-amber-500/10">
  <div>

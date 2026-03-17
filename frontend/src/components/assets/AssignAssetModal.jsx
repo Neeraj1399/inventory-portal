@@ -88,7 +88,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
 
  return (
  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900 animate-in fade-in duration-200">
- <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
  <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
  <div>
  <h2 className="text-xl font-bold text-zinc-50">

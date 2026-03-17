@@ -84,7 +84,7 @@ const AssetConditionModal = ({
 
  return (
  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-900 p-4">
- <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+  <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
  {/* Header */}
  <div className="p-8 pb-6 bg-zinc-900 relative border-b border-zinc-800">
  <button

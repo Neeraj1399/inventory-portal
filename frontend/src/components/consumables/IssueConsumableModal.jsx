@@ -39,7 +39,7 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
  return (
  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900 ">
- <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+ <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
  {/* Header */}
  <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
  <div>
