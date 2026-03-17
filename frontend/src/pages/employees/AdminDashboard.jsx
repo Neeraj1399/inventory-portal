@@ -13,6 +13,7 @@ import {
 import api from "../../hooks/api";
 import IssueConsumableModal from "../../components/consumables/IssueConsumableModal";
 import ReturnConsumableModal from "../../components/consumables/ReturnConsumableModal";
+import RestockConsumableModal from "../../components/consumables/RestockConsumableModal";
 
 /* ---------------------- UTIL ---------------------- */
 
@@ -143,10 +144,11 @@ const AdminDashboard = () => {
  const [data, setData] = useState(null);
  const [loading, setLoading] = useState(true);
 
- const [issueItem, setIssueItem] = useState(null);
- const [returnItem, setReturnItem] = useState(null);
+  const [issueItem, setIssueItem] = useState(null);
+  const [returnItem, setReturnItem] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
 
- const [highlightedItemId, setHighlightedItemId] = useState(null);
+  const [highlightedItemId, setHighlightedItemId] = useState(null);
 
  const fetchDashboard = async () => {
  setLoading(true);
@@ -320,12 +322,19 @@ const AdminDashboard = () => {
  </div>
 
  <div className="flex gap-2">
- <button
- onClick={() => setIssueItem(item)}
- className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
- >
- Allocate
- </button>
+  <button
+  onClick={() => setIssueItem(item)}
+  className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+  >
+  Allocate
+  </button>
+
+  <button
+  onClick={() => setRestockItem(item)}
+  className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+  >
+  Restock
+  </button>
 
  <button
  onClick={() => setReturnItem(item)}
@@ -357,14 +366,23 @@ const AdminDashboard = () => {
  />
  )}
 
-  {returnItem && (
-  <ReturnConsumableModal
-  isOpen={!!returnItem}
-  item={returnItem}
-  onClose={() => setReturnItem(null)}
-  onRefresh={fetchDashboard}
-  />
-  )}
+   {returnItem && (
+   <ReturnConsumableModal
+   isOpen={!!returnItem}
+   item={returnItem}
+   onClose={() => setReturnItem(null)}
+   onRefresh={fetchDashboard}
+   />
+   )}
+
+   {restockItem && (
+   <RestockConsumableModal
+   isOpen={!!restockItem}
+   item={restockItem}
+   onClose={() => setRestockItem(null)}
+   onRefresh={fetchDashboard}
+   />
+   )}
     </motion.div>
   );
 };

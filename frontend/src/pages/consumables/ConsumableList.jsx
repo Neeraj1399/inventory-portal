@@ -15,6 +15,23 @@ import {
 } from "lucide-react";
 
 import api from "../../hooks/api";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import {
+ Keyboard, Package,
+ Plus,
+ UserPlus,
+ RotateCcw,
+ AlertCircle,
+ Search,
+ RefreshCw,
+ Trash2,
+ ChevronDown,
+ Wrench,
+ CheckCircle,
+ PlusCircle,
+} from "lucide-react";
+
+import api from "../../hooks/api";
 
 // Modals
 import RequestModal from "../../components/common/RequestModal";
@@ -23,6 +40,7 @@ import IssueConsumableModal from "../../components/consumables/IssueConsumableMo
 import ReturnConsumableModal from "../../components/consumables/ReturnConsumableModal";
 import ConsumableConditionModal from "../../components/consumables/ConsumableConditionModal";
 import ConsumableMaintenanceResolveModal from "../../components/consumables/ConsumableMaintenanceResolveModal";
+import RestockConsumableModal from "../../components/consumables/RestockConsumableModal";
 
 const ConsumableList = () => {
   const { user } = useAuth();
@@ -37,7 +55,7 @@ const ConsumableList = () => {
   const [selectedConsumable, setSelectedConsumable] = useState(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
- const filterOptions = ["ALL", "READY_TO_DEPLOY", "LOW STOCK", "ALLOCATED", "UNDER_MAINTENANCE"];
+ const filterOptions = ["ALL", "READY_TO_DEPLOY", "LOW STOCK", "ALLOCATED", "UNDER_MAINTENANCE", "RESTOCK"];
 
  const fetchConsumables = useCallback(async (silent = false) => {
  try {
@@ -304,6 +322,13 @@ const ConsumableList = () => {
  >
  <UserPlus size={20} />
  </button>
+  <button
+  onClick={() => openModal("RESTOCK", item)}
+  className="p-3 bg-zinc-950 border border-zinc-800 text-emerald-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-md"
+  title="Restock Inventory"
+  >
+  <PlusCircle size={20} />
+  </button>
  <button
  onClick={() => openModal("RETURN", item)}
  className="p-3 bg-zinc-800 border border-zinc-800 text-zinc-400 rounded-2xl hover:bg-zinc-700 hover:text-white transition-all shadow-sm"
@@ -348,6 +373,12 @@ const ConsumableList = () => {
  onClose={closeModal}
  onRefresh={() => fetchConsumables(true)}
  />
+  <RestockConsumableModal
+  isOpen={activeModal === "RESTOCK"}
+  item={selectedItem}
+  onClose={closeModal}
+  onRefresh={() => fetchConsumables(true)}
+  />
    <RequestModal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} item={selectedConsumable} type={selectedConsumable ? "ALLOCATION" : "ALLOCATION"} />
     </div>
  );
