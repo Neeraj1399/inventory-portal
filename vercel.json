@@ -18,7 +18,7 @@
     },
     {
       "src": "/((?!api/).*)",
-      "dest": "/frontend/index.html"
+      "dest": "/index.html"
     }
   ]
 }
