@@ -76,7 +76,7 @@ const AuditLogItem = ({ log }) => {
           className={`text-center py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-[0.15em] ${
             log.action === "RECOVERED" || log.action === "RETURNED"
               ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-              : log.action === "ALLOCATED" || log.action === "APPROVED"
+              : log.action === "ALLOCATED" || log.action === "APPROVED" || log.action === "REPLENISHED"
               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
               : log.action === "CREATED"
               ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"

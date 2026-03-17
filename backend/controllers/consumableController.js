@@ -169,7 +169,7 @@ export async function restockConsumable(req, res, next) {
     if (!item) return next(new AppError("Consumable not found", 404));
 
     await AuditLog.create({
-      action: "MODIFIED",
+      action: "REPLENISHED",
       entityType: "Consumable",
       entityId: item._id,
       performedBy: req.user._id,
