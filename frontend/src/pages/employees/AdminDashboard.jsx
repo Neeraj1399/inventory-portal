@@ -255,134 +255,124 @@ const AdminDashboard = () => {
  />
  </div>
 
- {/* MAIN GRID */}
+  {/* MAIN GRID */}
 
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
- {/* RECENT LOGS */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    {/* RECENT LOGS */}
+    <div className="lg:col-span-2 bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
+      <h3 className="font-bold text-zinc-50 mb-6">Recent Audit Logs</h3>
 
- <div className="lg:col-span-2 bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
- <h3 className="font-bold text-zinc-50 mb-6">Recent Audit Logs</h3>
+      <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 scrollbar-hide">
+        {recentActivity.length > 0 ? (
+          recentActivity.map((log, index) => (
+            <AuditLogItem key={log._id || `log-${index}`} log={log} />
+          ))
+        ) : (
+          <div className="text-center py-8 text-zinc-400 italic">
+            No recent activity available
+          </div>
+        )}
+      </div>
+    </div>
 
- <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2">
- {recentActivity.length > 0 ? (
- recentActivity.map((log, index) => (
- <AuditLogItem key={log._id || `log-${index}`} log={log} />
- ))
- ) : (
- <div className="text-center py-8 text-zinc-400 italic">
- No recent activity available
- </div>
- )}
- </div>
- </div>
+    {/* LOW STOCK */}
+    <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
+      <div className="flex items-center gap-2 mb-6">
+        <AlertTriangle size={18} className="text-amber-500" />
+        <h3 className="font-bold text-zinc-50">Inventory Alerts</h3>
+      </div>
 
- {/* LOW STOCK */}
+      <div className="space-y-3 max-h-[480px] overflow-y-auto scrollbar-hide">
+        {lowStockItems.length > 0 ? (
+          [...lowStockItems]
+            .sort(
+              (a, b) =>
+                a.currentStock / a.totalQuantity -
+                b.currentStock / b.totalQuantity,
+            )
+            .map((item, index) => {
+              const isTopCritical = index < 3;
 
- <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-sm">
- <div className="flex items-center gap-2 mb-6">
- <AlertTriangle size={18} className="text-amber-500" />
- <h3 className="font-bold text-zinc-50">Inventory Alerts</h3>
- </div>
+              return (
+                <div
+                  key={item._id || `low-stock-${index}`}
+                  className={`p-4 border rounded-xl flex justify-between items-center transition-colors ${
+                    highlightedItemId === item._id
+                      ? "bg-green-500/10 border-green-500/30"
+                      : isTopCritical
+                      ? "bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20"
+                      : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20"
+                  }`}
+                >
+                  <div>
+                    <p
+                      className={`text-sm font-bold ${
+                        isTopCritical ? "text-rose-400" : "text-amber-400"
+                      }`}
+                    >
+                      {item.itemName}
+                    </p>
 
- <div className="space-y-3 max-h-[480px] overflow-y-auto">
- {lowStockItems.length > 0 ? (
- [...lowStockItems]
- .sort(
- (a, b) =>
- a.currentStock / a.totalQuantity -
- b.currentStock / b.totalQuantity,
- )
- .map((item, index) => {
- const isTopCritical = index < 3;
+                    <p className="text-xs text-amber-400">
+                      Current Stock: {item.currentStock} /{" "}
+                      {item.totalQuantity}
+                    </p>
+                  </div>
 
- return (
- <div
- key={item._id || `low-stock-${index}`}
- className={`p-4 border rounded-xl flex justify-between items-center transition-colors ${
- highlightedItemId === item._id
- ? "bg-green-500/10 border-green-500/30"
- : isTopCritical
- ? "bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20"
- : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/100/20"
- }`}
- >
- <div>
- <p
- className={`text-sm font-bold ${
- isTopCritical ? "text-rose-400" : "text-amber-400"
- }`}
- >
- {item.itemName}
- </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIssueItem(item)}
+                      className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      Allocate
+                    </button>
+                    <button
+                      onClick={() => setRestockItem(item)}
+                      className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      Restock
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+        ) : (
+          <div className="text-center py-8 text-zinc-400 italic">
+            All stock levels healthy
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
 
- <p className="text-xs text-amber-400">
- Current Stock: {item.currentStock} /{" "}
- {item.totalQuantity}
- </p>
- </div>
+  {/* MODALS */}
 
- <div className="flex gap-2">
-  <button
-  onClick={() => setIssueItem(item)}
-  className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-  >
-  Allocate
-  </button>
+  {issueItem && (
+    <IssueConsumableModal
+      isOpen={!!issueItem}
+      item={issueItem}
+      onClose={() => setIssueItem(null)}
+      onRefresh={fetchDashboard}
+    />
+  )}
 
-  <button
-  onClick={() => setRestockItem(item)}
-  className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-  >
-  Restock
-  </button>
+  {returnItem && (
+    <ReturnConsumableModal
+      isOpen={!!returnItem}
+      item={returnItem}
+      onClose={() => setReturnItem(null)}
+      onRefresh={fetchDashboard}
+    />
+  )}
 
- <button
- onClick={() => setReturnItem(item)}
- className="text-xs px-3 py-1 rounded-lg bg-amber-500/100 text-white hover:bg-amber-600"
- >
- Return
- </button>
- </div>
- </div>
- );
- })
- ) : (
- <div className="text-center py-8 text-zinc-400 italic">
- All stock levels healthy
- </div>
- )}
- </div>
- </div>
- </div>
-
- {/* MODALS */}
-
- {issueItem && (
- <IssueConsumableModal
- isOpen={!!issueItem}
- item={issueItem}
- onClose={() => setIssueItem(null)}
- onRefresh={fetchDashboard}
- />
- )}
-
-   {returnItem && (
-   <ReturnConsumableModal
-   isOpen={!!returnItem}
-   item={returnItem}
-   onClose={() => setReturnItem(null)}
-   onRefresh={fetchDashboard}
-   />
-   )}
-
-   {restockItem && (
-   <RestockConsumableModal
-   isOpen={!!restockItem}
-   item={restockItem}
-   onClose={() => setRestockItem(null)}
-   onRefresh={fetchDashboard}
-   />
-   )}
+  {restockItem && (
+    <RestockConsumableModal
+      isOpen={!!restockItem}
+      item={restockItem}
+      onClose={() => setRestockItem(null)}
+      onRefresh={fetchDashboard}
+    />
+  )}
     </motion.div>
   );
 };
