@@ -1,4 +1,5 @@
 import Request from "../models/Request.js";
+import AuditLog from "../models/AuditLog.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 
@@ -18,6 +19,14 @@ export const createRequest = catchAsync(async (req, res, next) => {
     description,
     itemCategory,
     itemId,
+  });
+
+  await AuditLog.create({
+    action: "REQUESTED",
+    entityType: "Request",
+    entityId: request._id,
+    performedBy: req.user._id,
+    description: `Submitted a new ${priority} priority ticket: ${title}`,
   });
 
   res.status(201).json({
@@ -97,6 +106,20 @@ export const updateRequestStatus = catchAsync(async (req, res, next) => {
   if (!request) {
     return next(new AppError("Request not found", 404));
   }
+
+  // Determine appropriate action word based on the status selected
+  const auditAction = status === "APPROVED" ? "APPROVED" : 
+                      status === "REJECTED" ? "REJECTED" : 
+                      status === "FULFILLED" ? "FULFILLED" : "MODIFIED";
+
+  await AuditLog.create({
+    action: auditAction,
+    entityType: "Request",
+    entityId: request._id,
+    performedBy: req.user._id,
+    targetEmployee: request.employeeId,
+    description: `Ticket status set to ${status}: ${request.title}`,
+  });
 
   res.status(200).json({
     status: "success",

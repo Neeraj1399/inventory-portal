@@ -89,6 +89,14 @@ export const createAsset = catchAsync(async (req, res, next) => {
     receiptUrl,
   });
 
+  await AuditLog.create({
+    action: "CREATED",
+    entityType: "Asset",
+    entityId: newAsset._id,
+    performedBy: req.user._id,
+    description: `Added new asset: ${newAsset.model} (SN: ${newAsset.serialNumber})`,
+  });
+
   res.status(201).json({ status: "success", data: newAsset });
 });
 
@@ -121,12 +129,19 @@ export const updateAsset = catchAsync(async (req, res, next) => {
     { new: true, runValidators: true },
   );
 
+  // If status was changed specifically, use it as the action for better filtering
+  const auditAction = (updateData.status && updateData.status !== asset.status) 
+    ? updateData.status 
+    : "MODIFIED";
+
   await AuditLog.create({
-    action: "MODIFIED",
+    action: auditAction,
     entityType: "Asset",
     entityId: asset._id,
     performedBy: req.user._id,
-    description: `Modified details for ${updatedAsset.model}.`,
+    description: auditAction === "MODIFIED" 
+      ? `Modified details for ${updatedAsset.model}.`
+      : `Asset ${updatedAsset.model} status changed to ${auditAction}.`,
   });
 
   res.status(200).json({ status: "success", data: updatedAsset });
@@ -257,12 +272,12 @@ export const returnAsset = catchAsync(async (req, res, next) => {
     await AuditLog.create(
       [
         {
-          action: "RECOVERED",
+          action: returnStatus,
           entityType: "Asset",
           entityId: asset._id,
           performedBy: req.user._id,
           targetEmployee: previousHolder,
-          description: `Asset ${asset.model} returned as ${returnStatus}.`,
+          description: `Asset ${asset.model} returned and marked as ${returnStatus}.`,
         },
       ],
       { session },
@@ -294,11 +309,11 @@ export const completeRepair = catchAsync(async (req, res, next) => {
     return next(new AppError("Asset not found or not in repair", 404));
 
   await AuditLog.create({
-    action: "MODIFIED",
+    action: "READY_TO_DEPLOY",
     entityType: "Asset",
     entityId: asset._id,
     performedBy: req.user._id,
-    description: `Repair completed for ${asset.model}. Returned to stock.`,
+    description: `Repair completed for ${asset.model}. Status set to READY_TO_DEPLOY.`,
   });
 
   res.status(200).json({ status: "success", data: asset });

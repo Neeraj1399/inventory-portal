@@ -12,13 +12,20 @@ const auditLogSchema = new Schema(
         "RECOVERED",
         "OFFBOARDED",
         "REPLENISHED",
+        "APPROVED",
+        "REJECTED",
+        "FULFILLED",
+        "REQUESTED",
+        "READY_TO_DEPLOY",
+        "UNDER_MAINTENANCE",
+        "DECOMMISSIONED",
       ],
       required: true,
     },
     // The type of entity being acted upon
     entityType: {
       type: String,
-      enum: ["Asset", "Consumable", "Employee"],
+      enum: ["Asset", "Consumable", "Employee", "Request"],
       required: true,
     },
     // Dynamic Reference: Allows us to populate based on entityType

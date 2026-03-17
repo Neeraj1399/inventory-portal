@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ShieldAlert, CheckCircle2, Circle } from "lucide-react"; 
 import api from "../../hooks/api";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
 
 const ResetPassword = () => {
  const [password, setPassword] = useState("");
@@ -11,6 +12,7 @@ const ResetPassword = () => {
  const navigate = useNavigate();
  const { token } = useParams();
  const { addToast } = useToast();
+ const { login } = useAuth();
 
  // Helper to check standard requirements for the UI
  const requirements = [
@@ -46,20 +48,25 @@ const ResetPassword = () => {
  if (token) {
  // Unauthenticated Reset via Email Token
  await api.patch(`/admin/reset-password/${token}`, { password });
- } else {
- // Authenticated "Force Change Password" flow
- await api.patch("/auth/update-password", {
- password,
- passwordConfirm: confirmPassword,
- });
- }
-
  addToast("Security update successful! Please log in with your new password.", "success");
-
- // Clean up and redirect
+ 
+ // Clean up and redirect to login for unauthenticated token reset
  localStorage.removeItem("token");
  localStorage.removeItem("user");
  navigate("/login");
+ } else {
+ // Authenticated "Force Change Password" flow
+ const res = await api.patch("/auth/update-password", {
+ password,
+ passwordConfirm: confirmPassword,
+ });
+ 
+ addToast("Password updated successfully! Welcome to the portal.", "success");
+ 
+ // Log the user in with the newly refreshed token and navigate to dashboard
+ login(res.data.data.user, res.data.accessToken);
+ navigate("/");
+ }
  } catch (err) {
  // 2. Standard Backend Error
  addToast(
