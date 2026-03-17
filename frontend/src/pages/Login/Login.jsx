@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import api from "../../hooks/api";
@@ -80,7 +81,12 @@ const Login = () => {
  <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000"></div>
  <div className="absolute -bottom-8 left-20 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-4000"></div>
  
- <div className="max-w-md w-full bg-zinc-900 rounded-2xl shadow-2xl shadow-indigo-500/10 p-8 border border-zinc-800 relative z-10 transition-all duration-500">
+  <motion.div 
+    initial={{ scale: 0.95, opacity: 0, y: 20 }}
+    animate={{ scale: 1, opacity: 1, y: 0 }}
+    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+    className="max-w-md w-full bg-zinc-900 rounded-3xl shadow-2xl shadow-indigo-500/10 p-8 border border-zinc-800 relative z-10"
+  >
  <div className="text-center mb-8">
  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mb-4 shadow-lg shadow-black/20 transform hover:scale-105 transition-transform duration-300">
  <ShieldCheck className="text-white w-10 h-10" />
@@ -105,8 +111,16 @@ const Login = () => {
  </div>
  )}
 
- {isForgotPassword ? (
- <form onSubmit={handleForgotPasswordSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <AnimatePresence mode="wait">
+  {isForgotPassword ? (
+  <motion.form 
+    key="forgot-password"
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: 20 }}
+    onSubmit={handleForgotPasswordSubmit} 
+    className="space-y-6"
+  >
  <div>
  <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
  Work Email
@@ -158,9 +172,16 @@ const Login = () => {
  Sign In
  </button>
  </p>
- </form>
- ) : (
- <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  </motion.form>
+  ) : (
+  <motion.form 
+    key="login"
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    onSubmit={handleLogin} 
+    className="space-y-6"
+  >
  <div>
  <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
  Work Email
@@ -236,10 +257,11 @@ const Login = () => {
  Reset it here
  </button>
  </p>
- </form>
- )}
- </div>
- </div>
+  </motion.form>
+  )}
+  </AnimatePresence>
+  </motion.div>
+  </div>
  );
 };
 

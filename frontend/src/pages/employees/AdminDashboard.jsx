@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
  Users,
  Monitor, Cpu,
@@ -34,9 +35,14 @@ const StatCard = ({ title, value, icon, variant }) => {
  };
 
  return (
- <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 shadow-sm flex flex-col gap-4 hover:scale-105 transform transition duration-150 hover:bg-zinc-800 hover:border-zinc-700">
+ <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 shadow-sm flex flex-col gap-4 transition-colors hover:bg-zinc-800/80 hover:border-zinc-700 group"
+    >
  <div
- className={`p-2.5 rounded-xl w-fit ${variants[variant] || variants.blue}`}
+        className={`p-2.5 rounded-xl w-fit transition-transform group-hover:scale-110 ${variants[variant] || variants.blue}`}
  >
  {React.cloneElement(icon, { size: 20 })}
  </div>
@@ -49,7 +55,7 @@ const StatCard = ({ title, value, icon, variant }) => {
  {value}
  </p>
  </div>
- </div>
+ </motion.div>
  );
 };
 
@@ -167,8 +173,23 @@ const AdminDashboard = () => {
 
  const { summary, lowStockItems, recentActivity } = data;
 
- return (
- <div className="space-y-8 animate-in fade-in duration-500 px-2 sm:px-4 md:px-6 lg:px-0">
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  return (
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8 px-2 sm:px-4 md:px-6 lg:px-0"
+    >
  {/* HEADER */}
 
  <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -336,16 +357,16 @@ const AdminDashboard = () => {
  />
  )}
 
- {returnItem && (
- <ReturnConsumableModal
- isOpen={!!returnItem}
- item={returnItem}
- onClose={() => setReturnItem(null)}
- onRefresh={fetchDashboard}
- />
- )}
- </div>
- );
+  {returnItem && (
+  <ReturnConsumableModal
+  isOpen={!!returnItem}
+  item={returnItem}
+  onClose={() => setReturnItem(null)}
+  onRefresh={fetchDashboard}
+  />
+  )}
+    </motion.div>
+  );
 };
 
 export default AdminDashboard;

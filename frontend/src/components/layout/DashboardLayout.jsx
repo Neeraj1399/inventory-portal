@@ -12,12 +12,15 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import api from "../../hooks/api";
 import UserMenu from "../common/UserMenu";
+import LogoutModal from "../common/LogoutModal";
 
 const DashboardLayout = () => {
  const [isSidebarOpen, setSidebarOpen] = useState(false);
  const { user, logout, setUser } = useAuth();
  const location = useLocation();
- const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
  useEffect(() => {
    const fetchPendingCount = async () => {
@@ -37,15 +40,23 @@ const DashboardLayout = () => {
    return () => clearInterval(interval);
  }, [user]);
 
- const handleLogout = async () => {
- try {
- await api.post("/auth/logout");
- } catch (err) {
- console.warn("Server-side logout skipped or failed");
- } finally {
- logout();
- }
- };
+  const triggerLogout = () => setShowLogoutModal(true);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.warn("Server-side logout skipped or failed");
+    } finally {
+      // Small delay to let the animation show
+      setTimeout(() => {
+        logout();
+        setIsLoggingOut(false);
+        setShowLogoutModal(false);
+      }, 1500);
+    }
+  };
 
  const handleUserUpdate = (updatedUser) => {
  setUser((prev) => ({ ...prev, ...updatedUser }));
@@ -136,16 +147,24 @@ const DashboardLayout = () => {
  </nav>
 
  <div className="p-4 border-t border-zinc-800">
- <button
- onClick={handleLogout}
- className="flex items-center gap-3 w-full px-4 py-3 text-zinc-400 hover:text-red-400 hover:bg-red-500/100/10 rounded-xl transition-all text-sm font-medium"
- >
- <LogOut size={20} />
- Logout
- </button>
- </div>
- </div>
- </aside>
+  <button
+  onClick={triggerLogout}
+  className="flex items-center gap-3 w-full px-4 py-3 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all text-sm font-medium group"
+  >
+  <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
+  Logout
+  </button>
+  </div>
+  </div>
+  </aside>
+
+  {/* Logout Widget/Modal */}
+  <LogoutModal 
+    isOpen={showLogoutModal}
+    isLoggingOut={isLoggingOut}
+    onConfirm={handleLogout}
+    onCancel={() => setShowLogoutModal(false)}
+  />
 
  {/* Main Content Area */}
  <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
