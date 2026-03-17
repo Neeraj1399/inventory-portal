@@ -2,7 +2,7 @@ import Employee from "../models/Employee.js";
 import Asset from "../models/Asset.js";
 import AuditLog from "../models/AuditLog.js";
 import AppError from "../utils/appError.js";
-import cloudinary from "../utils/cloudinary.js";
+import cloudinary, { uploadFromBuffer } from "../utils/cloudinary.js";
 import fs from "fs";
 import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
@@ -71,12 +71,11 @@ export const createAsset = catchAsync(async (req, res, next) => {
   let receiptUrl = "";
 
   if (req.file) {
-    const result = await cloudinary.uploader.upload(req.file.path, {
+    const result = await uploadFromBuffer(req.file.buffer, {
       folder: "assets/receipts",
       public_id: `receipt_${serialNumber}_${Date.now()}`,
     });
     receiptUrl = result.secure_url;
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
   }
 
   const newAsset = await Asset.create({
@@ -103,7 +102,6 @@ export const createAsset = catchAsync(async (req, res, next) => {
 export const updateAsset = catchAsync(async (req, res, next) => {
   const asset = await Asset.findById(req.params.id);
   if (!asset) {
-    if (req.file) fs.unlinkSync(req.file.path);
     return next(new AppError("Asset not found", 404));
   }
 
@@ -115,12 +113,11 @@ export const updateAsset = catchAsync(async (req, res, next) => {
     updateData.warrantyMonths = Number(updateData.warrantyMonths);
 
   if (req.file) {
-    const result = await cloudinary.uploader.upload(req.file.path, {
+    const result = await uploadFromBuffer(req.file.buffer, {
       folder: "assets/receipts",
       public_id: `receipt_${updateData.serialNumber || asset.serialNumber}_${Date.now()}`,
     });
     updateData.receiptUrl = result.secure_url;
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
   }
 
   const updatedAsset = await Asset.findByIdAndUpdate(
@@ -157,18 +154,16 @@ export const uploadAssetReceipt = catchAsync(async (req, res, next) => {
 
   const asset = await Asset.findById(req.params.id);
   if (!asset) {
-    fs.unlinkSync(req.file.path);
     return next(new AppError("Asset not found.", 404));
   }
 
-  const result = await cloudinary.uploader.upload(req.file.path, {
+  const result = await uploadFromBuffer(req.file.buffer, {
     folder: "assets/receipts",
     public_id: `receipt_${asset.serialNumber}_${Date.now()}`,
   });
 
   asset.receiptUrl = result.secure_url;
   await asset.save();
-  if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
   res
     .status(200)

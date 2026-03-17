@@ -2,20 +2,7 @@ import multer from "multer";
 import path from "path";
 import AppError from "../utils/appError.js";
 
-// 1. Set storage engine (Temporary local storage before Cloudinary)
-const storage = multer.diskStorage({
-  // ADD THIS BLOCK 🟢
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
-    );
-  },
-});
+const storage = multer.memoryStorage();
 
 // 2. Filter files (Images and PDFs only)
 const fileFilter = (req, file, cb) => {
