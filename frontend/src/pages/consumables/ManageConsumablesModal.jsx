@@ -56,11 +56,11 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
     return available > 0;
   });
 
-  if (!employee) return null;
+  if (!isOpen || !employee) return null;
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900 p-4">
         <div
           className={`bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200 transition-opacity ${isRefreshing ? "opacity-75" : "opacity-100"}`}
         >
