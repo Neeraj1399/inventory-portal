@@ -304,7 +304,7 @@ const AssetList = () => {
  {/* 4. ASSET LIST */}
  <div className="space-y-3">
  {/* Table Header (Desktop Only) */}
- <div className="hidden md:grid grid-cols-[60px_3fr_2fr_120px_240px] gap-6 px-5 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
+ <div className="hidden md:grid grid-cols-[60px_3fr_2fr_160px_240px] gap-6 px-5 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
  <div className="flex items-center justify-center">
  <button
  onClick={() =>
@@ -361,7 +361,7 @@ const AssetList = () => {
  setSelectedAsset(asset);
  setSidebarOpen(true);
  }}
- className={`grid grid-cols-[auto_1fr] md:grid-cols-[60px_3fr_2fr_120px_240px] gap-4 md:gap-6 items-center p-5 rounded-3xl border transition-all cursor-pointer group w-full ${
+ className={`grid grid-cols-[auto_1fr] md:grid-cols-[60px_3fr_2fr_160px_240px] gap-4 md:gap-6 items-center p-5 rounded-3xl border transition-all cursor-pointer group w-full ${
  selectedIds.includes(asset._id)
  ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
  : "border-zinc-800/40 bg-zinc-800/40 hover:border-zinc-700 hover:bg-zinc-800 hover:shadow-xl"
@@ -580,7 +580,7 @@ const StatusBadge = ({ status }) => {
 
  return (
  <span
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border tracking-widest shadow-sm transition-all inline-block truncate max-w-full ${
+ className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border tracking-widest shadow-sm transition-all inline-block whitespace-nowrap ${
  themes[status] || "bg-zinc-700/50 text-zinc-300 border-zinc-700"
  }`}
  >
