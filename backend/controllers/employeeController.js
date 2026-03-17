@@ -11,6 +11,8 @@ import crypto from "crypto";
  */
 export async function getEmployees(req, res, next) {
   try {
+    const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "").toLowerCase();
+
     const employees = await Employee.aggregate([
       {
         $lookup: {
@@ -23,6 +25,9 @@ export async function getEmployees(req, res, next) {
       {
         $addFields: {
           assignedAssetsCount: { $size: "$assets" },
+          isSuperAdmin: {
+            $eq: [{ $toLower: "$email" }, superAdminEmail],
+          },
         },
       },
       {
@@ -148,6 +153,7 @@ export async function createEmployee(req, res, next) {
 
 /**
  * @desc    Update employee (Admin or Self)
+ * @security Super Admin protection, last-admin check, self-demotion prevention
  */
 export async function updateEmployee(req, res, next) {
   try {
@@ -163,6 +169,33 @@ export async function updateEmployee(req, res, next) {
       return next(new AppError("Not authorized to update this profile", 403));
     }
 
+    // --- SECURITY: Role Change Safeguards ---
+    const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "").toLowerCase();
+    const isTargetSuperAdmin = employee.email.toLowerCase() === superAdminEmail;
+    const isRoleDemotion = roleAccess && roleAccess === "STAFF" && employee.roleAccess === "ADMIN";
+
+    // Rule 1: Super Admin account can NEVER be demoted
+    if (isTargetSuperAdmin && roleAccess && roleAccess !== employee.roleAccess) {
+      return next(new AppError("This is a protected Super Admin account. Its role cannot be changed.", 403));
+    }
+
+    // Rule 2: Admins cannot demote themselves
+    if (isSelfUpdate && isRoleDemotion) {
+      return next(new AppError("You cannot demote yourself. Ask another administrator to change your role.", 403));
+    }
+
+    // Rule 3: System must always have at least one active admin
+    if (isRoleDemotion) {
+      const activeAdminCount = await Employee.countDocuments({
+        roleAccess: "ADMIN",
+        status: "ACTIVE",
+      });
+      if (activeAdminCount <= 1) {
+        return next(new AppError("Cannot demote the last remaining administrator. Promote another staff member to Admin first.", 403));
+      }
+    }
+
+    // --- Apply Updates ---
     employee.name = name || employee.name;
     employee.email = email || employee.email;
 
@@ -194,6 +227,7 @@ export async function updateEmployee(req, res, next) {
 
 /**
  * @desc    Offboard an employee
+ * @security Super Admin cannot be offboarded
  */
 export async function offboardEmployee(req, res, next) {
   try {
@@ -201,6 +235,12 @@ export async function offboardEmployee(req, res, next) {
     const employee = await Employee.findById(id);
 
     if (!employee) return next(new AppError("Employee not found", 404));
+
+    // SECURITY: Super Admin cannot be offboarded
+    const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "").toLowerCase();
+    if (employee.email.toLowerCase() === superAdminEmail) {
+      return next(new AppError("The Super Admin account cannot be offboarded.", 403));
+    }
 
     const assignedAssets = await Asset.countDocuments({
       allocatedTo: id,

@@ -220,14 +220,18 @@ const EmployeeList = () => {
  {emp.name?.charAt(0) || "U"}
  </div>
   <div className="flex flex-col">
-  <div className="flex items-center gap-2 mb-0.5">
-  <span className="font-extrabold text-zinc-50 text-lg">{emp.name}</span>
-  {emp.roleAccess === "ADMIN" && (
-  <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">
-  Admin
-  </span>
-  )}
-  </div>
+   <div className="flex items-center gap-2 mb-0.5">
+   <span className="font-extrabold text-zinc-50 text-lg">{emp.name}</span>
+   {emp.isSuperAdmin ? (
+   <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">
+   🔒 Super Admin
+   </span>
+   ) : emp.roleAccess === "ADMIN" ? (
+   <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">
+   Admin
+   </span>
+   ) : null}
+   </div>
   <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
   <Mail size={14} className="text-indigo-400" />
   {emp.email}
