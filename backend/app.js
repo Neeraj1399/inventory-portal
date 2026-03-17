@@ -24,34 +24,39 @@ import AppError from "./utils/appError.js";
 const app = express();
 
 // --- 1. DATABASE CONNECTION (Serverless Optimized) ---
-let isConnected = false;
+let cachedDb = null;
 
 const connectDB = async () => {
-  if (isConnected) return;
+  if (cachedDb) return cachedDb;
+
   const mongoUri = process.env.MONGO_URI;
   if (!mongoUri) {
-    console.error("❌ ERROR: MONGO_URI is missing from environment variables.");
-    return;
+    throw new Error("MONGO_URI is missing from environment variables.");
   }
 
+  // Set global mongoose options
+  mongoose.set("strictQuery", true);
+
   try {
-    const conn = await mongoose.connect(mongoUri, {
-      bufferCommands: false, // Prevents "buffer timeout" by failing fast if not connected
+    console.log("⏳ Database: Connecting...");
+    cachedDb = await mongoose.connect(mongoUri, {
+      // Use default buffering (bufferCommands: true) to handle minor races
+      // but ensure we still await the connection in the middleware.
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     });
-    isConnected = !!conn.connections[0].readyState;
-    console.log("✅ Database: MongoDB Connected");
+    console.log("✅ Database: Connected Successfully");
+    return cachedDb;
   } catch (err) {
+    cachedDb = null;
     console.error("❌ Database: Connection Failed ->", err.message);
     throw err;
   }
 };
 
-// Start connection attempt immediately
-connectDB().catch(() => {});
-
 // Middleware to ensure DB is connected before any API request
 app.use(async (req, res, next) => {
-  // Skip DB check for pure status routes if desired
+  // Skip DB check for pure status routes
   if (req.path === "/api/health" || req.path === "/") return next();
   
   try {
@@ -60,7 +65,7 @@ app.use(async (req, res, next) => {
   } catch (err) {
     res.status(500).json({
       status: "error",
-      message: "Database connection failed. Ensure IP 0.0.0.0/0 is whitelisted in MongoDB Atlas.",
+      message: "Database connection failed. Ensure your MongoDB Atlas IP Whitelist allows '0.0.0.0/0'.",
       details: err.message
     });
   }
