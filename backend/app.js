@@ -1,5 +1,6 @@
 
 import express from "express";
+import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -23,7 +24,11 @@ import AppError from "./utils/appError.js";
 
 const app = express();
 
-// --- 1. DIRECTORY INITIALIZATION ---
+// --- 2. DATABASE CONNECTION (Handled in app.js) ---
+
+// --- 3. START SERVER (LOCAL DEVELOPMENT ONLY) ---(Handled in app.js) ---
+
+// --- 3. START SERVER (LOCAL DEVELOPMENT ONLY) ---
 // Vercel is read-only. We only do this locally.
 if (process.env.NODE_ENV !== "production") {
   const uploadDir = "./uploads";

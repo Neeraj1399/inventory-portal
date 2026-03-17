@@ -22,11 +22,41 @@ if (!MONGO_URI) {
 }
 
 // --- 2. DATABASE CONNECTION ---
-// On Vercel, we trigger connection immediately so it stays warm
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("✅ Database: MongoDB Connection Successful"))
-  .catch((err) => console.error("❌ Database: Connection Failed ->", err.message));
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+
+  try {
+    console.log("⏳ Database: Attempting to connect...");
+    const conn = await mongoose.connect(MONGO_URI, {
+      bufferCommands: false, // Turn off buffering so it fails fast if not connected
+    });
+    isConnected = !!conn.connections[0].readyState;
+    console.log("✅ Database: MongoDB Connected");
+  } catch (err) {
+    console.error("❌ Database: Connection Failed ->", err.message);
+    // Don't exit process in serverless, just throw so Vercel can retry
+    throw err;
+  }
+};
+
+// Start connection immediately
+connectDB().catch(() => {});
+
+// Middleware to ensure DB is connected before any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: "Database connection failed. Please check IP Whitelisting on MongoDB Atlas (Allow 0.0.0.0/0).",
+      details: err.message
+    });
+  }
+});
 
 // --- 3. START SERVER (LOCAL DEVELOPMENT ONLY) ---
 // Vercel handles the "listening" part. We only do this for local dev.
