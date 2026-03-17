@@ -70,7 +70,7 @@ const DashboardLayout = () => {
  roles: ["ADMIN", "STAFF"],
  },
  { name: "Hardware Assets", path: "/assets", icon: Monitor, roles: ["ADMIN"] },
-    { name: "Allocation Requests", path: "/requests", icon: ClipboardList, roles: ["ADMIN", "STAFF"], badge: pendingCount > 0 && user?.roleAccess === "ADMIN" ? pendingCount : null },
+    { name: "Service Tickets", path: "/requests", icon: ClipboardList, roles: ["ADMIN", "STAFF"], badge: pendingCount > 0 && user?.roleAccess === "ADMIN" ? pendingCount : null },
  {
  name: "Consumable Stock",
  path: "/consumables",
