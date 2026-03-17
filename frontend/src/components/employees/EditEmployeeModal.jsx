@@ -21,6 +21,7 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  level: "",
  department: "",
  status: "ACTIVE",
+ roleAccess: "STAFF",
  });
  const [loading, setLoading] = useState(false);
 
@@ -34,6 +35,7 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  level: employeeData.level || "",
  department: employeeData.department || "",
  status: employeeData.status || "ACTIVE",
+ roleAccess: employeeData.roleAccess || "STAFF",
  });
  }
  }, [employeeData]);
@@ -129,6 +131,23 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  <option value="OFFBOARDED">Offboarded</option>
  </select>
  </div>
+ </div>
+
+ {/* Role Access (Admin/Staff) */}
+ <div>
+ <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5 ml-1">
+ Role Access
+ </label>
+ <select
+ className="w-full pl-4 pr-4 py-2.5 border border-zinc-800 rounded-xl outline-none bg-zinc-900 border border-zinc-800 focus:ring-2 focus:ring-indigo-500/30"
+ value={formData.roleAccess}
+ onChange={(e) =>
+ setFormData({ ...formData, roleAccess: e.target.value })
+ }
+ >
+ <option value="STAFF">Staff Member</option>
+ <option value="ADMIN">System Admin</option>
+ </select>
  </div>
 
  <div className="grid grid-cols-3 gap-4">

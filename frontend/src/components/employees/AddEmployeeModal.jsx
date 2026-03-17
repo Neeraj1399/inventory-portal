@@ -54,6 +54,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  role: "",
  level: "",
  department: "",
+ roleAccess: "STAFF",
  });
  const [loading, setLoading] = useState(false);
 
@@ -240,6 +241,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  </div>
 
  {/* Department */}
+ <div className="grid grid-cols-2 gap-4">
  <div>
  <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5 ml-1">
  Department
@@ -256,6 +258,24 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  setFormData({ ...formData, department: e.target.value })
  }
  />
+ </div>
+ </div>
+
+ {/* Role Access (Admin/Staff) */}
+ <div>
+ <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5 ml-1">
+ Role Access
+ </label>
+ <select
+ className="w-full pl-4 pr-4 py-2.5 border border-zinc-800 rounded-xl outline-none bg-zinc-900 border border-zinc-800 focus:ring-2 focus:ring-indigo-500/30"
+ value={formData.roleAccess}
+ onChange={(e) =>
+ setFormData({ ...formData, roleAccess: e.target.value })
+ }
+ >
+ <option value="STAFF">Staff Member</option>
+ <option value="ADMIN">System Admin</option>
+ </select>
  </div>
  </div>
 

@@ -84,7 +84,7 @@ export async function getEmployees(req, res, next) {
  */
 export async function createEmployee(req, res, next) {
   try {
-    const { name, email, type, role, department, level } = req.body;
+    const { name, email, type, role, department, level, roleAccess } = req.body;
 
     // 1. Check for existing email
     const existing = await Employee.findOne({ email });
@@ -104,8 +104,16 @@ export async function createEmployee(req, res, next) {
       level,
       type: type?.toUpperCase() || "PERMANENT",
       password: tempPassword,
-      roleAccess: "STAFF",
+      roleAccess: roleAccess || "STAFF",
       status: "ACTIVE",
+    });
+
+    await AuditLog.create({
+      action: "EMPLOYEE_CREATED",
+      entityType: "Employee",
+      entityId: newEmployee._id,
+      performedBy: req.user._id,
+      description: `New employee registered: ${newEmployee.name} (${newEmployee.email}) with ${newEmployee.roleAccess} access.`,
     });
 
     // 4. Send the Email
@@ -143,7 +151,7 @@ export async function createEmployee(req, res, next) {
  */
 export async function updateEmployee(req, res, next) {
   try {
-    const { name, email, department, role, level, type, status } = req.body;
+    const { name, email, department, role, level, type, status, roleAccess } = req.body;
     const employee = await Employee.findById(req.params.id);
 
     if (!employee) return next(new AppError("Employee not found", 404));
@@ -164,9 +172,20 @@ export async function updateEmployee(req, res, next) {
       employee.level = level || employee.level;
       employee.type = type ? type.toUpperCase() : employee.type;
       employee.status = status || employee.status;
+      employee.roleAccess = roleAccess || employee.roleAccess;
     }
 
     await employee.save();
+
+    await AuditLog.create({
+      action: "PROFILE_UPDATED",
+      entityType: "Employee",
+      entityId: employee._id,
+      performedBy: req.user._id,
+      description: `Profile updated for ${employee.name} (${employee.email}). Fields: ${Object.keys(req.body).join(", ")}`,
+      metadata: req.body,
+    });
+
     res.status(200).json({ status: "success", data: employee });
   } catch (err) {
     next(err);
