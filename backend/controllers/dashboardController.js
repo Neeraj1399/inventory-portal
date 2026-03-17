@@ -28,14 +28,17 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
         {
           $addFields: {
             currentStock: {
-              $subtract: ["$totalQuantity", "$assignedQuantity"],
+              $subtract: [
+                "$totalQuantity",
+                { $add: ["$assignedQuantity", { $ifNull: ["$maintenanceQuantity", 0] }] },
+              ],
             },
           },
         },
         {
           $match: {
             $expr: {
-              $lt: ["$currentStock", { $ifNull: ["$lowStockThreshold", 5] }],
+              $lte: ["$currentStock", { $ifNull: ["$lowStockThreshold", 5] }],
             },
           },
         },
