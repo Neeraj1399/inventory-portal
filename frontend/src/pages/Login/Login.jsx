@@ -252,7 +252,7 @@ const Login = () => {
  setIsForgotPassword(true);
  setError("");
  }}
- className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
+ className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors cursor-pointer"
  >
  Reset it here
  </button>
