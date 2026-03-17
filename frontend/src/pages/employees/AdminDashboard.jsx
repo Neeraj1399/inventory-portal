@@ -319,7 +319,13 @@ const AdminDashboard = () => {
                     </p>
                   </div>
 
-                  <div className="flex">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIssueItem(item)}
+                      className="text-xs px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      Allocate
+                    </button>
                     <button
                       onClick={() => setRestockItem(item)}
                       className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
