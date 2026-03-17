@@ -6,6 +6,8 @@ import {
  Wrench,
  Trash2,
  AlertTriangle,
+ ChevronDown,
+ User,
 } from "lucide-react";
 import api from "../../hooks/api";
 import IssueConsumableModal from "../../components/consumables/IssueConsumableModal";
@@ -54,53 +56,79 @@ const StatCard = ({ title, value, icon, variant }) => {
 /* ---------------------- AUDIT LOG ITEM ---------------------- */
 
 const AuditLogItem = ({ log }) => {
- const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
- return (
- <div
- className="flex flex-col md:flex-row md:items-start gap-4 p-3 rounded-xl hover:bg-zinc-700/50 transition-colors border border-transparent hover:border-zinc-700 cursor-pointer"
- onClick={() => setExpanded(!expanded)}
- >
- {/* Action Badge */}
- <div
- className={`p-2 rounded-lg font-bold text-[10px] uppercase tracking-tighter flex-shrink-0 ${
- log.action === "RECOVERED"
- ? "bg-amber-500/100/15 text-amber-400"
- : log.action === "ALLOCATED"
- ? "bg-emerald-500/100/15 text-emerald-400"
- : "bg-zinc-800 text-zinc-400"
- }`}
- >
- {log.action}
- </div>
+  return (
+    <div
+      className="group flex flex-col md:flex-row md:items-center gap-3 md:gap-6 p-4 rounded-2xl hover:bg-white/[0.03] transition-all border border-transparent hover:border-zinc-800 cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
+    >
+      {/* 1. Action Badge Column (Fixed Width on Desktop) */}
+      <div className="md:w-28 flex-shrink-0">
+        <div
+          className={`text-center py-1.5 rounded-lg border font-black text-[9px] uppercase tracking-[0.15em] ${
+            log.action === "RECOVERED" || log.action === "RETURNED"
+              ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+              : log.action === "ALLOCATED" || log.action === "APPROVED"
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+              : log.action === "CREATED"
+              ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+              : log.action === "DELETED" || log.action === "REJECTED" || log.action === "DECOMMISSIONED"
+              ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+              : "bg-zinc-800/50 border-zinc-700/50 text-zinc-400"
+          }`}
+        >
+          {log.action}
+        </div>
+      </div>
 
- {/* Log Details */}
- <div className="flex-1">
- <p className="text-sm font-medium text-zinc-200 leading-snug">
- {log.description || "No details provided"}
- </p>
+      {/* 2. Content Column (Main info) */}
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="text-sm font-bold text-zinc-100 truncate group-hover:text-white transition-colors">
+          {log.description || "No details provided"}
+        </p>
 
- <p className="text-[11px] text-zinc-400 mt-1 flex flex-wrap gap-2">
- <span className="font-semibold text-zinc-500">
- {/* {log.user || "System"} */}
- {log.performedBy || "System"}
- </span>
- {log.targetEmployee && (
- <span className="font-medium text-zinc-500">
- {log.action === "RECOVERED" ? "←" : "→"} {log.targetEmployee}
- </span>
- )}
- • {formatDate(log.timestamp || log.time)}
- </p>
+        <div className="flex items-center gap-2 text-[10px] text-zinc-500 tabular-nums overflow-hidden">
+          <span className="font-bold text-zinc-400 truncate max-w-[120px]">
+            {log.performedBy || "System"}
+          </span>
+          
+          {log.targetEmployee && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-800/50 rounded-md border border-zinc-700/30 whitespace-nowrap">
+              <span className="text-zinc-600 font-bold">
+                {log.action === "RECOVERED" ? "←" : "→"}
+              </span>
+              <span className="text-zinc-400 font-medium">{log.targetEmployee}</span>
+            </div>
+          )}
 
- {expanded && log.details && (
- <pre className="mt-2 bg-zinc-900 border border-zinc-800 p-2 rounded-md text-xs font-mono text-zinc-400 overflow-x-auto">
- {JSON.stringify(log.details, null, 2)}
- </pre>
- )}
- </div>
- </div>
- );
+          <span className="text-zinc-700">•</span>
+          <span className="text-zinc-500 truncate lowercase tracking-tight italic">
+            {formatDate(log.timestamp || log.time)}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Detail Toggle Column */}
+      <div className="hidden md:flex items-center justify-end w-8">
+        <div className={`p-1 rounded-full transition-colors ${expanded ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-700 group-hover:text-zinc-500'}`}>
+          <ChevronDown size={14} className={`transform transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+      </div>
+
+      {/* EXPANDED DETAILS */}
+      {expanded && log.details && (
+        <div className="w-full md:pl-36 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="relative">
+             <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500/30 rounded-full" />
+             <pre className="bg-black/40 border border-zinc-800/50 p-4 rounded-2xl text-[11px] font-mono text-indigo-300/60 overflow-x-auto shadow-inner ml-3">
+               {JSON.stringify(log.details, null, 2)}
+             </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 /* ---------------------- ADMIN DASHBOARD ---------------------- */
