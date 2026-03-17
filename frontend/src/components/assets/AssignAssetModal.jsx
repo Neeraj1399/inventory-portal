@@ -156,7 +156,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
  </div>
 
  {isDropdownOpen && (
- <div className="absolute w-full mt-2 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-2xl shadow-2xl z-[80] max-h-52 overflow-y-auto p-2">
+ <div className="absolute w-full mt-2 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-2xl shadow-2xl z-[80] max-h-[450px] overflow-y-auto p-2">
  {filteredEmployees.length > 0 ? (
  filteredEmployees.map((emp) => (
  <div
