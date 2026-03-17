@@ -63,6 +63,8 @@ const ManageAssetsModal = ({ employee, onClose, onRefresh }) => {
  }
  };
 
+  if (!isOpen || !employee) return null;
+
  return (
  <>
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900 p-4">
