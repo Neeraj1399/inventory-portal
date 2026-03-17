@@ -1,4 +1,3 @@
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -24,30 +23,56 @@ import AppError from "./utils/appError.js";
 
 const app = express();
 
-// --- 2. DATABASE CONNECTION (Handled in app.js) ---
+// --- 1. DATABASE CONNECTION (Serverless Optimized) ---
+let isConnected = false;
 
-// --- 3. START SERVER (LOCAL DEVELOPMENT ONLY) ---(Handled in app.js) ---
-
-// --- 3. START SERVER (LOCAL DEVELOPMENT ONLY) ---
-// Vercel is read-only. We only do this locally.
-if (process.env.NODE_ENV !== "production") {
-  const uploadDir = "./uploads";
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+const connectDB = async () => {
+  if (isConnected) return;
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    console.error("❌ ERROR: MONGO_URI is missing from environment variables.");
+    return;
   }
-}
+
+  try {
+    const conn = await mongoose.connect(mongoUri, {
+      bufferCommands: false, // Prevents "buffer timeout" by failing fast if not connected
+    });
+    isConnected = !!conn.connections[0].readyState;
+    console.log("✅ Database: MongoDB Connected");
+  } catch (err) {
+    console.error("❌ Database: Connection Failed ->", err.message);
+    throw err;
+  }
+};
+
+// Start connection attempt immediately
+connectDB().catch(() => {});
+
+// Middleware to ensure DB is connected before any API request
+app.use(async (req, res, next) => {
+  // Skip DB check for pure status routes if desired
+  if (req.path === "/api/health" || req.path === "/") return next();
+  
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: "Database connection failed. Ensure IP 0.0.0.0/0 is whitelisted in MongoDB Atlas.",
+      details: err.message
+    });
+  }
+});
 
 // --- 2. GLOBAL MIDDLEWARES ---
-
-// REQUIRED FOR VERCEL: Trust the proxy so rate-limiter gets the correct user IP
 app.set("trust proxy", 1); 
-
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// Updated CORS to handle multiple origins
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL // Your Vercel frontend URL
+  process.env.FRONTEND_URL 
 ].filter(Boolean);
 
 app.use(
@@ -67,26 +92,24 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many login attempts from this IP, please try again after 15 minutes",
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use("/api/auth", authLimiter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 
-// Static uploads only work locally. For production, ensure you use Cloudinary.
+// Static uploads (Local Only)
 if (process.env.NODE_ENV !== "production") {
+  const uploadDir = "./uploads";
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
   app.use("/uploads", express.static("uploads"));
 }
-app.get("/", (req, res) => {
-  res.send("Server is running!");
-});
+
 // --- 3. MOUNT ROUTES ---
-// HEALTH CHECK ROUTE (Add this to verify backend is live)
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "success", message: "Backend is running!" });
-});
+app.get("/", (req, res) => res.send("Inventory Management System API is live!"));
+app.get("/api/health", (req, res) => res.status(200).json({ status: "success", message: "Backend is running!" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
@@ -97,7 +120,7 @@ app.use("/api/consumables", consumableRoutes);
 app.use("/api/audit-logs", auditRoutes);
 app.use("/api/requests", requestRoutes);
 
-// --- 4. CATCH-ALL & ERRORS ---
+// --- 4. ERROR HANDLING ---
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
