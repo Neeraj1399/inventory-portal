@@ -74,5 +74,6 @@ const auditLogSchema = new Schema(
 auditLogSchema.index({ entityId: 1 });
 auditLogSchema.index({ performedBy: 1 });
 auditLogSchema.index({ timestamp: -1 }); // Default sort: Newest first
+auditLogSchema.index({ action: 1, timestamp: -1 }); // Filtered queries by action type
 
 export default model("AuditLog", auditLogSchema);

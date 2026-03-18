@@ -93,7 +93,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
               required
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-zinc-100 cursor-pointer appearance-none"
+              className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-zinc-100 appearance-none"
             >
               <option value="" className="text-zinc-500">Select an active staff member...</option>
               {employees.map((emp) => (

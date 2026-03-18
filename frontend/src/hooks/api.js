@@ -49,10 +49,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Cache busting for IE/Legacy browsers on GET requests
-    if (config.method?.toLowerCase() === "get") {
-      config.params = { ...config.params, _t: Date.now() };
-    }
     return config;
   },
   (error) => Promise.reject(error),

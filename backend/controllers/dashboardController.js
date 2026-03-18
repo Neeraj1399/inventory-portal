@@ -45,13 +45,12 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
         { $project: { itemName: 1, currentStock: 1, totalQuantity: 1 } },
       ]),
 
-      // Recent activity logs
+      // Recent activity logs (lightweight: skip deep entityId population)
       AuditLog.find()
         .sort({ timestamp: -1 })
         .limit(10)
         .populate("performedBy", "name roleAccess")
         .populate("targetEmployee", "name")
-        .populate("entityId") // optional: Asset/Consumable details
         .lean(),
     ]);
 

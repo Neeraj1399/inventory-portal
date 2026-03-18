@@ -12,12 +12,50 @@ import sendEmail from "../utils/email.js";
  */
 export const getSystemStats = async (req, res, next) => {
   try {
-    const [assets, activeEmployees, brokenCount, dbStats] = await Promise.all([
-      Asset.find({ isDeleted: { $ne: true } }).lean(),
+    // Compute all stats in MongoDB via aggregation — no documents loaded into Node.js memory
+    const [assetStats, activeEmployees, brokenCount, dbStats] = await Promise.all([
+      Asset.aggregate([
+        { $match: { isDeleted: { $ne: true } } },
+        {
+          $group: {
+            _id: null,
+            totalAssets: { $sum: 1 },
+            totalValue: { $sum: { $ifNull: ["$purchasePrice", 0] } },
+            needsMaintenance: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ["$lastMaintenance", null] },
+                      {
+                        $gt: [
+                          new Date(),
+                          {
+                            $dateAdd: {
+                              startDate: "$lastMaintenance",
+                              unit: "month",
+                              amount: { $ifNull: ["$maintenanceCycle", 6] },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  // Also count assets with no lastMaintenance as needing maintenance
+                  { $cond: [{ $eq: ["$lastMaintenance", null] }, 1, 0] },
+                ],
+              },
+            },
+          },
+        },
+      ]),
       Employee.countDocuments({ status: "ACTIVE" }),
       Asset.countDocuments({ status: "BROKEN", isDeleted: { $ne: true } }),
       mongoose.connection.db.command({ dbStats: 1 }),
     ]);
+
+    const stats = assetStats[0] || { totalAssets: 0, totalValue: 0, needsMaintenance: 0 };
 
     const sizeMB =
       ((dbStats?.dataSize || 0) + (dbStats?.indexSize || 0)) / (1024 * 1024);
@@ -28,14 +66,11 @@ export const getSystemStats = async (req, res, next) => {
       status: "success",
       data: {
         inventory: {
-          totalAssets: assets.length,
+          totalAssets: stats.totalAssets,
           activeEmployees,
           brokenAssets: brokenCount,
-          needsMaintenance: assets.filter((a) => a.needsMaintenance).length,
-          totalValue: assets.reduce(
-            (sum, asset) => sum + (asset.purchasePrice || 0),
-            0,
-          ),
+          needsMaintenance: stats.needsMaintenance,
+          totalValue: stats.totalValue,
         },
         systemHealth: {
           dbUsedMB: `${sizeMB.toFixed(2)} MB`,

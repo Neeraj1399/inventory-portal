@@ -247,7 +247,7 @@ const AuditLogs = () => {
           </div>
 
           <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[140px] flex-1 sm:flex-none"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
           >
@@ -258,7 +258,7 @@ const AuditLogs = () => {
           </select>
 
           <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[140px] flex-1 sm:flex-none"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value)}
           >
@@ -269,7 +269,7 @@ const AuditLogs = () => {
           </select>
 
           <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[140px] flex-1 sm:flex-none"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
             value={entityFilter}
             onChange={(e) => setEntityFilter(e.target.value)}
           >

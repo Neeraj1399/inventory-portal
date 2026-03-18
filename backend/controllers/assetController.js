@@ -11,46 +11,61 @@ import catchAsync from "../utils/catchAsync.js";
 
 export const getAssets = catchAsync(async (req, res, next) => {
   const { search, status, category, allocatedTo } = req.query;
-  let query = {};
+
+  // Pagination defaults (page=1, limit=50 — adjustable by frontend)
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+  const skip = (page - 1) * limit;
+
+  let filter = {};
 
   if (req.user.roleAccess === "STAFF") {
-    query.allocatedTo = req.user._id;
+    filter.allocatedTo = req.user._id;
   } else {
-    if (allocatedTo) query.allocatedTo = allocatedTo;
+    if (allocatedTo) filter.allocatedTo = allocatedTo;
 
-    // Search by Model or Serial
     if (search?.trim()) {
-      query.$or = [
+      filter.$or = [
         { model: { $regex: search.trim(), $options: "i" } },
         { serialNumber: { $regex: search.trim(), $options: "i" } },
       ];
     }
 
-    if (status && status !== "ALL") query.status = status;
+    if (status && status !== "ALL") filter.status = status;
 
-    // MODIFIED: Asset Classification filtering now supports partial text search
-    // since it is no longer a fixed dropdown
     if (category?.trim()) {
-      query.category = { $regex: category.trim(), $options: "i" };
+      filter.category = { $regex: category.trim(), $options: "i" };
     }
   }
 
-  const assets = await Asset.find(query)
-    .populate({ path: "allocatedTo", select: "name email" })
-    .sort("-createdAt");
+  // Execute query + count in parallel to minimize total wait time
+  const [assets, total] = await Promise.all([
+    Asset.find(filter)
+      .populate({ path: "allocatedTo", select: "name email" })
+      .sort("-createdAt")
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Asset.countDocuments(filter),
+  ]);
 
   res.status(200).json({
     status: "success",
     results: assets.length,
+    total,
+    pages: Math.ceil(total / limit),
+    currentPage: page,
     data: assets,
   });
 });
 
 export const getAsset = catchAsync(async (req, res, next) => {
-  const asset = await Asset.findById(req.params.id).populate({
-    path: "allocatedTo",
-    select: "name email department",
-  });
+  const asset = await Asset.findById(req.params.id)
+    .populate({
+      path: "allocatedTo",
+      select: "name email department",
+    })
+    .lean();
   if (!asset) return next(new AppError("No asset found with that ID", 404));
   res.status(200).json({ status: "success", data: asset });
 });

@@ -77,7 +77,7 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
             <div className="space-y-2">
               <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Request Type</label>
               <select
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >

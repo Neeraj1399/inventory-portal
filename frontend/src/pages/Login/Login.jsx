@@ -100,13 +100,13 @@ const Login = () => {
  </div>
 
  {error && (
- <div className="mb-6 p-4 bg-red-500/100/10 border-l-4 border-red-500 text-red-400 text-sm rounded-r-lg shadow-sm">
+ <div className="mb-6 p-4 bg-red-500/10 border-l-4 border-red-500 text-red-400 text-sm rounded-r-lg shadow-sm">
  {error}
  </div>
  )}
 
  {successMessage && (
- <div className="mb-6 p-4 bg-emerald-500/100/10 border-l-4 border-emerald-500 text-emerald-400 text-sm rounded-r-lg shadow-sm">
+ <div className="mb-6 p-4 bg-emerald-500/10 border-l-4 border-emerald-500 text-emerald-400 text-sm rounded-r-lg shadow-sm">
  {successMessage}
  </div>
  )}
@@ -252,7 +252,7 @@ const Login = () => {
  setIsForgotPassword(true);
  setError("");
  }}
- className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors cursor-pointer"
+ className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
  >
  Reset it here
  </button>

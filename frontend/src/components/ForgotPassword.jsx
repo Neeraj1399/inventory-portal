@@ -64,7 +64,7 @@ const ForgotPassword = () => {
  </p>
 
  {status.error && (
- <div className="mb-6 p-4 bg-red-500/100/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+ <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium animate-in fade-in slide-in-from-top-1">
  {status.error}
  </div>
  )}

@@ -6,6 +6,7 @@ import morgan from "morgan";
 import fs from "fs";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -104,6 +105,7 @@ app.use("/api/auth", authLimiter);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
+app.use(compression()); // Gzip/Brotli responses — 60-80% bandwidth reduction
 
 // Static uploads (Local Only)
 if (process.env.NODE_ENV !== "production") {
@@ -113,6 +115,17 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // --- 3. MOUNT ROUTES ---
+
+// Global rate limiter for all API routes (DDoS / abuse protection)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: "Too many requests from this IP, please try again later",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", globalLimiter);
+
 app.get("/", (req, res) => res.send("Inventory Management System API is live!"));
 app.get("/api/health", (req, res) => res.status(200).json({ status: "success", message: "Backend is running!" }));
 

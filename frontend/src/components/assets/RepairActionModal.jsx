@@ -32,7 +32,7 @@ const RepairActionModal = ({ isOpen, asset, onClose, onAction }) => {
  {/* Restore Option */}
  <button
  onClick={() => onAction(asset._id, "READY_TO_DEPLOY")}
- className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/100/10/30 hover:border-emerald-500 hover:bg-emerald-500/100/10 transition-all group text-left"
+ className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/10/30 hover:border-emerald-500 hover:bg-emerald-500/10 transition-all group text-left"
  >
  <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-emerald-400 shadow-sm group-hover:scale-110 transition-transform">
  <CheckCircle size={24} />

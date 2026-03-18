@@ -29,8 +29,8 @@ export const ToastProvider = ({ children }) => {
  className={`
  pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl min-w-[300px]
  animate-in slide-in-from-right-8 fade-in duration-300 border
- ${toast.type === "success" ? "bg-emerald-500/100/10 border-emerald-500/30 text-emerald-400" : ""}
- ${toast.type === "error" ? "bg-red-500/100/10 border-red-500/30 text-red-400" : ""}
+ ${toast.type === "success" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : ""}
+ ${toast.type === "error" ? "bg-red-500/10 border-red-500/30 text-red-400" : ""}
  ${toast.type === "info" ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : ""}
  ${toast.type === "warning" ? "bg-amber-500/10 border-amber-500/30 text-amber-400" : ""}
  `}

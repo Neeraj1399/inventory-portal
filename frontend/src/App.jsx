@@ -8,20 +8,19 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 
+// Eagerly loaded: needed immediately on app start
 import Login from "./pages/Login/Login";
 import ResetPassword from "./pages/employees/ResetPassword";
 import ForgotPassword from "./components/ForgotPassword";
-import AdminDashboard from "./pages/employees/AdminDashboard";
-import StaffDashboard from "./pages/Login/StaffDashboard";
-
-import AssetList from "./pages/assets/AssetList";
-import ConsumableList from "./pages/consumables/ConsumableList";
-import EmployeeList from "./pages/employees/EmployeeList";
-import RequestList from "./pages/requests/RequestList";
-
 import DashboardLayout from "./components/layout/DashboardLayout";
 
-// Lazy load AuditLogs for performance
+// Lazy-loaded: fetched only when the user navigates to these pages
+const AdminDashboard = lazy(() => import("./pages/employees/AdminDashboard"));
+const StaffDashboard = lazy(() => import("./pages/Login/StaffDashboard"));
+const AssetList = lazy(() => import("./pages/assets/AssetList"));
+const ConsumableList = lazy(() => import("./pages/consumables/ConsumableList"));
+const EmployeeList = lazy(() => import("./pages/employees/EmployeeList"));
+const RequestList = lazy(() => import("./pages/requests/RequestList"));
 const AuditLogs = lazy(() => import("./pages/audit/AuditLogs"));
 
 /**
@@ -59,7 +58,15 @@ function AppContent() {
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <Suspense
+                fallback={
+                  <div className="min-h-screen flex items-center justify-center bg-zinc-900">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                }
+              >
+                <DashboardLayout />
+              </Suspense>
             </ProtectedRoute>
           }
         >
@@ -96,11 +103,7 @@ function AppContent() {
             path="audit-logs"
             element={
               user?.roleAccess === "ADMIN" ? (
-                <Suspense
-                  fallback={<div className="p-8 text-center">Loading...</div>}
-                >
-                  <AuditLogs />
-                </Suspense>
+                <AuditLogs />
               ) : (
                 <Navigate to="/" replace />
               )

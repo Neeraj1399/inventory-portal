@@ -44,7 +44,7 @@ const ConsumableList = () => {
  const fetchConsumables = useCallback(async (silent = false) => {
  try {
  if (!silent) setLoading(true);
- const res = await api.get("/consumables", { params: { _t: Date.now() } });
+ const res = await api.get("/consumables");
  setItems(res.data?.data || []);
  } catch (err) {
  console.error("Fetch error:", err);
@@ -285,7 +285,7 @@ const ConsumableList = () => {
  {inMaintenance > 0 && (
  <button
  onClick={() => openModal("RESOLVE", item)}
- className="p-3 bg-emerald-500/100/10 text-emerald-400 border border-emerald-500/20 rounded-2xl hover:bg-emerald-500/100 hover:text-white transition-all shadow-sm"
+ className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
  title="Finish Repair"
  >
  <CheckCircle size={20} />
@@ -293,7 +293,7 @@ const ConsumableList = () => {
  )}
  <button
  onClick={() => openModal("CONDITION", item)}
- className="p-3 bg-amber-500/100/20 text-amber-400 border border-amber-500/30 rounded-2xl hover:bg-amber-500/100 hover:text-white transition-all shadow-md"
+ className="p-3 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-2xl hover:bg-amber-500 hover:text-white transition-all shadow-md"
  title="Maintenance / Scrap"
  >
  <Wrench size={20} />

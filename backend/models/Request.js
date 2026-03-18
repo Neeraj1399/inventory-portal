@@ -50,4 +50,10 @@ const requestSchema = new Schema(
   { timestamps: true }
 );
 
+/**
+ * INDEXES: Optimized for common query patterns
+ */
+requestSchema.index({ employeeId: 1, status: 1 }); // Staff viewing their own requests filtered by status
+requestSchema.index({ status: 1, createdAt: -1 }); // Admin viewing all requests sorted by date
+
 export default model("Request", requestSchema);

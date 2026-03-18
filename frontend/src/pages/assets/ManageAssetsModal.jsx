@@ -134,7 +134,7 @@ const ManageAssetsModal = ({ isOpen, employee, onClose, onRefresh }) => {
  <button
  onClick={() => setAssetToReturn(asset)}
  disabled={actionLoading || isRefreshing}
- className="text-xs font-bold text-red-400 hover:bg-red-500/100/10 px-3 py-2 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+ className="text-xs font-bold text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
  >
  <RefreshCcw size={14} /> Return
  </button>

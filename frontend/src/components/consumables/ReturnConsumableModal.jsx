@@ -14,7 +14,7 @@ const RETURN_STATUSES = [
  id: "UNDER_MAINTENANCE",
  label: "Repair",
  icon: Wrench,
- color: "bg-amber-500/100 text-white hover:bg-amber-600",
+ color: "bg-amber-500 text-white hover:bg-amber-600",
  },
  {
  id: "DECOMMISSIONED",
@@ -122,7 +122,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
  setEmployeeId(e.target.value);
  setQuantity(1); // Reset quantity to 1 when employee changes
  }}
- className="w-full border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none cursor-pointer bg-zinc-900 border border-zinc-800"
+ className="w-full border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none bg-zinc-900 border border-zinc-800"
  >
  <option value="">Select an employee...</option>
  {item.assignments.map((a) => {

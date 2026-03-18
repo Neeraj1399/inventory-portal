@@ -41,6 +41,10 @@ export const createRequest = catchAsync(async (req, res, next) => {
  * @access  Private
  */
 export const getRequests = catchAsync(async (req, res, next) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+  const skip = (page - 1) * limit;
+
   let filter = {};
   
   // Staff can only see their own requests
@@ -48,14 +52,23 @@ export const getRequests = catchAsync(async (req, res, next) => {
     filter = { employeeId: req.user._id };
   }
 
-  const requests = await Request.find(filter)
-    .populate("employeeId", "name email department role")
-    .populate("itemId")
-    .sort("-createdAt");
+  const [requests, total] = await Promise.all([
+    Request.find(filter)
+      .populate("employeeId", "name email department role")
+      .populate("itemId")
+      .sort("-createdAt")
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Request.countDocuments(filter),
+  ]);
 
   res.status(200).json({
     status: "success",
     results: requests.length,
+    total,
+    pages: Math.ceil(total / limit),
+    currentPage: page,
     data: requests,
   });
 });

@@ -12,8 +12,11 @@ import crypto from "crypto";
 export async function getEmployees(req, res, next) {
   try {
     const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || "").toLowerCase();
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    const employees = await Employee.aggregate([
+    const result = await Employee.aggregate([
       {
         $lookup: {
           from: "assets",
@@ -38,9 +41,25 @@ export async function getEmployees(req, res, next) {
         },
       },
       { $match: { status: "ACTIVE" } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
     ]);
 
-    res.status(200).json({ status: "success", data: employees });
+    const employees = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    res.status(200).json({
+      status: "success",
+      results: employees.length,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page,
+      data: employees,
+    });
   } catch (err) {
     next(err);
   }

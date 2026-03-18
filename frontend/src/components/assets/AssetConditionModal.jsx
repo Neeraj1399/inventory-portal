@@ -61,7 +61,7 @@ const AssetConditionModal = ({
  title: "Mark as Ready",
  description: "Items are functional and available for assignment",
  icon: <CheckCircle2 className="text-emerald-500" size={20} />,
- color: "hover:border-emerald-500 hover:bg-emerald-500/100/10",
+ color: "hover:border-emerald-500 hover:bg-emerald-500/10",
  hideIf: !isBulk && asset.status === "READY_TO_DEPLOY",
  },
  {

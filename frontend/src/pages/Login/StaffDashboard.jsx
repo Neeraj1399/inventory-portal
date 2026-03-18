@@ -22,7 +22,7 @@ const AssetRow = ({ asset }) => (
  {asset.serialNumber}
  </td>
  <td className="px-6 py-4">
- <span className="px-2 py-1 bg-emerald-500/100/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-md uppercase">
+ <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-md uppercase">
  {asset.status}
  </span>
  </td>
@@ -109,7 +109,7 @@ const StaffDashboard = () => {
  icon={<ShieldCheck size={24} className="text-emerald-400" />}
  title="Policy"
  value="Compliant"
- colorClass="bg-emerald-500/100/10 border border-emerald-500/20"
+ colorClass="bg-emerald-500/10 border border-emerald-500/20"
  />
  </div>
 

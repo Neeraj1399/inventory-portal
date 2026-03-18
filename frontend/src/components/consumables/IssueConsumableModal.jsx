@@ -64,14 +64,14 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
  className={`flex items-center gap-4 p-4 rounded-xl border ${
  availableStock > 0
  ? "bg-indigo-500/10 border-zinc-700"
- : "bg-red-500/100/10 border-red-500/30"
+ : "bg-red-500/10 border-red-500/30"
  }`}
  >
  <div
  className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold shadow-sm ${
  availableStock > 0
  ? "bg-indigo-600 text-white"
- : "bg-red-500/100/15 text-red-400"
+ : "bg-red-500/15 text-red-400"
  }`}
  >
  {availableStock}
@@ -95,7 +95,7 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
  required
  value={employeeId}
  onChange={(e) => setEmployeeId(e.target.value)}
- className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm cursor-pointer"
+ className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm"
  >
  <option value="">Select an active staff member...</option>
  {employees.map((emp) => (

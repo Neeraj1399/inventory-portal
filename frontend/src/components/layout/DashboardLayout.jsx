@@ -95,7 +95,7 @@ const DashboardLayout = () => {
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden cursor-pointer"
+          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -110,7 +110,7 @@ const DashboardLayout = () => {
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-zinc-800 flex items-center gap-3">
-            <div className="bg-emerald-500/100 p-2.5 rounded-xl text-white">
+            <div className="bg-emerald-500 p-2.5 rounded-xl text-white">
               <Package size={20} />
             </div>
             <span className="font-bold text-lg text-zinc-50 tracking-tight">
@@ -125,7 +125,7 @@ const DashboardLayout = () => {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
                 className={`
-                  flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer
+                  flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200
                   ${
                     location.pathname === item.path
                       ? "bg-zinc-800 text-zinc-50"
@@ -192,11 +192,11 @@ const DashboardLayout = () => {
           <footer className="mt-12 py-6 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 font-medium">
             <p>&copy; {new Date().getFullYear()} Inventory Portal. All rights reserved.</p>
             <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <a href="#" className="hover:text-zinc-300 transition-colors cursor-pointer">Privacy Policy</a>
+              <a href="#" className="hover:text-zinc-300 transition-colors">Privacy Policy</a>
               <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-              <a href="#" className="hover:text-zinc-300 transition-colors cursor-pointer">Terms of Service</a>
+              <a href="#" className="hover:text-zinc-300 transition-colors">Terms of Service</a>
               <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-              <a href="#" className="hover:text-zinc-300 transition-colors cursor-pointer">Support</a>
+              <a href="#" className="hover:text-zinc-300 transition-colors">Support</a>
             </div>
           </footer>
         </main>

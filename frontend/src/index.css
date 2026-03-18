@@ -5,6 +5,10 @@ body {
   background-color: #09090b;
 }
 
-button {
+/* Global cursor rules for interactive elements */
+button,
+select,
+a,
+label[for] {
   cursor: pointer;
 }

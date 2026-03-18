@@ -145,7 +145,7 @@ const ReturnAssetModal = ({ isOpen, asset, onClose, onRefresh }) => {
  returnStatus === "READY_TO_DEPLOY"
  ? "bg-emerald-600 shadow-none"
  : returnStatus === "UNDER_MAINTENANCE"
- ? "bg-amber-500/100 shadow-none"
+ ? "bg-amber-500 shadow-none"
  : "bg-red-600 shadow-none"
  }
  `}

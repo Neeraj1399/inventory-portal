@@ -29,7 +29,7 @@ const StatCard = ({ title, value, icon, variant }) => {
  const variants = {
  blue: "bg-indigo-500/10 text-indigo-400",
  indigo: "bg-indigo-500/10 text-indigo-400",
- green: "bg-emerald-500/100/10 text-emerald-400",
+ green: "bg-emerald-500/10 text-emerald-400",
  amber: "bg-amber-500/10 text-amber-400",
  red: "bg-rose-500/10 text-rose-400",
  rose: "bg-pink-500/10 text-pink-400",

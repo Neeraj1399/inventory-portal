@@ -8,6 +8,7 @@ import {
  Edit,
  Package,
  ShieldCheck,
+ Ban,
 } from "lucide-react";
 
 import api from "../../hooks/api";
@@ -323,13 +324,17 @@ const EmployeeList = () => {
  : "Offboard employee"
  }
  onClick={() => handleToggleStatus(emp._id, emp.status)}
- className={`p-2 rounded-xl transition-all ${
+ className={`p-2 rounded-xl transition-all group/offboard ${
  hasItemsAssigned
- ? "text-zinc-300 cursor-not-allowed"
+ ? "cursor-not-allowed opacity-60"
  : "text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10"
  }`}
  >
+ {hasItemsAssigned ? (
+ <Ban size={18} className="text-rose-400" />
+ ) : (
  <UserMinus size={18} />
+ )}
  </button>
  </>
  )}

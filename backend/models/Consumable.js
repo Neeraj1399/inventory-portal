@@ -100,4 +100,9 @@ consumableSchema.pre("save", function () {
 
 });
 
+/**
+ * INDEXES: Optimized for common query patterns
+ */
+consumableSchema.index({ "assignments.employeeId": 1 }); // Employee-consumable lookups (offboarding, staff dashboard)
+
 export default model("Consumable", consumableSchema);

@@ -138,7 +138,7 @@ const ConsumableMaintenanceResolveModal = ({
  <div
  className={`flex gap-3 p-4 rounded-2xl border ${
  formData.action === "RETURN"
- ? "bg-emerald-500/100/10 border-emerald-500/20"
+ ? "bg-emerald-500/10 border-emerald-500/20"
  : "bg-rose-500/10 border-rose-100"
  }`}
  >

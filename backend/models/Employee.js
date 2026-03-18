@@ -154,4 +154,10 @@ employeeSchema.methods.createPasswordResetToken = function () {
   return resetToken;
 };
 
+/**
+ * INDEXES: Optimized for common query patterns
+ */
+employeeSchema.index({ status: 1 }); // Filtering active/offboarded employees
+employeeSchema.index({ roleAccess: 1, status: 1 }); // Admin count checks (last-admin safeguard)
+
 export default model("Employee", employeeSchema);

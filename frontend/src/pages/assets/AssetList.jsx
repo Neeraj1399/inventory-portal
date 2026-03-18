@@ -421,7 +421,7 @@ const AssetList = () => {
  if (asset.receiptUrl) window.open(asset.receiptUrl, "_blank");
  else alert("No receipt found.");
  }}
- color="hover:text-emerald-400 hover:bg-emerald-500/100/10 text-zinc-400"
+ color="hover:text-emerald-400 hover:bg-emerald-500/10 text-zinc-400"
  title="View Receipt"
  />
  <ActionButton
@@ -482,7 +482,7 @@ const AssetList = () => {
  setSelectedAsset(asset);
  setActiveModal("CONDITION");
  }}
- color="hover:text-emerald-400 hover:bg-emerald-500/100/10 text-zinc-400"
+ color="hover:text-emerald-400 hover:bg-emerald-500/10 text-zinc-400"
  title="Complete Repair"
  />
  )}
@@ -562,7 +562,7 @@ const ActionButton = ({ icon, onClick, color, title }) => (
 const StatusBadge = ({ status }) => {
  const themes = {
  READY_TO_DEPLOY:
- "bg-emerald-500/100/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
+ "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
  ALLOCATED: 
  "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]",
  UNDER_MAINTENANCE:

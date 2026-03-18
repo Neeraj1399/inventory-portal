@@ -126,7 +126,7 @@ const RequestList = () => {
         </div>
         
         <select 
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all cursor-pointer min-w-[160px]"
+          className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[160px]"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -146,7 +146,7 @@ const RequestList = () => {
         </div>
       ) : filteredRequests.length === 0 ? (
         <div className="text-center py-20 bg-zinc-900/50 border border-zinc-800 border-dashed rounded-3xl">
-          <div className="p-4 bg-zinc-800/100/50 w-fit mx-auto rounded-full text-zinc-700 mb-4">
+          <div className="p-4 bg-zinc-800/50 w-fit mx-auto rounded-full text-zinc-700 mb-4">
             <ClipboardList size={40} />
           </div>
           <h3 className="text-zinc-300 font-bold">No tickets found</h3>
