@@ -10,11 +10,13 @@ import {
   RefreshCw,
   Search,
   MoreVertical,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react";
 import api from "../../hooks/api";
 import RequestModal from "../../components/common/RequestModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
+import ReasonModal from "../../components/common/ReasonModal";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 
@@ -31,6 +33,12 @@ const RequestList = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // Rejection Reason States
+  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
+  const [reasonModalMode, setReasonModalMode] = useState("INPUT");
+  const [selectedReqForReason, setSelectedReqForReason] = useState(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -50,14 +58,33 @@ const RequestList = () => {
   }, []);
 
   const handleStatusUpdate = async (id, status, note = "") => {
+    // If rejecting, we need a note
+    if (status === "REJECTED" && !note && isAdmin) {
+      const targetReq = requests.find(r => r._id === id);
+      setSelectedReqForReason(targetReq);
+      setReasonModalMode("INPUT");
+      setIsReasonModalOpen(true);
+      return;
+    }
+
+    setIsUpdatingStatus(true);
     try {
       await api.patch(`/requests/${id}`, { status, adminNote: note });
       addToast(`Request ${status.toLowerCase()} successfully`, "success");
+      setIsReasonModalOpen(false);
       fetchRequests();
     } catch (err) {
       console.error("Failed to update status", err);
       addToast(err.response?.data?.message || "Failed to update status", "error");
+    } finally {
+      setIsUpdatingStatus(false);
     }
+  };
+
+  const handleViewReason = (req) => {
+    setSelectedReqForReason(req);
+    setReasonModalMode("VIEW");
+    setIsReasonModalOpen(true);
   };
 
   const handleDelete = (id) => {
@@ -209,6 +236,15 @@ const RequestList = () => {
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border tracking-wider ${getStatusColor(req.status)}`}>
                         {req.status}
                       </span>
+                      {req.status === "REJECTED" && req.adminNote && (
+                        <button 
+                          onClick={() => handleViewReason(req)}
+                          className="p-1.5 bg-zinc-800 text-zinc-400 hover:text-indigo-400 rounded-lg border border-zinc-700 transition-all shadow-sm"
+                          title="View Rejection Reason"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      )}
                       {(isAdmin || (!isAdmin && req.status === "PENDING")) && (
                         <button 
                           onClick={() => handleDelete(req._id)}
@@ -301,6 +337,16 @@ const RequestList = () => {
         successTitle="Request Deleted"
         successMessage="The service ticket has been permanently removed."
         type="danger"
+      />
+      <ReasonModal 
+        isOpen={isReasonModalOpen}
+        onClose={() => setIsReasonModalOpen(false)}
+        onConfirm={(note) => handleStatusUpdate(selectedReqForReason._id, "REJECTED", note)}
+        mode={reasonModalMode}
+        title={reasonModalMode === "INPUT" ? "Rejection Reason" : "Reason for Rejection"}
+        description={reasonModalMode === "INPUT" ? `Why are you rejecting "${selectedReqForReason?.title}"?` : `Admin feedback for "${selectedReqForReason?.title}"`}
+        initialValue={selectedReqForReason?.adminNote || ""}
+        isLoading={isUpdatingStatus}
       />
     </div>
   );
