@@ -139,3 +139,48 @@ export const updateRequestStatus = catchAsync(async (req, res, next) => {
     data: request,
   });
 });
+
+/**
+ * @desc    Delete a request
+ * @route   DELETE /api/requests/:id
+ * @access  Private
+ */
+export const deleteRequest = catchAsync(async (req, res, next) => {
+  const request = await Request.findById(req.params.id);
+
+  if (!request) {
+    return next(new AppError("Request not found", 404));
+  }
+
+  // Authorization Check:
+  // 1. Admin can delete anything
+  // 2. Staff can only delete their own PENDING requests
+  const isOwner = request.employeeId.toString() === req.user._id.toString();
+  const isAdmin = req.user.roleAccess === "ADMIN";
+
+  if (!isAdmin) {
+    if (!isOwner) {
+      return next(new AppError("You do not have permission to delete this request", 403));
+    }
+    if (request.status !== "PENDING") {
+      return next(new AppError("Only pending requests can be deleted by staff", 400));
+    }
+  }
+
+  await Request.findByIdAndDelete(req.params.id);
+
+  // Log the deletion
+  await AuditLog.create({
+    action: "DELETED",
+    entityType: "Request",
+    entityId: request._id,
+    performedBy: req.user._id,
+    targetEmployee: request.employeeId,
+    description: `Deleted ${request.priority} priority ticket: ${request.title}`,
+  });
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});

@@ -9,20 +9,28 @@ import {
   Filter,
   RefreshCw,
   Search,
-  MoreVertical
+  MoreVertical,
+  Trash2
 } from "lucide-react";
 import api from "../../hooks/api";
 import RequestModal from "../../components/common/RequestModal";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 
 const RequestList = () => {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const isAdmin = user?.roleAccess === "ADMIN";
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -44,9 +52,41 @@ const RequestList = () => {
   const handleStatusUpdate = async (id, status, note = "") => {
     try {
       await api.patch(`/requests/${id}`, { status, adminNote: note });
+      addToast(`Request ${status.toLowerCase()} successfully`, "success");
       fetchRequests();
     } catch (err) {
       console.error("Failed to update status", err);
+      addToast(err.response?.data?.message || "Failed to update status", "error");
+    }
+  };
+
+  const handleDelete = (id) => {
+    setDeletingId(id);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    
+    setIsDeleting(true);
+    try {
+      await api.delete(`/requests/${deletingId}`);
+      setIsSuccess(true);
+      fetchRequests();
+      
+      // Keep modal open briefly to show success state
+      setTimeout(() => {
+        setIsConfirmOpen(false);
+        setIsSuccess(false);
+        setDeletingId(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to delete request", err);
+      addToast(err.response?.data?.message || "Failed to delete request", "error");
+      setIsConfirmOpen(false);
+      setDeletingId(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -165,9 +205,20 @@ const RequestList = () => {
                       </span>
                       <h3 className="text-lg font-bold text-zinc-50 leading-tight">{req.title}</h3>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black border tracking-wider ${getStatusColor(req.status)}`}>
-                      {req.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border tracking-wider ${getStatusColor(req.status)}`}>
+                        {req.status}
+                      </span>
+                      {(isAdmin || (!isAdmin && req.status === "PENDING")) && (
+                        <button 
+                          onClick={() => handleDelete(req._id)}
+                          className="p-1.5 text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                          title="Delete Request"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-zinc-400 text-sm line-clamp-3 leading-relaxed">
@@ -238,6 +289,19 @@ const RequestList = () => {
         </div>
       )}
       <RequestModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); fetchRequests(); }} />
+      <ConfirmModal 
+        isOpen={isConfirmOpen}
+        title="Delete Request"
+        message="Are you sure you want to delete this service ticket? This action is permanent and will be logged for audit purposes."
+        confirmText="Delete Ticket"
+        onConfirm={confirmDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+        isLoading={isDeleting}
+        success={isSuccess}
+        successTitle="Request Deleted"
+        successMessage="The service ticket has been permanently removed."
+        type="danger"
+      />
     </div>
   );
 };

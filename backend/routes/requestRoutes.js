@@ -3,7 +3,8 @@ import {
   createRequest, 
   getRequests, 
   getRequest, 
-  updateRequestStatus 
+  updateRequestStatus,
+  deleteRequest
 } from "../controllers/requestController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
 
@@ -20,6 +21,7 @@ router
 router
   .route("/:id")
   .get(getRequest)
-  .patch(restrictTo("ADMIN"), updateRequestStatus);
+  .patch(restrictTo("ADMIN"), updateRequestStatus)
+  .delete(deleteRequest);
 
 export default router;
