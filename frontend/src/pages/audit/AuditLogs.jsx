@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   History,
   User,
@@ -11,10 +11,53 @@ import {
   Download,
   Calendar,
   RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 import { getAuditLogs } from "../../services/auditService";
+import Pagination from "../../components/common/Pagination";
+import { motion, AnimatePresence } from "framer-motion";
 
-/* ---------------- UTIL ---------------- */
+// Premium Primitives
+import PageHeader from "../../components/common/PageHeader";
+import Card from "../../components/common/Card";
+import Badge from "../../components/common/Badge";
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import PageTransition from "../../components/common/PageTransition";
+
+// --- Custom Hooks ---
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
+const AuditLogSkeleton = () => (
+  <div className="divide-y divide-border animate-pulse">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <div key={i} className="p-8 flex gap-10">
+        <div className="hidden md:flex flex-col items-center w-14 shrink-0 pt-2">
+          <div className="w-14 h-14 rounded-2xl bg-bg-tertiary" />
+          <div className="w-px flex-1 bg-bg-tertiary mt-10" />
+        </div>
+        <div className="flex-1 space-y-4">
+          <div className="flex justify-between">
+            <div className="flex gap-2">
+              <div className="h-6 w-24 bg-bg-tertiary rounded-full" />
+              <div className="h-6 w-16 bg-bg-tertiary/50 rounded-full" />
+            </div>
+            <div className="h-4 w-32 bg-bg-tertiary/30 rounded" />
+          </div>
+          <div className="h-7 w-3/4 bg-bg-tertiary rounded-lg" />
+          <div className="h-12 w-48 bg-bg-tertiary/20 rounded-2xl" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const formatDate = (date) => {
   if (!date) return "N/A";
@@ -22,134 +65,87 @@ const formatDate = (date) => {
   return isNaN(d) ? "N/A" : d.toLocaleString();
 };
 
-/* ---------------- HIGHLIGHT ---------------- */
-
-const Highlight = ({ text = "", query = "" }) => {
-  if (!query) return text;
-
-  const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${safeQuery})`, "gi");
-
-  return text.split(regex).map((part, i) =>
-    regex.test(part) ? (
-      <mark key={i} className="bg-yellow-500/20 text-yellow-300">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
+const escapeCSV = (val) => {
+  const str = String(val ?? "");
+  return str.includes(",") || str.includes('"') || str.includes("\n")
+    ? `"${str.replace(/"/g, '""')}"`
+    : str;
 };
-
-/* ---------------- CSV EXPORT ---------------- */
 
 const convertToCSV = (logs) => {
   if (!logs.length) return "";
-
-  const headers = [
-    "Action",
-    "Performed By",
-    "Target Employee",
-    "Entity Type",
-    "Description",
-    "Timestamp",
-    "IP Address",
-  ];
-
+  const headers = ["Action", "Performed By", "Target Employee", "Entity Type", "Description", "Timestamp", "IP Address"];
   const rows = logs.map((log) => [
     log.action,
     log.performedBy?.name || "System",
     log.targetEmployee?.name || "N/A",
     log.entityType || "N/A",
-    `"${log.description || ""}"`,
+    log.description || "",
     log.createdAt || log.timestamp,
     log.ipAddress || "Internal",
   ]);
-
-  return [headers, ...rows].map((r) => r.join(",")).join("\n");
+  return [headers, ...rows].map((r) => r.map(escapeCSV).join(",")).join("\n");
 };
-
-/* ---------------- MAIN COMPONENT ---------------- */
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
-  /* -------- FETCH LOGS -------- */
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const itemsPerPage = 50;
+  
+  const debouncedSearch = useDebounce(search, 500);
+
+  const fetchLogs = useCallback(async (overrides = null) => {
+    try {
+      const s = overrides?.search !== undefined ? overrides.search : debouncedSearch;
+      const action = overrides?.action !== undefined ? overrides.action : actionFilter;
+      const user = overrides?.user !== undefined ? overrides.user : userFilter;
+      const entityType = overrides?.entityType !== undefined ? overrides.entityType : entityFilter;
+      const date = overrides?.date !== undefined ? overrides.date : dateFilter;
+      const page = overrides?.page ?? currentPage;
+
+      if (!overrides?.isSilent) setLoading(true);
+
+      const response = await getAuditLogs(page, itemsPerPage, {
+        search: s,
+        action: action,
+        user: user,
+        entityType: entityType,
+        date: date
+      });
+      
+      if (response) {
+        setLogs(response.data || []);
+        setTotalPages(response.pages || 1);
+        setTotalResults(response.total || 0);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      // Small artificial delay to prevent flicker
+      setTimeout(() => {
+        setLoading(false);
+      }, 300);
+    }
+  }, [currentPage, debouncedSearch, actionFilter, userFilter, entityFilter, dateFilter]);
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setLoading(true);
-        const response = await getAuditLogs();
-        setLogs(response.data || []);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load audit logs.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    const controller = new AbortController();
     fetchLogs();
-  }, []);
+    return () => controller.abort();
+  }, [fetchLogs]);
 
-  /* -------- FILTER VALUES -------- */
-
-  const actionTypes = useMemo(
-    () => [...new Set(logs.map((l) => l.action).filter(Boolean))],
-    [logs],
-  );
-
-  const users = useMemo(
-    () => [
-      ...new Set(
-        logs.map(
-          (l) => l.performedBy?.name || l.targetEmployee?.name || "System",
-        ),
-      ),
-    ],
-    [logs],
-  );
-
-  const entityTypes = useMemo(
-    () => [...new Set(logs.map((l) => l.entityType).filter(Boolean))],
-    [logs],
-  );
-
-  /* -------- FILTER LOGS -------- */
-
-  const filteredLogs = useMemo(() => {
-    const q = search.toLowerCase();
-
-    return logs.filter((log) => {
-      const performer = log.performedBy?.name || "System";
-      const target = log.targetEmployee?.name || "N/A";
-      const timestamp = new Date(log.createdAt || log.timestamp);
-      const logDate = timestamp.toISOString().split("T")[0];
-
-      return (
-        (!actionFilter || log.action === actionFilter) &&
-        (!entityFilter || log.entityType === entityFilter) &&
-        (!userFilter || performer === userFilter || target === userFilter) &&
-        (!dateFilter || logDate === dateFilter) &&
-        (log.action?.toLowerCase().includes(q) ||
-          log.description?.toLowerCase().includes(q) ||
-          performer.toLowerCase().includes(q) ||
-          target.toLowerCase().includes(q) ||
-          log.ipAddress?.toLowerCase().includes(q))
-      );
-    });
-  }, [logs, search, actionFilter, userFilter, entityFilter, dateFilter]);
-
-  /* -------- CLEAR FILTERS -------- */
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, actionFilter, userFilter, entityFilter, dateFilter]);
 
   const clearFilters = () => {
     setSearch("");
@@ -157,270 +153,173 @@ const AuditLogs = () => {
     setUserFilter("");
     setEntityFilter("");
     setDateFilter("");
+    setCurrentPage(1);
+    fetchLogs({ search: "", action: "", user: "", entityType: "", date: "", page: 1 });
   };
 
   const hasActiveFilters = !!(search || actionFilter || userFilter || entityFilter || dateFilter);
 
-  /* -------- CSV EXPORT -------- */
-
   const downloadCSV = () => {
-    const csv = convertToCSV(filteredLogs);
+    const csv = convertToCSV(logs);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-
     link.href = url;
-    link.download = `audit_logs_${Date.now()}.csv`;
-
+    link.download = `audit_ledger_${Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  /* -------- LOADING / ERROR -------- */
-
-  if (loading)
-    return (
-      <div className="p-8 text-center text-zinc-500 font-medium">
-        Retrieving system history...
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="p-8 text-center text-red-500 font-bold">{error}</div>
-    );
-
-  /* -------- UI -------- */
-
   return (
-    <div className="space-y-6 max-w-6xl mx-auto text-left py-4">
-      {/* HEADER */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-zinc-50 tracking-tight flex items-center gap-3">
-            <History className="text-indigo-500" size={32} />
-            Audit Trail
-          </h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            Immutable record of all administrative actions
-          </p>
-        </div>
-
-        <button 
-          onClick={clearFilters}
-          disabled={!hasActiveFilters}
-          className={`p-3 bg-zinc-900 border border-zinc-800 rounded-2xl transition-all shadow-xl active:scale-95 ${
-            hasActiveFilters 
-              ? "text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10" 
-              : "text-zinc-600 cursor-not-allowed opacity-50"
-          }`}
-          title="Clear all filters"
-        >
-          <RotateCcw size={20} />
-        </button>
-      </header>
-
-      {/* FILTERS BLOCK */}
-      <div className="flex flex-col lg:flex-row gap-4 items-center bg-zinc-950/20 p-4 rounded-3xl border border-zinc-800/50 backdrop-blur-sm shadow-xl">
-        <div className="flex-1 w-full relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-          <input 
-            type="text"
-            placeholder="Search logs..."
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-12 pr-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all shadow-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="relative min-w-[170px] flex-1 sm:flex-none">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={16} />
-            <input 
-              type="date"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-12 pr-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all [color-scheme:dark] shadow-sm"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
+    <PageTransition className="space-y-12 max-w-[1600px] mx-auto pb-12 relative z-0">
+      <PageHeader 
+        title="Audit Ledger"
+        subtitle={loading ? "Synchronizing immutable records..." : `${totalResults} System Events Recorded`}
+        icon={History}
+        action={
+          <div className="flex items-center gap-4">
+            <Button variant="secondary" size="sm" onClick={clearFilters} icon={RotateCcw} className={loading ? "animate-spin" : ""}>
+              {hasActiveFilters ? "Reset" : ""}
+            </Button>
+            <Button variant="secondary" onClick={downloadCSV} icon={Download}>Export CSV</Button>
           </div>
+        }
+      />
 
-          <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-          >
-            <option value="">All Actions</option>
-            {actionTypes.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
-
-          <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
-            value={userFilter}
-            onChange={(e) => setUserFilter(e.target.value)}
-          >
-            <option value="">All Users</option>
-            {users.map((u) => (
-              <option key={u}>{u}</option>
-            ))}
-          </select>
-
-          <select 
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[140px] flex-1 sm:flex-none"
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
-          >
-            <option value="">All Entities</option>
-            {entityTypes.map((e) => (
-              <option key={e}>{e}</option>
-            ))}
-          </select>
-
-          <button
-            onClick={downloadCSV}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl text-sm font-bold hover:bg-emerald-500/20 transition-all active:scale-95 whitespace-nowrap shadow-lg flex-1 sm:flex-none"
-          >
-            <Download size={18} /> CSV
-          </button>
+      <Card className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-4">
+            <Input icon={Search} placeholder="Search by activity, user, or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="lg:col-span-2 relative">
+             <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+             <input type="date" className="w-full h-14 bg-bg-elevated border border-border rounded-2xl pl-12 pr-4 text-sm text-text-primary focus:border-accent-primary outline-none transition-all [color-scheme:dark]" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+          </div>
+          <div className="lg:col-span-2 relative">
+            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
+              <option value="">All Actions</option>
+              {Array.from(new Set(logs.map(l => l.action))).filter(Boolean).map(a => (<option key={a}>{a}</option>))}
+            </select>
+            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+          </div>
+          <div className="lg:col-span-2 relative">
+            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={userFilter} onChange={(e) => setUserFilter(e.target.value)}>
+              <option value="">All Users</option>
+              {Array.from(new Set(logs.map(l => l.performedBy?.name || "System"))).map(u => (<option key={u}>{u}</option>))}
+            </select>
+            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+          </div>
+          <div className="lg:col-span-2 relative">
+            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)}>
+              <option value="">All Entities</option>
+              {Array.from(new Set(logs.map(l => l.entityType))).filter(Boolean).map(e => (<option key={e}>{e}</option>))}
+            </select>
+            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+          </div>
         </div>
-      </div>
+      </Card>
 
-      {/* LOG LIST */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-xl overflow-hidden mt-2">
-        <div className="divide-y divide-zinc-800">
-          {filteredLogs.length > 0 ? (
-            filteredLogs.map((log, i) => (
-              <LogItem
-                key={log._id || i}
-                log={log}
-                isLast={i === filteredLogs.length - 1}
-                highlight={search}
-              />
-            ))
-          ) : (
-            <div className="p-16 text-center text-zinc-400 italic">
-              No audit logs match your filters.
-            </div>
-          )}
+      <Card className="p-0 overflow-hidden relative">
+        <div className="divide-y divide-border min-h-[400px]">
+          <AnimatePresence mode="wait">
+            {loading && logs.length === 0 ? (
+              <AuditLogSkeleton key="skeleton" />
+            ) : logs.length === 0 ? (
+              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-32 text-center space-y-6">
+                <div className="p-8 bg-bg-elevated rounded-full text-text-disabled shadow-inner inline-block"><History size={64} /></div>
+                <div className="space-y-2">
+                  <p className="text-text-primary font-black uppercase tracking-widest text-xl">Clean Slate</p>
+                  <p className="text-text-muted text-sm font-medium">No system events matching your filters were found.</p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {logs.map((log, i) => (
+                  <LogItem key={log._id || i} log={log} isLast={i === logs.length - 1} />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </Card>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalResults} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} />
+    </PageTransition>
   );
 };
 
-/* ---------------- LOG ITEM ---------------- */
-
-const LogItem = ({ log, isLast, highlight }) => {
+const LogItem = ({ log, isLast }) => {
   const [expanded, setExpanded] = useState(false);
-
   const performer = log.performedBy?.name || "System";
   const target = log.targetEmployee?.name;
   const time = log.createdAt || log.timestamp;
-
   const actionType = log.action?.toUpperCase() || "";
-  const isGenericAction =
-    actionType.includes("CREATE") || 
-    actionType.includes("MODIFY");
-  const shouldShowTarget = target && !isGenericAction;
-
-  const handleCopy = (e) => {
-    e.stopPropagation();
-    if (log.changes)
-      navigator.clipboard.writeText(JSON.stringify(log.changes, null, 2));
-  };
+  const shouldShowTarget = target && !actionType.includes("CREATE");
 
   return (
-    <div className="p-6 hover:bg-zinc-950 transition-colors flex gap-6 border-l-2 border-transparent hover:border-indigo-500/50">
-      {/* TIMELINE ICON */}
-      <div className="flex flex-col items-center">
-        <div className={`p-2.5 rounded-full ${getActionColor(log.action)} shadow-sm`}>
-          <Terminal size={14} />
+    <div className="p-8 hover:bg-bg-tertiary/20 transition-all duration-300 flex gap-10 border-l-4 border-transparent hover:border-accent-primary group">
+      <div className="hidden md:flex flex-col items-center w-14 shrink-0 pt-2">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 shadow-premium ${getActionColor(log.action)}`}>
+          <Terminal size={24} />
         </div>
-        {!isLast && <div className="w-px flex-1 bg-zinc-800 mt-2" />}
+        {!isLast && <div className="w-px flex-1 bg-border-subtle mt-10" />}
       </div>
-
-      {/* CONTENT */}
-      <div className="flex-1 space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
-            <Highlight text={log.action || "UNKNOWN"} query={highlight} />
-          </span>
-
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
-            <Clock size={12} />
-            {formatDate(time)}
-          </span>
+      <div className="flex-1 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Badge variant={getActionVariant(log.action)} className="uppercase font-black tracking-widest text-[10px] px-4 py-1.5">{log.action || "EVENT"}</Badge>
+            <Badge variant="muted" className="text-[10px]">{log.entityType || "Audit"}</Badge>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-text-disabled font-black uppercase tracking-widest">
+            <Clock size={16} className="opacity-50" /> {formatDate(time)}
+          </div>
         </div>
-
-        <p className="text-zinc-100 font-bold text-base">
-          <Highlight text={log.description || "No details available"} query={highlight} />
-        </p>
-
-        <div
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-xs text-indigo-400 bg-indigo-500/5 px-3 py-1.5 rounded-xl cursor-pointer w-fit hover:bg-indigo-500/10 transition-all border border-indigo-500/10 shadow-sm"
-        >
-          <User size={12} />
-          <span className="font-semibold">{performer}</span>
-
-          {shouldShowTarget && (
-            <>
-              <span className="mx-1 text-zinc-600 font-bold">
-                {log.action === "RECOVERED" ? "←" : "→"}
-              </span>
-              <span className="font-black text-zinc-300">{target}</span>
-            </>
+        <h3 className="text-text-primary font-black text-xl tracking-tight leading-snug group-hover:text-white transition-colors">{log.description || "No specific details logged."}</h3>
+        <div className="flex items-center gap-4">
+          <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-4 text-sm text-text-primary bg-bg-elevated px-6 py-3 rounded-2xl hover:bg-bg-tertiary transition-all border border-border active:scale-95 shadow-premium group/performer">
+            <div className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary border border-accent-primary/10 group-hover/performer:shadow-glow"><User size={16} /></div>
+            <span className="font-black tracking-tight">{performer}</span>
+            {shouldShowTarget && (
+              <div className="flex gap-4 border-l border-border pl-6 ml-2">
+                <span className="text-text-disabled opacity-50">&rarr;</span>
+                <span className="font-black text-accent-secondary tracking-tight">{target}</span>
+              </div>
+            )}
+            <div className="ml-4 text-text-disabled">{expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
+          </button>
+        </div>
+        <AnimatePresence>
+          {expanded && log.changes && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <div className="mt-8 p-10 bg-bg-elevated border border-border rounded-2xl text-xs font-mono relative shadow-inner">
+                 <button onClick={() => navigator.clipboard.writeText(JSON.stringify(log.changes, null, 2))} className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors uppercase font-black tracking-widest text-[10px] flex items-center gap-2"><Copy size={14}/> Copy Data</button>
+                 <pre className="whitespace-pre-wrap break-all text-accent-secondary/80 leading-relaxed overflow-x-auto max-h-[600px] custom-scrollbar pt-4">{JSON.stringify(log.changes, null, 2)}</pre>
+              </div>
+            </motion.div>
           )}
-
-          <div className="ml-1 opacity-70">
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </div>
-        </div>
-
-        {expanded && log.changes && (
-          <div className="mt-4 p-4 bg-zinc-950 border border-zinc-800 rounded-2xl text-[11px] font-mono relative shadow-inner group/code">
-            <pre className="whitespace-pre-wrap break-all text-blue-300 leading-relaxed overflow-x-auto">
-              {JSON.stringify(log.changes, null, 2)}
-            </pre>
-
-            <button
-              onClick={handleCopy}
-              className="absolute top-4 right-4 flex items-center gap-2 bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-xl hover:bg-zinc-700 transition-all shadow-lg active:scale-95 text-[10px] font-bold"
-            >
-              <Copy size={12} /> Copy Output
-            </button>
-          </div>
-        )}
+        </AnimatePresence>
       </div>
     </div>
   );
 };
 
-/* ---------------- ACTION COLOR ---------------- */
+const getActionVariant = (action) => {
+  const a = (action || "").toUpperCase();
+  if (a.includes("REJECT") || a.includes("DELETE") || a.includes("OFFBOARD")) return "danger";
+  if (a.includes("APPROVE") || a.includes("CREATE") || a.includes("REACTIVATED")) return "success";
+  if (a.includes("REQUEST") || a.includes("PENDING") || a.includes("MAINTENANCE")) return "warning";
+  if (a.includes("FULFILL") || a.includes("ALLOCATED") || a.includes("ISSUE")) return "info";
+  return "muted";
+};
 
 const getActionColor = (action) => {
-  const a = action?.toUpperCase() || "";
-
-  // REQUEST STATUSES (Matching RequestList palette)
-  if (a.includes("REJECT")) return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-  if (a.includes("APPROVE")) return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-  if (a.includes("FULFILL")) return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-  if (a.includes("REQUEST") || a.includes("PENDING")) return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-
-  // OTHER ACTIONS
-  if (a.includes("DELETE") || a.includes("DECOMMISSIONED")) 
-    return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-  if (a.includes("CREATE") || a.includes("READY")) 
-    return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-  if (a.includes("MAINTENANCE")) 
-    return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-  if (a.includes("ASSIGN") || a.includes("RETURN") || a.includes("UPDATE") || a.includes("ALLOCATED"))
-    return "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
-
-  return "bg-zinc-800 text-zinc-400 border border-zinc-700";
+  const a = (action || "").toUpperCase();
+  if (a.includes("REJECT") || a.includes("DELETE") || a.includes("OFFBOARD")) return "bg-status-danger/10 text-status-danger border-status-danger/20";
+  if (a.includes("APPROVE") || a.includes("CREATE") || a.includes("REACTIVATED")) return "bg-status-success/10 text-status-success border-status-success/20";
+  if (a.includes("REQUEST") || a.includes("PENDING") || a.includes("MAINTENANCE")) return "bg-status-warning/10 text-status-warning border-status-warning/20";
+  if (a.includes("FULFILL") || a.includes("ALLOCATED") || a.includes("ISSUE")) return "bg-status-info/10 text-status-info border-status-info/20";
+  return "bg-bg-tertiary text-text-muted border-border";
 };
 
 export default AuditLogs;

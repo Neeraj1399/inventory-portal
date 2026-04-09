@@ -1,155 +1,174 @@
 import React from "react";
-import api from "../../hooks/api";
-import { X, Loader2, Send, AlertCircle } from "lucide-react";
+import api from "../../services/api";
+import { X, Loader2, Send, AlertCircle, PackageCheck } from "lucide-react";
 import { useConsumableModal } from "../../hooks/useConsumableModal";
+import clsx from "clsx";
 
 const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
- const {
- employeeId,
- setEmployeeId,
- quantity,
- setQuantity,
- loading,
- setLoading,
- employees,
- } = useConsumableModal(isOpen, item);
+  const {
+    employeeId,
+    setEmployeeId,
+    quantity,
+    setQuantity,
+    loading,
+    setLoading,
+    employees,
+  } = useConsumableModal(isOpen, item);
 
- if (!isOpen || !item) return null;
+  if (!isOpen || !item) return null;
 
- const availableStock = item.totalQuantity - item.assignedQuantity;
+  const availableStock = item.totalQuantity - item.assignedQuantity;
+  const isStockCritical = availableStock <= (item.minStockLevel || 5);
 
- const handleIssue = async (e) => {
- e.preventDefault();
- if (!employeeId || quantity < 1 || quantity > availableStock) return;
+  const handleIssue = async (e) => {
+    e.preventDefault();
+    if (!employeeId || quantity < 1 || quantity > availableStock) return;
 
- setLoading(true);
- try {
- await api.post(`/consumables/${item._id}/assign`, {
- employeeId,
- quantity: Number(quantity),
- });
- onRefresh();
- onClose();
- } catch (err) {
- alert(err.response?.data?.message || "Insufficient stock or error");
- } finally {
- setLoading(false);
- }
- };
+    setLoading(true);
+    try {
+      await api.post(`/consumables/${item._id}/assign`, {
+        employeeId,
+        quantity: Number(quantity),
+      });
+      onRefresh();
+      onClose();
+    } catch (err) {
+      alert(err.response?.data?.message || "Logistics error: Insufficient stock or server timeout.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
- return (
- <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900 ">
- <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
- {/* Header */}
- <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
- <div>
- <h2 className="text-xl font-bold text-zinc-50">
- Allocate Consumable
- </h2>
- <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
- Inventory Distribution
- </p>
- </div>
- <button
- onClick={onClose}
- className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
- >
- <X size={20} />
- </button>
- </div>
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-bg-primary/80 backdrop-blur-sm">
+      <div className="bg-bg-secondary border border-border w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="p-8 border-b border-border flex justify-between items-center bg-bg-tertiary/20">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              Stock <span className="text-accent-primary">Allocation</span>
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mt-1">
+              {item.itemName} — Outbound Distribution
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-3 hover:bg-bg-tertiary rounded-2xl transition-all text-text-muted hover:text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
- <form onSubmit={handleIssue} className="p-6 space-y-6">
- {/* Stock */}
- <div
- className={`flex items-center gap-4 p-4 rounded-xl border ${
- availableStock > 0
- ? "bg-indigo-500/10 border-zinc-700"
- : "bg-red-500/10 border-red-500/30"
- }`}
- >
- <div
- className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold shadow-sm ${
- availableStock > 0
- ? "bg-indigo-600 text-white"
- : "bg-red-500/15 text-red-400"
- }`}
- >
- {availableStock}
- </div>
- <div className="flex flex-col">
- <span className="text-sm font-bold text-zinc-900">
- {item.itemName}
- </span>
- <span className="text-xs text-zinc-500">
- Units currently available in stock
- </span>
- </div>
- </div>
+        <form onSubmit={handleIssue} className="p-8 space-y-8">
+          {/* Stock Metrics */}
+          <div
+            className={clsx(
+              "flex items-center gap-6 p-6 rounded-2xl border transition-all duration-500",
+              availableStock > 0
+                ? "bg-bg-elevated/50 border-border"
+                : "bg-status-danger/10 border-status-danger/20"
+            )}
+          >
+            <div
+              className={clsx(
+                "h-14 w-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner border transition-all duration-500",
+                availableStock > 0
+                  ? "bg-bg-secondary text-accent-primary border-accent-primary/20 shadow-glow-sm"
+                  : "bg-status-danger text-white border-none"
+              )}
+            >
+              {availableStock}
+            </div>
+            <div className="flex flex-col flex-1">
+              <span className="text-base font-black text-text-primary tracking-tight">
+                Available Inventory
+              </span>
+              <span className="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60">
+                Units currently registered in warehouse
+              </span>
+            </div>
+            {isStockCritical && (
+              <div className="text-status-warning animate-pulse">
+                <AlertCircle size={20} />
+              </div>
+            )}
+          </div>
 
- {/* Recipient */}
- <div>
- <label className="block text-[10px] font-bold uppercase text-zinc-400 mb-1.5 ml-1">
- Recipient Employee
- </label>
- <select
- required
- value={employeeId}
- onChange={(e) => setEmployeeId(e.target.value)}
- className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm"
- >
- <option value="">Select an active staff member...</option>
- {employees.map((emp) => (
- <option key={emp._id} value={emp._id}>
- {emp.name} — {emp.department}
- </option>
- ))}
- </select>
- </div>
+          {/* Recipient Selection */}
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+              Target Personnel
+            </label>
+            <div className="relative">
+              <select
+                required
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all appearance-none cursor-pointer font-bold"
+              >
+                <option value="">Select recipient account...</option>
+                {employees.map((emp) => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name} — {emp.department}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
+                <PackageCheck size={18} />
+              </div>
+            </div>
+          </div>
 
- {/* Quantity */}
- <div>
- <label className="block text-[10px] font-bold uppercase text-zinc-400 mb-1.5 ml-1">
- Quantity
- </label>
- <input
- type="number"
- min="1"
- max={availableStock}
- required
- value={quantity}
- onChange={(e) => setQuantity(e.target.value)}
- className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm"
- />
- {quantity > availableStock && (
- <p className="mt-2 text-[10px] text-red-500 flex items-center gap-1 font-medium">
- <AlertCircle size={12} /> Exceeds available stock
- </p>
- )}
- </div>
+          {/* Quantity Specification */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center ml-1">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled shadow-sm">
+                Payload Volume
+              </label>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-secondary">
+                Warehouse Limit: {availableStock}
+              </span>
+            </div>
+            <input
+              type="number"
+              min="1"
+              max={availableStock}
+              required
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className={clsx(
+                "w-full h-14 bg-bg-elevated border rounded-2xl px-6 text-sm font-black text-text-primary outline-none transition-all",
+                quantity > availableStock
+                  ? "border-status-danger ring-4 ring-status-danger/10 shadow-status-danger/20"
+                  : "border-border focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10",
+              )}
+            />
+          </div>
 
- {/* Submit */}
- <button
- type="submit"
- disabled={
- loading ||
- !employeeId ||
- quantity < 1 ||
- quantity > availableStock
- }
- className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-800 disabled:text-zinc-400 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-black/20"
- >
- {loading ? (
- <Loader2 className="animate-spin" size={20} />
- ) : (
- <>
- <Send size={18} /> Confirm Allocation
- </>
- )}
- </button>
- </form>
- </div>
- </div>
- );
+          {/* Execution Button */}
+          <button
+            type="submit"
+            disabled={
+              loading ||
+              !employeeId ||
+              quantity < 1 ||
+              quantity > availableStock
+            }
+            className="w-full h-16 bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 disabled:grayscale disabled:opacity-50 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-[1.25rem] flex items-center justify-center gap-3 transition-all shadow-xl shadow-accent-primary/20 active:scale-95 border border-border"
+          >
+            {loading ? (
+              <Loader2 size={24} className="animate-spin" />
+            ) : (
+              <>
+                <Send size={18} /> Execute Distribution
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default IssueConsumableModal;

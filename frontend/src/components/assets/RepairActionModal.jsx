@@ -1,45 +1,45 @@
 import React from "react";
-import { CheckCircle, Trash2, X, AlertTriangle } from "lucide-react";
+import { CheckCircle, Trash2, X } from "lucide-react";
 
 const RepairActionModal = ({ isOpen, asset, onClose, onAction }) => {
  if (!isOpen || !asset) return null;
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900 ">
- <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+ <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm">
+ <div className="bg-bg-secondary border border-border rounded-3xl w-full max-w-xl overflow-hidden shadow-premium animate-in fade-in zoom-in duration-200">
  {/* Header */}
- <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-amber-500/10">
+ <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-status-warning/10">
  <div>
- <h2 className="text-xl font-bold text-zinc-50">Resolve Repair</h2>
- <p className="text-xs text-amber-400 font-bold uppercase tracking-wider">
+ <h2 className="text-xl font-bold text-text-primary">Resolve Repair</h2>
+ <p className="text-xs text-status-warning font-bold uppercase tracking-wider">
  {asset.model} • {asset.serialNumber}
  </p>
  </div>
  <button
  onClick={onClose}
- className="p-2 hover:bg-zinc-900 border border-zinc-800 rounded-full transition-colors"
+ className="p-2 hover:bg-bg-tertiary rounded-full transition-all duration-200"
  >
- <X size={20} className="text-zinc-400" />
+ <X size={20} className="text-text-muted" />
  </button>
  </div>
 
  {/* Options */}
- <div className="p-6 space-y-4">
- <p className="text-sm text-zinc-500 mb-2">
+ <div className="p-5 space-y-3">
+ <p className="text-sm text-text-muted mb-1">
  What is the final outcome of this repair?
  </p>
 
  {/* Restore Option */}
  <button
  onClick={() => onAction(asset._id, "READY_TO_DEPLOY")}
- className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/10/30 hover:border-emerald-500 hover:bg-emerald-500/10 transition-all group text-left"
+ className="w-full flex items-center gap-4 p-4 rounded-2xl border border-status-success/20 bg-status-success/5 hover:border-status-success/50 hover:bg-status-success/10 transition-all duration-200 group text-left"
  >
- <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-emerald-400 shadow-sm group-hover:scale-110 transition-transform">
- <CheckCircle size={24} />
+ <div className="p-3 bg-bg-tertiary border border-border rounded-xl text-status-success shadow-sm group-hover:scale-110 transition-transform duration-200 shrink-0">
+ <CheckCircle size={22} />
  </div>
  <div>
- <div className="font-bold text-zinc-50">Fixed & Ready</div>
- <div className="text-xs text-zinc-500">
+ <div className="font-bold text-text-primary">Fixed & Ready</div>
+ <div className="text-xs text-text-muted">
  Return to available inventory
  </div>
  </div>
@@ -48,14 +48,14 @@ const RepairActionModal = ({ isOpen, asset, onClose, onAction }) => {
  {/* Scrap Option */}
  <button
  onClick={() => onAction(asset._id, "DECOMMISSIONED")}
- className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-rose-100 bg-rose-500/10/30 hover:border-rose-500 hover:bg-rose-500/10 transition-all group text-left"
+ className="w-full flex items-center gap-4 p-4 rounded-2xl border border-status-danger/20 bg-status-danger/5 hover:border-status-danger/50 hover:bg-status-danger/10 transition-all duration-200 group text-left"
  >
- <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-rose-400 shadow-sm group-hover:scale-110 transition-transform">
- <Trash2 size={24} />
+ <div className="p-3 bg-bg-tertiary border border-border rounded-xl text-status-danger shadow-sm group-hover:scale-110 transition-transform duration-200 shrink-0">
+ <Trash2 size={22} />
  </div>
  <div>
- <div className="font-bold text-zinc-50">Unfixable / Scrap</div>
- <div className="text-xs text-zinc-500">
+ <div className="font-bold text-text-primary">Unfixable / Scrap</div>
+ <div className="text-xs text-text-muted">
  Permanently remove from active stock
  </div>
  </div>

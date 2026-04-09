@@ -73,14 +73,9 @@ const employeeSchema = new Schema(
       type: Date,
       select: false,
     },
-    // For Email OTP Verification
-    otp: {
-      type: String,
-      select: false,
-    },
-    otpExpires: {
+    offboardedAt: {
       type: Date,
-      select: false,
+      default: null,
     },
   },
   { timestamps: true },
@@ -124,18 +119,6 @@ employeeSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
     return JWTTimestamp < changedTimestamp;
   }
   return false;
-};
-
-/**
- * Generate a 6-digit numeric OTP and set expiry (10 minutes)
- */
-employeeSchema.methods.createOTP = function () {
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-  this.otp = otpCode;
-  this.otpExpires = Date.now() + 10 * 60 * 1000; // 10 Minutes
-
-  return otpCode;
 };
 
 /**

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { promisify } from "util";
 import jwt from "jsonwebtoken";
 import Employee from "../models/Employee.js";
@@ -35,7 +36,7 @@ const createSendToken = async (user, statusCode, res) => {
 
   const cookieOptions = {
     httpOnly: true, // Prevents XSS
-    secure: process.env.NODE_ENV === "production",
+    secure: true, // Enforce HTTPS (Industry Standard)
     sameSite: "Lax", // Protects against CSRF
   };
 
@@ -46,6 +47,7 @@ const createSendToken = async (user, statusCode, res) => {
 
   res.cookie("refreshToken", refreshToken, {
     ...cookieOptions,
+    path: "/api/auth/refresh", // Only sent to the refresh endpoint
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Days
   });
 
@@ -127,9 +129,29 @@ export const refresh = catchAsync(async (req, res, next) => {
 
   res.cookie("accessToken", newAccessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "Lax",
     expires: new Date(Date.now() + 15 * 60 * 1000),
+  });
+
+  // REFRESH TOKEN ROTATION: Issue a brand new Refresh Token
+  const newRefreshToken = signToken(
+    user._id,
+    process.env.JWT_REFRESH_SECRET,
+    "7d",
+  );
+
+  // Update user with the new rotated refresh token
+  user.refreshToken = newRefreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  // Set the new refresh token in a secure cookie restricted to the refresh path
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+    path: "/api/auth/refresh", // Prevents sending RT with every API call
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   res.status(200).json({
@@ -318,6 +340,10 @@ export const resetPassword = catchAsync(async (req, res, next) => {
   }
 
   // 3. Update password (pre-save middleware handles hashing)
+  if (req.body.password !== req.body.passwordConfirm) {
+    return next(new AppError("Passwords do not match.", 400));
+  }
+  
   employee.password = req.body.password;
   employee.passwordConfirm = req.body.passwordConfirm;
   employee.passwordResetToken = undefined;

@@ -1,38 +1,45 @@
 import AuditLog from "../models/AuditLog.js";
 
-export const getAllAuditLogs = async (req, res) => {
+/**
+ * @desc    Get all audit logs
+ */
+export const getAllAuditLogs = async (req, res, next) => {
   try {
-    // 1. Get pagination parameters from the URL (e.g., /api/logs?page=1&limit=20)
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const { search, action, user: userFilter, entityType } = req.query;
     const skip = (page - 1) * limit;
 
-    // 2. Execute Query with Population and Pagination
-    const logs = await AuditLog.find()
-      .sort({ timestamp: -1 }) // Newest first
-      .skip(skip) // Jump over previous pages
-      .limit(limit) // Only take a "slice" of data
-      .populate("performedBy", "name role")
-      .populate("targetEmployee", "name role")
-      .populate({
-        path: "entityId",
-        select: "assetName itemName name", // Dynamic fields: uses whatever matches
-      })
-      .lean();
+    const query = {};
+    if (action) query.action = action;
+    if (entityType) query.entityType = entityType;
+    if (userFilter) query.performedBy = userFilter;
 
-    // 3. Get total count (for the Frontend to calculate total pages)
-    const totalLogs = await AuditLog.countDocuments();
+    if (search) {
+      query.$or = [
+        { description: { $regex: search, $options: "i" } },
+        { action: { $regex: search, $options: "i" } },
+        { entityType: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const logs = await AuditLog.find(query)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("performedBy", "name")
+      .populate("targetEmployee", "name");
+
+    const total = await AuditLog.countDocuments(query);
 
     res.status(200).json({
       status: "success",
-      results: logs.length,
-      total: totalLogs,
-      pages: Math.ceil(totalLogs / limit),
-      currentPage: page,
+      total,
+      pages: Math.ceil(total / limit),
       data: logs,
     });
   } catch (err) {
-    console.error("Failed to fetch audit logs:", err);
-    res.status(500).json({ message: "Failed to fetch audit logs" });
+    next(err);
   }
 };
+

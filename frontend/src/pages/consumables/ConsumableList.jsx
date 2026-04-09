@@ -1,21 +1,32 @@
 import { useAuth } from "../../context/AuthContext";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
- Keyboard, Package,
- Plus,
- UserPlus,
- RotateCcw,
- AlertCircle,
- Search,
- RefreshCw,
- Trash2,
- ChevronDown,
- Wrench,
- CheckCircle,
- PlusCircle,
+  Keyboard, Package,
+  Plus,
+  UserPlus,
+  RotateCcw,
+  AlertCircle,
+  Search,
+  RefreshCw,
+  Trash2,
+  ChevronDown,
+  Laptop,
+  Monitor,
+  Smartphone,
+  Printer,
+  Headphones,
+  MousePointer,
+  Zap,
+  Battery,
+  PenTool,
+  Wrench,
+  CheckCircle,
+  PlusCircle,
 } from "lucide-react";
 
-import api from "../../hooks/api";
+import api from "../../services/api";
+import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "../../components/common/PageTransition";
 
 // Modals
 import RequestModal from "../../components/common/RequestModal";
@@ -25,347 +36,531 @@ import ReturnConsumableModal from "../../components/consumables/ReturnConsumable
 import ConsumableConditionModal from "../../components/consumables/ConsumableConditionModal";
 import ConsumableMaintenanceResolveModal from "../../components/consumables/ConsumableMaintenanceResolveModal";
 import RestockConsumableModal from "../../components/consumables/RestockConsumableModal";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
+import Pagination from "../../components/common/Pagination";
+
+// --- Custom Hooks ---
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    if (value === debouncedValue) return;
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay, debouncedValue]);
+  return debouncedValue;
+};
+
+const ConsumableTableSkeleton = () => (
+  <tbody className="divide-y divide-border animate-pulse">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <tr key={i} className="border-b border-border last:border-0 h-[88px]">
+        <td className="px-8 py-5">
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 bg-bg-tertiary rounded-2xl" />
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-bg-tertiary rounded-md" />
+              <div className="h-3 w-16 bg-bg-tertiary/50 rounded-md" />
+            </div>
+          </div>
+        </td>
+        <td className="px-8 py-5">
+          <div className="h-5 w-24 bg-bg-tertiary/50 rounded-xl" />
+        </td>
+        <td className="px-8 py-5 border-x-0">
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-6 w-8 bg-bg-tertiary rounded" />
+            <div className="h-2 w-12 bg-bg-tertiary/30 rounded" />
+          </div>
+        </td>
+        <td className="px-8 py-5">
+          <div className="flex justify-center">
+            <div className="h-6 w-24 bg-bg-tertiary/30 rounded-full" />
+          </div>
+        </td>
+        <td className="px-8 py-5 text-right pr-10">
+          <div className="flex justify-end gap-2">
+             <div className="w-10 h-10 bg-bg-tertiary/50 rounded-2xl" />
+             <div className="w-10 h-10 bg-bg-tertiary/50 rounded-2xl" />
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+);
+
+const itemsPerPage = 25;
 
 const ConsumableList = () => {
   const { user } = useAuth();
- const [items, setItems] = useState([]);
- const [loading, setLoading] = useState(true);
- const [searchTerm, setSearchTerm] = useState("");
- const [statusFilter, setStatusFilter] = useState("ALL");
- const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const { addToast } = useToast();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
- const [selectedItem, setSelectedItem] = useState(null);
- const [activeModal, setActiveModal] = useState(null);
-  const [selectedConsumable, setSelectedConsumable] = useState(null);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
+  const [isRestockModalOpen, setIsRestockModalOpen] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
- const filterOptions = ["ALL", "READY_TO_DEPLOY", "LOW STOCK", "ALLOCATED", "UNDER_MAINTENANCE", "RESTOCK"];
+  // New states for custom confirmation
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [consumableToDelete, setConsumableToDelete] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const filterRef = useRef(null);
 
- const fetchConsumables = useCallback(async (silent = false) => {
- try {
- if (!silent) setLoading(true);
- const res = await api.get("/consumables");
- setItems(res.data?.data || []);
- } catch (err) {
- console.error("Fetch error:", err);
- } finally {
- setLoading(false);
- }
- }, []);
+  const filterOptions = ["ALL", "READY_TO_DEPLOY", "LOW STOCK", "ALLOCATED", "UNDER_MAINTENANCE", "RESTOCK"];
+  const statusLabels = {
+    ALL: "All Statuses",
+    READY_TO_DEPLOY: "Available",
+    "LOW STOCK": "Low Stock",
+    ALLOCATED: "Allocated",
+    UNDER_MAINTENANCE: "Maintenance",
+    RESTOCK: "Restock",
+  };
 
- useEffect(() => {
- fetchConsumables();
- }, [fetchConsumables]);
+  const fetchConsumables = useCallback(async (isSilent = false, signal, overrides = null) => {
+    try {
+      const search = overrides?.search !== undefined ? overrides.search : debouncedSearch;
+      const status = overrides?.status !== undefined ? overrides.status : statusFilter;
+      const page = overrides?.page ?? currentPage;
 
- const handleDelete = async (id, name, allocated) => {
- if (allocated > 0) {
- alert(
- `Cannot delete "${name}" because ${allocated} units are currently allocated to employees.`,
- );
- return;
- }
+      if (!isSilent) setLoading(true);
+      
+      const res = await api.get("/consumables", { 
+        signal,
+        params: {
+          page,
+          limit: itemsPerPage,
+          search,
+          status
+        }
+      });
 
- if (
- window.confirm(
- `Are you sure you want to permanently delete "${name}" from the inventory?`,
- )
- ) {
- try {
- await api.delete(`/consumables/${id}`);
- fetchConsumables(true);
- } catch (err) {
- alert(err.response?.data?.message || "Failed to delete item.");
- }
- }
- };
+      if (res.data?.status === "success") {
+        setItems(res.data.data || []);
+        setTotalPages(res.data.pages || 1);
+        setTotalResults(res.data.total || 0);
+      }
+    } catch (err) {
+      if (signal?.aborted) return;
+      console.error("Fetch error:", err);
+    } finally {
+      // Small artificial delay to prevent skeleton flicker on fast networks
+      setTimeout(() => {
+        setLoading(false);
+      }, 300);
+    }
+  }, [currentPage, debouncedSearch, statusFilter]);
 
- const filteredItems = useMemo(() => {
- const search = searchTerm.toLowerCase();
- return items.filter((item) => {
- const matchesSearch = item.itemName?.toLowerCase().includes(search);
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
 
- const inMaintenance = item.maintenanceQuantity || 0;
- const available =
- (item.totalQuantity || 0) -
- (item.assignedQuantity || 0) -
- inMaintenance;
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
- let matchesStatus = true;
- if (statusFilter === "LOW STOCK")
- matchesStatus = available <= (item.lowStockThreshold || 5);
- if (statusFilter === "ALLOCATED")
- matchesStatus = (item.assignedQuantity || 0) > 0;
- if (statusFilter === "READY_TO_DEPLOY") matchesStatus = available > 0;
- if (statusFilter === "UNDER_MAINTENANCE") matchesStatus = inMaintenance > 0;
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchConsumables(false, controller.signal);
+    return () => controller.abort();
+  }, [fetchConsumables]);
 
- return matchesSearch && matchesStatus;
- });
- }, [items, searchTerm, statusFilter]);
+  const handleManualRefresh = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setCurrentPage(1);
+    fetchConsumables(false, null, { search: "", status: "ALL", page: 1 });
+  };
 
- const openModal = (type, item = null) => {
- setSelectedItem(item);
- setActiveModal(type);
- };
+  const handleDeleteClick = (item, allocated) => {
+    if (allocated > 0) {
+      addToast(`Cannot delete "${item.itemName}" while units are allocated to employees.`, "warning");
+      return;
+    }
+    setConsumableToDelete(item);
+    setIsConfirmOpen(true);
+    setIsSuccess(false);
+  };
 
- const closeModal = () => {
- setSelectedItem(null);
- setActiveModal(null);
- };
+  const handleConfirmDelete = async () => {
+    if (!consumableToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/consumables/${consumableToDelete._id}`);
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsConfirmOpen(false);
+        fetchConsumables(true);
+        setConsumableToDelete(null);
+      }, 1500);
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to delete item.", "error");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
- return (
- <div className="space-y-6 pb-32 max-w-7xl mx-auto px-4">
- {/* HEADER SECTION */}
- <div className="flex flex-col sm:flex-row justify-between items-end gap-4 border-b border-zinc-800/60 pb-6">
- <div>
- <h1 className="text-3xl font-black text-zinc-50 tracking-tight">
- Consumables
- </h1>
- <p className="text-zinc-400 font-medium">
- Manage stock levels, allocations, and repairs
- </p>
- </div>
+  const filteredItems = items;
 
- <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => fetchConsumables()}
-            className="p-3 bg-zinc-800 border border-zinc-800 rounded-xl hover:bg-zinc-700 hover:text-white transition-colors shadow-sm text-zinc-300"
-          >
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-          </button>
-          {user?.roleAccess === "ADMIN" ? (
+  const openAddModal = () => setIsAddModalOpen(true);
+  const closeAddModal = () => setIsAddModalOpen(false);
+
+  const openIssueModal = (item) => {
+    setSelectedItem(item);
+    setIsIssueModalOpen(true);
+  };
+  const closeIssueModal = () => {
+    setSelectedItem(null);
+    setIsIssueModalOpen(false);
+  };
+
+  const openReturnModal = (item) => {
+    setSelectedItem(item);
+    setIsReturnModalOpen(true);
+  };
+  const closeReturnModal = () => {
+    setSelectedItem(null);
+    setIsReturnModalOpen(false);
+  };
+
+  const openConditionModal = (item) => {
+    setSelectedItem(item);
+    setIsConditionModalOpen(true);
+  };
+  const closeConditionModal = () => {
+    setSelectedItem(null);
+    setIsConditionModalOpen(false);
+  };
+
+  const openResolveModal = (item) => {
+    setSelectedItem(item);
+    setIsResolveModalOpen(true);
+  };
+  const closeResolveModal = () => {
+    setSelectedItem(null);
+    setIsResolveModalOpen(false);
+  };
+
+  const openRestockModal = (item) => {
+    setSelectedItem(item);
+    setIsRestockModalOpen(true);
+  };
+  const closeRestockModal = () => {
+    setSelectedItem(null);
+    setIsRestockModalOpen(false);
+  };
+
+  const openRequestModal = (item) => {
+    setSelectedItem(item);
+    setIsRequestModalOpen(true);
+  };
+  const closeRequestModal = () => {
+    setSelectedItem(null);
+    setIsRequestModalOpen(false);
+  };
+
+  return (
+    <PageTransition>
+      <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-8">
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-8 border-b border-bg-tertiary">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-text-primary tracking-tight">
+              Consumable <span className="text-accent-primary">Directory</span>
+            </h1>
+            <p className="text-text-secondary font-medium">
+              Manage stock levels, allocations, and repairs
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <button
-              onClick={() => openModal("ADD")}
-              className="flex-1 sm:flex-none bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 font-bold transition-all"
+              onClick={handleManualRefresh}
+              className="p-3.5 bg-bg-secondary border border-border rounded-2xl hover:bg-bg-tertiary hover:text-text-primary transition-all shadow-premium text-text-muted shrink-0 active:scale-95"
+              title="Refresh"
             >
-              <Plus size={20} /> Add Consumable
+              <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
             </button>
-          ) : (
-            <button
-              onClick={() => {
-                setSelectedConsumable(null);
-                setIsRequestModalOpen(true);
-              }}
-              className="flex-1 sm:flex-none bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 font-bold transition-all"
-            >
-              <AlertCircle size={20} /> Request Supplies
-            </button>
-          )}
+            {user?.roleAccess === "ADMIN" ? (
+              <button
+                onClick={openAddModal}
+                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+              >
+                <Plus size={20} /> Add Item
+              </button>
+            ) : (
+              <button
+                onClick={openRequestModal}
+                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+              >
+                <AlertCircle size={20} /> Request
+              </button>
+            )}
+          </div>
         </div>
- </div>
 
- {/* SEARCH & FILTERS */}
- <div className="flex flex-col md:flex-row gap-4 items-center">
- <div className="flex-1 relative group w-full">
- <Search
- className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-indigo-400"
- size={18}
- />
- <input
- type="text"
- placeholder="Search inventory..."
- className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-200 placeholder-zinc-500 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- />
- </div>
+        {/* SEARCH & FILTERS */}
+        <div className="flex flex-col md:flex-row md:items-center gap-6 w-full">
+          <div className="flex-1 relative group w-full">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Search by name or category..."
+              className="w-full pl-12 pr-4 py-3.5 bg-bg-secondary border border-border rounded-2xl text-text-primary placeholder-text-muted focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all shadow-premium text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
- <div className="relative w-full md:w-64">
- <button
- onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
- className="w-full flex items-center justify-between px-5 py-3 bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-2xl shadow-sm hover:border-slate-600 transition-all"
- >
- <span className="text-xs font-black uppercase tracking-wider">
- {statusFilter === "ALL" ? "Global Filter" : (statusFilter === "READY_TO_DEPLOY" ? "Ready to Deploy" : statusFilter)}
- </span>
- <ChevronDown
- size={18}
- className={`transition-transform ${isFilterDropdownOpen ? "rotate-180" : ""}`}
- />
- </button>
+          <div className="relative w-full md:w-auto shrink-0 min-w-[220px]" ref={filterRef}>
+            <button
+              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+              className={`w-full flex items-center justify-between px-6 py-3.5 bg-bg-secondary border rounded-2xl transition-all shadow-premium text-text-primary ${
+                isFilterDropdownOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] truncate mr-2 text-text-muted">
+                {statusLabels[statusFilter] || statusFilter}
+              </span>
+              <ChevronDown
+                size={18}
+                className={`transition-transform duration-300 text-text-disabled ${isFilterDropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
- {isFilterDropdownOpen && (
- <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-800 border border-zinc-800 rounded-2xl shadow-2xl z-20 overflow-hidden shadow-slate-900/50">
- {filterOptions.map((opt) => (
- <button
- key={opt}
- onClick={() => {
- setStatusFilter(opt);
- setIsFilterDropdownOpen(false);
- }}
- className={`w-full text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest transition-colors ${statusFilter === opt ? "bg-indigo-500/10 text-indigo-400" : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-50"}`}
- >
- {opt}
- </button>
- ))}
- </div>
- )}
- </div>
- </div>
+            {isFilterDropdownOpen && (
+              <div className="absolute top-[calc(100%+10px)] right-0 w-full md:w-64 bg-bg-secondary border border-bg-tertiary rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 backdrop-blur-xl">
+                {filterOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setStatusFilter(opt);
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${
+                      statusFilter === opt 
+                        ? "bg-accent-primary/10 text-accent-primary" 
+                        : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
+                    }`}
+                  >
+                    {statusLabels[opt] || opt}
+                    {statusFilter === opt ? (
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />
+                    ) : (
+                      <div className="w-1 h-1 rounded-full bg-transparent group-hover:bg-text-disabled transition-colors" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
- {/* INVENTORY GRID */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
- {filteredItems.map((item) => {
- const inMaintenance = item.maintenanceQuantity || 0;
- const assignedQty = item.assignedQuantity || 0;
- const totalQty = item.totalQuantity || 0;
- const available = totalQty - assignedQty - inMaintenance;
- const isLowStock = available <= (item.lowStockThreshold || 5);
- const unitCost = item.unitCost || 0;
+        {/* INVENTORY LIST */}
+        <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+                <tr>
+                  <th className="px-8 py-6">Consumable Specifications</th>
+                  <th className="px-8 py-6">Category</th>
+                  <th className="px-8 py-6 text-center">In Stock</th>
+                  <th className="px-8 py-6 text-center">Status Indicators</th>
+                  <th className="px-8 py-6 text-right pr-12">Controls</th>
+                </tr>
+              </thead>
+              <AnimatePresence mode="wait">
+                {loading && items.length === 0 ? (
+                  <ConsumableTableSkeleton key="skeleton" />
+                ) : filteredItems.length === 0 ? (
+                  <motion.tbody 
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="divide-y divide-border"
+                  >
+                    <tr>
+                      <td colSpan="5" className="py-24 text-center">
+                        <div className="space-y-4">
+                          <div className="w-16 h-16 bg-bg-tertiary rounded-3xl mx-auto flex items-center justify-center text-text-disabled/20 ring-1 ring-white/5">
+                            <Search size={32} />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-text-primary font-bold text-lg">No items match your search</p>
+                            <p className="text-text-muted text-sm max-w-xs mx-auto">Try refining your filters or search terms.</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </motion.tbody>
+                ) : (
+                  <motion.tbody 
+                    key="content"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="divide-y divide-border relative"
+                  >
+                    {filteredItems.map((item) => {
+                      const inMaintenance = item.maintenanceQuantity || 0;
+                      const assignedQty = item.assignedQuantity || 0;
+                      const totalQty = item.totalQuantity || 0;
+                      const available = totalQty - assignedQty - inMaintenance;
+                      const isLowStock = available <= (item.lowStockThreshold || 5);
+                      const unitCost = item.unitCost || 0;
 
- return (
- <div
- key={item._id}
- className="bg-zinc-800/40 rounded-[2.5rem] border border-zinc-800 shadow-sm hover:shadow-xl transition-all p-8 flex flex-col relative group hover:border-zinc-700 hover:bg-zinc-800"
- >
- <button
- onClick={() =>
- handleDelete(item._id, item.itemName, assignedQty)
- }
- className="absolute top-6 right-6 p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
- title="Delete Consumable"
- >
- <Trash2 size={18} />
- </button>
+                      return (
+                        <tr key={item._id} className="group hover:bg-bg-tertiary/20 transition-all border-b border-border last:border-0 cursor-default h-[88px]">
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-5">
+                              <div className={`p-3 rounded-2xl border transition-all duration-300 ${isLowStock ? "bg-status-warning/10 text-status-warning border-status-warning/20 shadow-glow" : "bg-bg-tertiary text-text-muted border-border shadow-inner group-hover:bg-accent-primary group-hover:text-white group-hover:border-transparent"}`}>
+                                <CategoryIcon category={item.category} name={item.itemName} />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="font-bold text-text-primary group-hover:text-white transition-colors tracking-tight text-sm">{item.itemName}</div>
+                                <div className="text-[9px] font-black text-status-success uppercase tracking-[0.2em]">
+                                  ${unitCost.toFixed(0)} / per unit
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                            <span className="text-[9px] font-black text-accent-secondary bg-accent-secondary/10 px-3.5 py-1.5 rounded-2xl border border-accent-secondary/20 uppercase tracking-[0.15em]">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className={`text-2xl font-black tabular-nums tracking-tighter ${isLowStock ? "text-status-warning" : "text-text-primary group-hover:text-white transition-colors"}`}>
+                                {available}
+                              </span>
+                              <span className="text-[8px] font-black text-text-disabled uppercase tracking-[0.2em]">Inventory</span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="flex justify-center gap-2">
+                              {isLowStock && (
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-warning bg-status-warning/10 px-2.5 py-1.5 rounded-2xl border border-status-warning/20 uppercase tracking-widest">
+                                  <AlertCircle size={10} /> Low
+                                </span>
+                              )}
+                              {inMaintenance > 0 && (
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-accent-primary bg-accent-primary/10 px-2.5 py-1.5 rounded-2xl border border-accent-primary/20 uppercase tracking-widest">
+                                  <Wrench size={10} /> {inMaintenance} Under Repair
+                                </span>
+                              )}
+                              {!isLowStock && inMaintenance === 0 && (
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-success bg-status-success/10 px-2.5 py-1.5 rounded-2xl border border-status-success/20 uppercase tracking-widest">
+                                  <CheckCircle size={10} /> Perfect
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-right pr-10">
+                            <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                              {user?.roleAccess === "ADMIN" && (
+                                <>
+                                  {inMaintenance > 0 && (
+                                    <button onClick={() => openResolveModal(item)} className="p-3 rounded-2xl text-status-success bg-status-success/10 hover:bg-status-success/20 border border-status-success/20 active:scale-95 transition-all">
+                                      <CheckCircle size={16} />
+                                    </button>
+                                  )}
+                                  <button onClick={() => openConditionModal(item)} className="p-3 rounded-2xl text-status-warning bg-status-warning/10 hover:bg-status-warning/20 border border-status-warning/20 active:scale-95 transition-all">
+                                    <Wrench size={16} />
+                                  </button>
+                                  <button disabled={available === 0} onClick={() => openIssueModal(item)} className="p-3 rounded-2xl text-accent-primary bg-accent-primary/10 hover:bg-accent-primary/20 border border-accent-primary/20 active:scale-95 transition-all disabled:opacity-20">
+                                    <UserPlus size={16} />
+                                  </button>
+                                  <button onClick={() => openRestockModal(item)} className="p-3 rounded-2xl text-accent-secondary bg-accent-secondary/10 hover:bg-accent-secondary/20 border border-accent-secondary/20 active:scale-95 transition-all">
+                                    <PlusCircle size={16} />
+                                  </button>
+                                  <button onClick={() => handleDeleteClick(item, assignedQty)} className="p-3 rounded-2xl text-status-danger bg-status-danger/10 hover:bg-status-danger hover:text-white border border-status-danger/30 active:scale-95 transition-all">
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </motion.tbody>
+                )}
+              </AnimatePresence>
+            </table>
+          </div>
 
- <div className="mb-6 flex justify-between items-start">
- <div
- className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isLowStock ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"}`}
- >
- <Package size={28} />
- </div>
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalResults}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        </div>
 
- <div className="flex flex-col gap-1 items-end mr-8">
- {/* Status Badges */}
- {isLowStock && (
- <span className="flex items-center gap-1 text-[9px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 uppercase">
- <AlertCircle size={10} /> Low Stock
- </span>
- )}
- {inMaintenance > 0 && (
- <span className="flex items-center gap-1 text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20 uppercase">
- <Wrench size={10} /> {inMaintenance} Under Service
- </span>
- )}
+        {/* MODAL LAYER */}
+        <AddConsumableModal isOpen={isAddModalOpen} onClose={closeAddModal} onRefresh={() => fetchConsumables(true)} />
+        <IssueConsumableModal isOpen={isIssueModalOpen} item={selectedItem} onClose={closeIssueModal} onRefresh={() => fetchConsumables(true)} />
+        <ReturnConsumableModal isOpen={isReturnModalOpen} item={selectedItem} onClose={closeReturnModal} onRefresh={() => fetchConsumables(true)} />
+        <ConsumableConditionModal isOpen={isConditionModalOpen} item={selectedItem} onClose={closeConditionModal} onRefresh={() => fetchConsumables(true)} />
+        <ConsumableMaintenanceResolveModal isOpen={isResolveModalOpen} item={selectedItem} onClose={closeResolveModal} onRefresh={() => fetchConsumables(true)} />
+        <RestockConsumableModal isOpen={isRestockModalOpen} item={selectedItem} onClose={closeRestockModal} onRefresh={() => fetchConsumables(true)} />
+        <RequestModal isOpen={isRequestModalOpen} onClose={closeRequestModal} item={selectedItem} type="ALLOCATION" />
 
- {/* FINANCIAL OVERLAY */}
- <div className="mt-2 text-right">
- <p className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.15em] leading-none mb-1">
- Asset Inventory Valuation
- </p>
- <p className="text-sm font-black text-emerald-400 leading-none">
- $
- {(unitCost * totalQty).toLocaleString(undefined, {
- minimumFractionDigits: 2,
- })}
- </p>
- </div>
- </div>
- </div>
+        <ConfirmModal 
+          isOpen={isConfirmOpen}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => !isDeleting && setIsConfirmOpen(false)}
+          title="Delete Consumable"
+          message={`Permanently delete "${consumableToDelete?.itemName}"?`}
+          confirmText="Delete"
+          isLoading={isDeleting}
+          success={isSuccess}
+        />
+      </div>
+    </PageTransition>
+  );
+};
 
- <div className="flex-1">
- <h3 className="text-xl font-black text-zinc-50 uppercase tracking-tight leading-tight">
- {item.itemName}
- </h3>
- <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1">
- {item.category} • ${unitCost.toFixed(2)} / unit
- </p>
- </div>
-
- <div className="mt-8 pt-6 border-t border-zinc-800 flex items-center justify-between">
- <div>
- <div className="text-4xl font-black text-zinc-50 leading-none">
- {available}
- </div>
- <p className="text-[10px] font-bold text-zinc-500 uppercase mt-2">
- Available Warehouse Stock
- </p>
- </div>
-
- <div className="flex gap-2">
- {inMaintenance > 0 && (
- <button
- onClick={() => openModal("RESOLVE", item)}
- className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
- title="Finish Repair"
- >
- <CheckCircle size={20} />
- </button>
- )}
- <button
- onClick={() => openModal("CONDITION", item)}
- className="p-3 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-2xl hover:bg-amber-500 hover:text-white transition-all shadow-md"
- title="Maintenance / Scrap"
- >
- <Wrench size={20} />
- </button>
- <button
- disabled={available === 0}
- onClick={() => openModal("ISSUE", item)}
- className="p-3 bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-2xl hover:bg-indigo-600 hover:text-white disabled:opacity-20 transition-all shadow-md"
- title="Allocate to Employee"
- >
- <UserPlus size={20} />
- </button>
-  <button
-  onClick={() => openModal("RESTOCK", item)}
-  className="p-3 bg-zinc-950 border border-zinc-800 text-emerald-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-md"
-  title="Restock Inventory"
-  >
-  <PlusCircle size={20} />
-  </button>
- <button
- onClick={() => openModal("RETURN", item)}
- className="p-3 bg-zinc-800 border border-zinc-800 text-zinc-400 rounded-2xl hover:bg-zinc-700 hover:text-white transition-all shadow-sm"
- title="Return Units"
- >
- <RotateCcw size={20} />
- </button>
- </div>
- </div>
- </div>
- );
- })}
- </div>
-
- {/* MODAL LAYER */}
- <AddConsumableModal
- isOpen={activeModal === "ADD"}
- onClose={closeModal}
- onRefresh={() => fetchConsumables(true)}
- />
- <IssueConsumableModal
- isOpen={activeModal === "ISSUE"}
- item={selectedItem}
- onClose={closeModal}
- onRefresh={() => fetchConsumables(true)}
- />
- <ReturnConsumableModal
- isOpen={activeModal === "RETURN"}
- item={selectedItem}
- onClose={closeModal}
- onRefresh={() => fetchConsumables(true)}
- />
- <ConsumableConditionModal
- isOpen={activeModal === "CONDITION"}
- item={selectedItem}
- onClose={closeModal}
- onRefresh={() => fetchConsumables(true)}
- />
- <ConsumableMaintenanceResolveModal
- isOpen={activeModal === "RESOLVE"}
- item={selectedItem}
- onClose={closeModal}
- onRefresh={() => fetchConsumables(true)}
- />
-  <RestockConsumableModal
-  isOpen={activeModal === "RESTOCK"}
-  item={selectedItem}
-  onClose={closeModal}
-  onRefresh={() => fetchConsumables(true)}
-  />
-   <RequestModal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} item={selectedConsumable} type={selectedConsumable ? "ALLOCATION" : "ALLOCATION"} />
-    </div>
- );
+const CategoryIcon = ({ category, name }) => {
+  const cat = (category || "").toUpperCase();
+  const itemName = (name || "").toUpperCase();
+  const props = { size: 20 };
+  if (cat.includes("LAPTOP") || itemName.includes("LAPTOP")) return <Laptop {...props} />;
+  if (cat.includes("MONITOR") || itemName.includes("MONITOR")) return <Monitor {...props} />;
+  if (cat.includes("MOBILE") || itemName.includes("PHONE")) return <Smartphone {...props} />;
+  if (cat.includes("KEYBOARD")) return <Keyboard {...props} />;
+  if (cat.includes("MOUSE")) return <MousePointer {...props} />;
+  if (cat.includes("CABLE") || itemName.includes("CABLE")) return <Zap {...props} />;
+  return <Package {...props} />;
 };
 
 export default ConsumableList;

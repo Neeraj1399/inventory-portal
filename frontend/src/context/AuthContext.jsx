@@ -1,11 +1,20 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
-import api from "../hooks/api";
+import api from "../services/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
  const [user, setUser] = useState(null);
  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const handleLogoutEvent = () => {
+      setUser(null);
+    };
+
+    window.addEventListener("auth-logout", handleLogoutEvent);
+    return () => window.removeEventListener("auth-logout", handleLogoutEvent);
+  }, []);
 
  useEffect(() => {
  const initializeAuth = async () => {
@@ -25,15 +34,15 @@ export const AuthProvider = ({ children }) => {
  try {
  const { data: resBody } = await api.get("/auth/me");
 
- // IMPORTANT: If backend says they must change password,
- // we DON'T set the user state here to keep them restricted.
- if (resBody.data?.user && !resBody.mustChangePassword) {
+ // Hydrate user even if password change is required
+ // ProtectedRoute will handle the redirect
+ if (resBody.data?.user) {
  login(resBody.data.user, token);
  }
- } catch (err) {
- console.log("Session recovery failed.");
- localStorage.removeItem("token");
- }
+      } catch (err) {
+        console.warn("Session recovery context cleared.");
+        localStorage.removeItem("token");
+      }
  }
 
  setLoading(false);

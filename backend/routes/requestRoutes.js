@@ -4,7 +4,8 @@ import {
   getRequests, 
   getRequest, 
   updateRequestStatus,
-  deleteRequest
+  deleteRequest,
+  getRequestStats
 } from "../controllers/requestController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
 
@@ -12,6 +13,8 @@ const router = express.Router();
 
 // All request routes are protected
 router.use(protect);
+
+router.get("/stats", restrictTo("ADMIN"), getRequestStats);
 
 router
   .route("/")

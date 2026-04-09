@@ -1,67 +1,163 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { 
   ClipboardList, 
   Plus, MessageSquare, 
   Clock, 
-  AlertCircle, 
-  CheckCircle2, 
   User,
-  Filter,
   RefreshCw,
   Search,
-  MoreVertical,
   Trash2,
-  Eye
+  Eye,
+  TrendingUp,
+  Filter,
+  ChevronDown
 } from "lucide-react";
-import api from "../../hooks/api";
+import api from "../../services/api";
 import RequestModal from "../../components/common/RequestModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import ReasonModal from "../../components/common/ReasonModal";
+import PriorityModal from "../../components/common/PriorityModal";
 import { useAuth } from "../../context/AuthContext";
+import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+import Pagination from "../../components/common/Pagination";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Premium Primitives
+import PageHeader from "../../components/common/PageHeader";
+import Card from "../../components/common/Card";
+import Badge from "../../components/common/Badge";
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import PageTransition from "../../components/common/PageTransition";
+
+// --- Custom Hooks ---
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
+const RequestCardSkeleton = () => (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-pulse">
+    {[1, 2, 3, 4].map((i) => (
+      <Card key={i} className="h-[420px] bg-bg-secondary/50 border-border relative overflow-hidden">
+        <div className="space-y-8 p-1">
+          <div className="flex justify-between items-start gap-4">
+            <div className="space-y-3 flex-1">
+              <div className="flex gap-2">
+                <div className="h-5 w-16 bg-bg-tertiary rounded-full" />
+                <div className="h-5 w-16 bg-bg-tertiary rounded-full" />
+              </div>
+              <div className="h-8 w-2/3 bg-bg-tertiary rounded-lg" />
+            </div>
+            <div className="h-6 w-20 bg-bg-tertiary rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-bg-tertiary/50 rounded" />
+            <div className="h-4 w-5/6 bg-bg-tertiary/50 rounded" />
+          </div>
+          <div className="h-16 w-full bg-bg-tertiary/30 rounded-2xl" />
+          <div className="flex justify-between items-center py-6 border-y border-border">
+             <div className="flex gap-8">
+                <div className="h-10 w-24 bg-bg-tertiary/40 rounded-xl" />
+                <div className="h-10 w-24 bg-bg-tertiary/40 rounded-xl" />
+             </div>
+          </div>
+          <div className="h-14 w-full bg-bg-tertiary/20 rounded-2xl" />
+        </div>
+      </Card>
+    ))}
+  </div>
+);
+
+const itemsPerPage = 20;
 
 const RequestList = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
+  
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const isAdmin = user?.roleAccess === "ADMIN";
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  
+  // Pagination & Multi-Modal State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
+  const [isPriorityModalOpen, setIsPriorityModalOpen] = useState(false);
+  
   const [deletingId, setDeletingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
-  // Rejection Reason States
-  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [reasonModalMode, setReasonModalMode] = useState("INPUT");
-  const [selectedReqForReason, setSelectedReqForReason] = useState(null);
+  const [selectedReq, setSelectedReq] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  const fetchRequests = useCallback(async (overrides = null) => {
     try {
-      const res = await api.get("/requests");
-      setRequests(Array.isArray(res.data.data) ? res.data.data : []);
+      const search = overrides?.search !== undefined ? overrides.search : debouncedSearch;
+      const status = overrides?.status !== undefined ? overrides.status : statusFilter;
+      const page = overrides?.page ?? currentPage;
+
+      if (!overrides?.isSilent) setLoading(true);
+
+      const res = await api.get("/requests", {
+        params: {
+          page,
+          limit: itemsPerPage,
+          search,
+          status
+        }
+      });
+      if (res.data?.status === "success") {
+        setRequests(Array.isArray(res.data.data) ? res.data.data : []);
+        setTotalPages(res.data.pages || 1);
+        setTotalResults(res.data.total || 0);
+      }
     } catch (err) {
       console.error("Failed to fetch requests", err);
       setRequests([]);
     } finally {
-      setLoading(false);
+      // Small delay to prevent flicker
+      setTimeout(() => {
+        setLoading(false);
+      }, 300);
     }
+  }, [currentPage, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  const handleManualRefresh = () => {
+    setSearchTerm("");
+    setStatusFilter("");
+    setCurrentPage(1);
+    fetchRequests({ search: "", status: "", page: 1 });
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     fetchRequests();
-  }, []);
+    return () => controller.abort();
+  }, [fetchRequests]);
 
   const handleStatusUpdate = async (id, status, note = "") => {
-    // If rejecting, we need a note
     if (status === "REJECTED" && !note && isAdmin) {
       const targetReq = requests.find(r => r._id === id);
-      setSelectedReqForReason(targetReq);
+      setSelectedReq(targetReq);
       setReasonModalMode("INPUT");
       setIsReasonModalOpen(true);
       return;
@@ -69,8 +165,9 @@ const RequestList = () => {
 
     setIsUpdatingStatus(true);
     try {
+      const targetReq = requests.find(r => r._id === id);
       await api.patch(`/requests/${id}`, { status, adminNote: note });
-      addToast(`Request ${status.toLowerCase()} successfully`, "success");
+      addToast(`Ticket "${targetReq?.title || "Update"}" ${status.toLowerCase()} successfully`, "success");
       setIsReasonModalOpen(false);
       fetchRequests();
     } catch (err) {
@@ -81,274 +178,283 @@ const RequestList = () => {
     }
   };
 
-  const handleViewReason = (req) => {
-    setSelectedReqForReason(req);
-    setReasonModalMode("VIEW");
-    setIsReasonModalOpen(true);
+  const handlePriorityUpdate = async (priority) => {
+    if (!selectedReq) return;
+    setIsUpdatingStatus(true);
+    try {
+      await api.patch(`/requests/${selectedReq._id}`, { priority });
+      addToast(`Priority updated to ${priority} for "${selectedReq.title}"`, "success");
+      setIsPriorityModalOpen(false);
+      fetchRequests();
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to update priority", "error");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const handleDelete = (id) => {
     setDeletingId(id);
-    setIsConfirmOpen(true);
+    setIsDeleteModalOpen(true);
+    setIsSuccess(false);
   };
 
   const confirmDelete = async () => {
     if (!deletingId) return;
-    
     setIsDeleting(true);
     try {
       await api.delete(`/requests/${deletingId}`);
       setIsSuccess(true);
       fetchRequests();
-      
-      // Keep modal open briefly to show success state
       setTimeout(() => {
-        setIsConfirmOpen(false);
+        setIsDeleteModalOpen(false);
         setIsSuccess(false);
         setDeletingId(null);
       }, 2000);
     } catch (err) {
-      console.error("Failed to delete request", err);
       addToast(err.response?.data?.message || "Failed to delete request", "error");
-      setIsConfirmOpen(false);
       setDeletingId(null);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusVariant = (status) => {
     switch (status) {
-      case "PENDING": return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-      case "APPROVED": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-      case "REJECTED": return "bg-rose-500/10 text-rose-400 border-rose-500/20";
-      case "FULFILLED": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-      default: return "bg-zinc-800 text-zinc-400 border-zinc-700";
+      case "PENDING": return "warning";
+      case "APPROVED": return "info";
+      case "REJECTED": return "danger";
+      case "FULFILLED": return "success";
+      default: return "muted";
     }
   };
 
-  const getPriorityColor = (priority) => {
+  const getPriorityVariant = (priority) => {
     switch (priority) {
-      case "HIGH": return "text-rose-500";
-      case "MEDIUM": return "text-amber-500";
-      case "LOW": return "text-blue-500";
-      default: return "text-zinc-500";
+      case "HIGH": return "danger";
+      case "MEDIUM": return "warning";
+      case "LOW": return "info";
+      default: return "muted";
     }
   };
-
-  const filteredRequests = (Array.isArray(requests) ? requests : []).filter(req => {
-    if (!req) return false;
-    const matchesSearch = 
-      (req.title?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (req.description?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (isAdmin && (req.employeeId?.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = !statusFilter || req.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-zinc-50 tracking-tight flex items-center gap-3">
-            <ClipboardList className="text-indigo-500" size={32} />
-            Service Tickets
-          </h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {isAdmin ? "Manage staff inventory requests and incident reports" : "Track status of your equipment and service requests"}
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          <button 
-            onClick={fetchRequests}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-400 hover:text-zinc-100 transition-all shadow-xl"
-          >
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-          </button>
-          {!isAdmin && (
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center gap-2"
-            >
-              <Plus size={18} /> New Ticket
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-          <input 
-            type="text"
-            placeholder="Search tickets..."
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-12 pr-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <select 
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all min-w-[160px]"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="FULFILLED">Fulfilled</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1,2,3,4].map(i => (
-            <div key={i} className="h-48 bg-zinc-900/50 border border-zinc-800 rounded-3xl animate-pulse" />
-          ))}
-        </div>
-      ) : filteredRequests.length === 0 ? (
-        <div className="text-center py-20 bg-zinc-900/50 border border-zinc-800 border-dashed rounded-3xl">
-          <div className="p-4 bg-zinc-800/50 w-fit mx-auto rounded-full text-zinc-700 mb-4">
-            <ClipboardList size={40} />
+    <PageTransition className="space-y-12 max-w-[1600px] mx-auto pb-12 relative z-0">
+      <PageHeader 
+        title="Ticketing"
+        subtitle={loading ? "Synchronizing service records..." : `${totalResults} Total Service Entries`}
+        icon={ClipboardList}
+        action={
+          <div className="flex items-center gap-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleManualRefresh}
+              icon={RefreshCw}
+              className={loading ? "animate-spin" : ""}
+            />
+            {isAdmin ? (
+              <Link to="/requests/stats">
+                <Button variant="secondary" icon={TrendingUp}>Analytics</Button>
+              </Link>
+            ) : (
+              <Button
+                onClick={() => setIsAddModalOpen(true)}
+                icon={Plus}
+              >
+                New Ticket
+              </Button>
+            )}
           </div>
-          <h3 className="text-zinc-300 font-bold">No tickets found</h3>
-          <p className="text-zinc-500 text-sm">Requests and reports will appear here</p>
+        }
+      />
+
+      <Card className="p-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
+            <Input 
+              icon={Search}
+              placeholder="Search by ID, title, or requester..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="relative min-w-[240px]">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+              <Filter size={18} />
+            </div>
+            <select 
+              className="w-full h-14 bg-bg-elevated border border-border rounded-2xl pl-12 pr-10 text-sm text-text-primary focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all appearance-none cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="PENDING">Pending Approval</option>
+              <option value="APPROVED">Approved</option>
+              <option value="FULFILLED">Fulfilled</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredRequests.map((req) => (
-            req?._id ? (
-              <div key={req._id} className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden group hover:border-zinc-700 transition-all shadow-lg hover:shadow-black/40">
-                <div className="p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${getPriorityColor(req.priority)}`}>
-                        {req.priority || "MEDIUM"} Priority • {req.type}
-                      </span>
-                      <h3 className="text-lg font-bold text-zinc-50 leading-tight">{req.title}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border tracking-wider ${getStatusColor(req.status)}`}>
-                        {req.status}
-                      </span>
-                      {req.status === "REJECTED" && req.adminNote && (
-                        <button 
-                          onClick={() => handleViewReason(req)}
-                          className="p-1.5 bg-zinc-800 text-zinc-400 hover:text-indigo-400 rounded-lg border border-zinc-700 transition-all shadow-sm"
-                          title="View Rejection Reason"
-                        >
-                          <Eye size={16} />
-                        </button>
-                      )}
-                      {(isAdmin || (!isAdmin && req.status === "PENDING")) && (
-                        <button 
-                          onClick={() => handleDelete(req._id)}
-                          className="p-1.5 text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                          title="Delete Request"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
+      </Card>
 
-                  <p className="text-zinc-400 text-sm line-clamp-3 leading-relaxed">
-                    {req.description}
-                  </p>
-
-                  {req.itemId && (
-                    <div className="flex items-center gap-2 p-2 bg-zinc-950/50 rounded-xl border border-zinc-800/50">
-                      <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                        <MessageSquare size={14} />
-                      </div>
-                      <div className="text-[10px]">
-                        <p className="text-zinc-500 font-bold uppercase tracking-tighter">Related Item</p>
-                        <p className="text-zinc-300 font-medium">{req.itemId?.model || req.itemId?.itemName || "Item Details Missing"}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-4 border-t border-zinc-800/50 flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-zinc-500">
-                        <User size={14} />
-                        <span className="font-semibold text-zinc-400">{isAdmin ? (req.employeeId?.name || "Unknown User") : "Me"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-zinc-500">
-                        <Clock size={14} />
-                        <span>{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Date N/A"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {isAdmin && req.status === "PENDING" && (
-                    <div className="flex gap-2 pt-2">
-                      <button 
-                        onClick={() => handleStatusUpdate(req._id, "APPROVED")}
-                        className="flex-1 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
-                      >
-                        Approve
-                      </button>
-                      <button 
-                        onClick={() => handleStatusUpdate(req._id, "REJECTED")}
-                        className="flex-1 py-2 rounded-xl bg-zinc-800 text-zinc-400 font-bold text-xs hover:bg-rose-900/20 hover:text-rose-400 transition-all"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-
-                  {isAdmin && req.status === "APPROVED" && (
-                    <button 
-                      onClick={() => handleStatusUpdate(req._id, "FULFILLED")}
-                      className="w-full py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
-                    >
-                      Mark as Fulfilled
-                    </button>
-                  )}
-
-                  {req.adminNote && (
-                    <div className="mt-4 p-3 bg-zinc-800/30 rounded-xl border border-zinc-700/30">
-                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Admin Resolution</p>
-                      <p className="text-xs text-zinc-300 italic">"{req.adminNote}"</p>
-                    </div>
-                  )}
-                </div>
+      <AnimatePresence mode="wait">
+        {loading && requests.length === 0 ? (
+          <RequestCardSkeleton key="skeleton" />
+        ) : requests.length === 0 ? (
+          <motion.div 
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="py-32 flex flex-col items-center justify-center space-y-6">
+              <div className="p-8 bg-bg-elevated rounded-full text-text-disabled shadow-inner">
+                <ClipboardList size={64} />
               </div>
-            ) : null
-          ))}
-        </div>
-      )}
-      <RequestModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); fetchRequests(); }} />
-      <ConfirmModal 
-        isOpen={isConfirmOpen}
-        title="Delete Request"
-        message="Are you sure you want to delete this service ticket? This action is permanent and will be logged for audit purposes."
-        confirmText="Delete Ticket"
-        onConfirm={confirmDelete}
-        onCancel={() => setIsConfirmOpen(false)}
-        isLoading={isDeleting}
-        success={isSuccess}
-        successTitle="Request Deleted"
-        successMessage="The service ticket has been permanently removed."
-        type="danger"
-      />
-      <ReasonModal 
-        isOpen={isReasonModalOpen}
-        onClose={() => setIsReasonModalOpen(false)}
-        onConfirm={(note) => handleStatusUpdate(selectedReqForReason._id, "REJECTED", note)}
-        mode={reasonModalMode}
-        title={reasonModalMode === "INPUT" ? "Rejection Reason" : "Reason for Rejection"}
-        description={reasonModalMode === "INPUT" ? `Why are you rejecting "${selectedReqForReason?.title}"?` : `Admin feedback for "${selectedReqForReason?.title}"`}
-        initialValue={selectedReqForReason?.adminNote || ""}
-        isLoading={isUpdatingStatus}
-      />
-    </div>
+              <div className="space-y-2 text-center">
+                <h3 className="text-text-primary font-black text-xl tracking-tight uppercase">No records found</h3>
+                <p className="text-text-muted text-sm font-medium">Try adjusting your filters or search criteria.</p>
+              </div>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+          >
+            {requests.map((req) => (
+              req?._id ? (
+                <Card key={req._id} className="group hover:border-accent-primary/30 relative h-full flex flex-col justify-between">
+                  <div className="space-y-8 h-full">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-3 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={getPriorityVariant(req.priority)}>
+                            {req.priority || "MEDIUM"}
+                          </Badge>
+                          <Badge variant="info">
+                            {req.category || "General"}
+                          </Badge>
+                          <Badge variant={req.requestType === 'NEW' ? 'success' : 'warning'}>
+                            {req.requestType || "NEW"}
+                          </Badge>
+                        </div>
+                        <h3 className="text-2xl font-black text-text-primary leading-tight group-hover:text-white transition-colors tracking-tight">
+                          {req.title}
+                        </h3>
+                      </div>
+                      <Badge variant={getStatusVariant(req.status)} className="px-5 py-2 uppercase font-black tracking-widest text-[10px]">
+                        {req.status}
+                      </Badge>
+                    </div>
+
+                    <p className="text-text-secondary text-sm line-clamp-2 leading-relaxed font-medium">
+                      {req.description}
+                    </p>
+
+                    <div className="space-y-6">
+                      {req.itemId && (
+                        <div className="flex items-center gap-5 p-5 bg-bg-elevated/50 rounded-2xl border border-border hover:bg-bg-elevated transition-colors">
+                          <div className="p-3 bg-accent-primary/10 rounded-xl text-accent-primary border border-accent-primary/10">
+                            <MessageSquare size={20} />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-text-disabled uppercase tracking-widest">Resource Allocation</p>
+                            <p className="text-base text-text-primary font-black tracking-tight">{req.itemId?.model || req.itemId?.itemName || "Unknown Resource"}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between py-6 border-y border-border">
+                        <div className="flex flex-wrap items-center gap-8">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-accent-secondary/10 flex items-center justify-center text-accent-secondary border border-accent-secondary/10">
+                              <User size={18} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs font-black text-text-disabled uppercase tracking-widest">Requester</p>
+                              <p className="text-sm font-bold text-text-primary">{isAdmin ? (req.employeeId?.name || "Unregistered") : "Self"}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-bg-tertiary flex items-center justify-center text-text-muted border border-border">
+                              <Clock size={18} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs font-black text-text-disabled uppercase tracking-widest">Submitted</p>
+                              <p className="text-sm font-bold text-text-primary">{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Date N/A"}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {req.status === "REJECTED" && req.adminNote && (
+                            <IconButton onClick={() => { setSelectedReq(req); setReasonModalMode("VIEW"); setIsReasonModalOpen(true); }} icon={Eye} variant="secondary" tooltip="View Reason" />
+                          )}
+                          {(isAdmin || (!isAdmin && req.status === "PENDING")) && (
+                            <IconButton onClick={() => handleDelete(req._id)} icon={Trash2} variant="danger" tooltip="Discard" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+    
+                    {isAdmin && (req.status === "PENDING" || req.status === "APPROVED") && (
+                      <div className="space-y-4 pt-4">
+                        <Button variant="secondary" onClick={() => { setSelectedReq(req); setIsPriorityModalOpen(true); }} className="w-full h-14 bg-bg-elevated/50 font-black text-[11px]" icon={TrendingUp}>Update Priority</Button>
+                        <div className="flex gap-4">
+                          {req.status === "PENDING" && (
+                            <>
+                              <Button onClick={() => handleStatusUpdate(req._id, "APPROVED")} className="flex-1 h-14 uppercase tracking-widest text-[10px] font-black">Approve</Button>
+                              <Button variant="secondary" onClick={() => handleStatusUpdate(req._id, "REJECTED")} className="flex-1 h-14 font-black text-[10px] uppercase tracking-widest text-status-danger border-status-danger/30 hover:bg-status-danger hover:text-white shadow-lg active:scale-95 transition-all">Reject</Button>
+                            </>
+                          )}
+                          {req.status === "APPROVED" && (
+                            <Button onClick={() => handleStatusUpdate(req._id, "FULFILLED")} className="w-full h-14 bg-gradient-to-tr from-status-success to-emerald-600 border-none font-black text-[11px] uppercase tracking-widest">Mark Fulfilled</Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {req.adminNote && (
+                      <div className="p-5 bg-accent-primary/5 rounded-2xl border border-accent-primary/20 relative mt-4">
+                        <p className="text-[10px] font-black text-accent-primary uppercase tracking-widest mb-1 opacity-80">Admin Note</p>
+                        <p className="text-sm text-text-secondary italic">"{req.adminNote}"</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ) : null
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalResults} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} />
+
+      <RequestModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onRefresh={() => fetchRequests()} />
+      <ConfirmModal isOpen={isDeleteModalOpen} title="Discard Ticket" message="Permanently remove this ticket?" confirmText="Delete" onConfirm={confirmDelete} onCancel={() => setIsDeleteModalOpen(false)} isLoading={isDeleting} type="danger" success={isSuccess} />
+      <ReasonModal isOpen={isReasonModalOpen} onClose={() => setIsReasonModalOpen(false)} onConfirm={(note) => handleStatusUpdate(selectedReq?._id, "REJECTED", note)} mode={reasonModalMode} title={reasonModalMode === "INPUT" ? "Resolution Required" : "Ticket Record"} description={reasonModalMode === "INPUT" ? `Reason for rejecting "${selectedReq?.title}".` : `Admin feedback for "${selectedReq?.title}"`} initialValue={selectedReq?.adminNote || ""} isLoading={isUpdatingStatus} />
+      <PriorityModal isOpen={isPriorityModalOpen} onClose={() => setIsPriorityModalOpen(false)} onConfirm={handlePriorityUpdate} initialPriority={selectedReq?.priority || "MEDIUM"} isLoading={isUpdatingStatus} />
+    </PageTransition>
+  );
+};
+
+const IconButton = ({ icon: Icon, onClick, variant, tooltip, disabled }) => {
+  const styles = {
+    primary: "text-accent-primary bg-accent-primary/5 hover:bg-accent-primary/10 border-accent-primary/10",
+    secondary: "text-text-muted bg-bg-tertiary hover:bg-bg-tertiary/70 border-border",
+    danger: "text-status-danger bg-status-danger/5 hover:bg-status-danger/10 border-status-danger/20",
+  };
+  return (
+    <button onClick={onClick} disabled={disabled} title={tooltip} className={`p-3 rounded-2xl border transition-all active:scale-90 disabled:opacity-20 shadow-sm ${styles[variant]}`}>
+      <Icon size={18} />
+    </button>
   );
 };
 

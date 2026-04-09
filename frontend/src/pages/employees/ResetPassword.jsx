@@ -1,171 +1,162 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ShieldAlert, CheckCircle2, Circle } from "lucide-react"; 
-import api from "../../hooks/api";
+import { CheckCircle2, Circle, Lock, ShieldCheck, ArrowRight } from "lucide-react"; 
+import { motion } from "framer-motion";
+import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 
+// Premium Primitives
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import Card from "../../components/common/Card";
+
 const ResetPassword = () => {
- const [password, setPassword] = useState("");
- const [confirmPassword, setConfirmPassword] = useState("");
- const [loading, setLoading] = useState(false);
- const navigate = useNavigate();
- const { token } = useParams();
- const { addToast } = useToast();
- const { login } = useAuth();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { token } = useParams();
+  const { addToast } = useToast();
+  const { login } = useAuth();
 
- // Helper to check standard requirements for the UI
- const requirements = [
- { label: "Minimum 10 characters", valid: password.length >= 10 },
- {
- label: "Uppercase & Lowercase",
- valid: /[a-z]/.test(password) && /[A-Z]/.test(password),
- },
- {
- label: "Number & Special Character",
- valid: /[0-9]/.test(password) && /[!@#$%^&*]/.test(password),
- },
- ];
+  const requirements = [
+    { label: "Minimum 10 characters", valid: password.length >= 10 },
+    {
+      label: "Uppercase & Lowercase",
+      valid: /[a-z]/.test(password) && /[A-Z]/.test(password),
+    },
+    {
+      label: "Number & Special Character",
+      valid: /[0-9]/.test(password) && /[!@#$%^&*]/.test(password),
+    },
+  ];
 
- const handleUpdate = async (e) => {
- e.preventDefault();
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{10,})/;
+    if (!passwordRegex.test(password)) {
+      addToast("Password does not meet the security standards.", "error");
+      return;
+    }
+    if (password !== confirmPassword) {
+      addToast("Passwords do not match.", "error");
+      return;
+    }
 
- // 1. Frontend Validation
- const passwordRegex =
- /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{10,})/;
- if (!passwordRegex.test(password)) {
- addToast("Password does not meet the security standards.", "error");
- return;
- }
+    setLoading(true);
+    try {
+      if (token) {
+        await api.patch(`/admin/reset-password/${token}`, { password });
+        addToast("Security update successful! Please log in.", "success");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      } else {
+        const res = await api.patch("/auth/update-password", {
+          password,
+          passwordConfirm: confirmPassword,
+        });
+        addToast("Security profile calibrated successfully.", "success");
+        login(res.data.data.user, res.data.accessToken);
+        navigate("/");
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || "An error occurred.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
- if (password !== confirmPassword) {
- addToast("Passwords do not match.", "error");
- return;
- }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary p-6 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-secondary/10 rounded-full blur-[120px] animate-pulse delay-700" />
+      
+      <motion.div 
+        initial={{ scale: 0.98, opacity: 0, y: 0 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-md relative z-10"
+      >
+        <Card className="p-10 backdrop-blur-2xl border-border shadow-2xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-bg-elevated rounded-2xl mb-8 shadow-inner border border-border group transition-all duration-500 hover:scale-105 cursor-default">
+              <Lock className="text-accent-primary w-10 h-10 group-hover:text-white transition-colors" />
+            </div>
+            <h1 className="text-3xl font-black text-text-primary tracking-tight">
+              {token ? "Reset" : "Security"} <span className="text-accent-primary">Policy</span>
+            </h1>
+            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+              {token ? "Access Calibration Procedure" : "Mandatory Credential Update"}
+            </p>
+          </div>
 
- setLoading(true);
- try {
- if (token) {
- // Unauthenticated Reset via Email Token
- await api.patch(`/admin/reset-password/${token}`, { password });
- addToast("Security update successful! Please log in with your new password.", "success");
- 
- // Clean up and redirect to login for unauthenticated token reset
- localStorage.removeItem("token");
- localStorage.removeItem("user");
- navigate("/login");
- } else {
- // Authenticated "Force Change Password" flow
- const res = await api.patch("/auth/update-password", {
- password,
- passwordConfirm: confirmPassword,
- });
- 
- addToast("Password updated successfully! Welcome to the portal.", "success");
- 
- // Log the user in with the newly refreshed token and navigate to dashboard
- login(res.data.data.user, res.data.accessToken);
- navigate("/");
- }
- } catch (err) {
- // 2. Standard Backend Error
- addToast(
- err.response?.data?.message || "An error occurred during update.",
- "error"
- );
- } finally {
- setLoading(false);
- }
- };
- // Calculate strength (0 to 4)
- const getStrength = () => {
- let s = 0;
- if (password.length >= 10) s++;
- if (/[A-Z]/.test(password) && /[a-z]/.test(password)) s++;
- if (/[0-9]/.test(password)) s++;
- if (/[!@#$%^&*]/.test(password)) s++;
- return s;
- };
+          <form onSubmit={handleUpdate} className="space-y-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                New Secure Passcode
+              </label>
+              <Input
+                icon={Lock}
+                type="password"
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
- const strength = getStrength();
- const colors = [
- "bg-zinc-800",
- "bg-red-400",
- "bg-orange-400",
- "bg-yellow-400",
- "bg-green-500",
- ];
- return (
- <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
- {/* Decorative Blob */}
- <div className="absolute top-10 left-10 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob"></div>
- <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000"></div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                Confirm Calibration
+              </label>
+              <Input
+                icon={ShieldCheck}
+                type="password"
+                placeholder="••••••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
 
- <div className="bg-zinc-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-zinc-800 relative z-10">
- <div className="text-center mb-6">
- <h2 className="text-2xl font-bold text-zinc-50">
- {token ? "Reset Your Password" : "Security Update"}
- </h2>
- <p className="text-sm text-zinc-400 mt-2">
- {token 
- ? "Please enter your new password below." 
- : "You are using a temporary password. Please set a secure private password to proceed."}
- </p>
- </div>
+            <div className="bg-bg-elevated p-6 rounded-2xl border border-border shadow-inner space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled opacity-60">
+                Security Requirements
+              </p>
+              <div className="space-y-3">
+                {requirements.map((req, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 text-xs font-black tracking-tight transition-colors ${req.valid ? "text-status-success" : "text-text-disabled"}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${req.valid ? "bg-status-success/10 border-status-success/20" : "bg-bg-secondary border-border"}`}>
+                      {req.valid ? (
+                        <CheckCircle2 size={12} />
+                      ) : (
+                        <Circle size={10} className="opacity-20" />
+                      )}
+                    </div>
+                    {req.label}
+                  </div>
+                ))}
+              </div>
+            </div>
 
- <form onSubmit={handleUpdate} className="space-y-4">
- <div>
- <input
- type="password"
- placeholder="New Secure Password"
- className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-zinc-50 placeholder-zinc-500"
- value={password}
- onChange={(e) => setPassword(e.target.value)}
- required
- />
- </div>
-
- <div>
- <input
- type="password"
- placeholder="Confirm New Password"
- className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-zinc-50 placeholder-zinc-500"
- value={confirmPassword}
- onChange={(e) => setConfirmPassword(e.target.value)}
- required
- />
- </div>
-
- {/* Password Checklist UI */}
- <div className="bg-zinc-950/40 p-4 rounded-xl space-y-2 border border-zinc-800">
- <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
- Requirements:
- </p>
- {requirements.map((req, i) => (
- <div
- key={i}
- className={`flex items-center gap-2 text-sm ${req.valid ? "text-emerald-400" : "text-zinc-500"}`}
- >
- {req.valid ? (
- <CheckCircle2 className="w-4 h-4" />
- ) : (
- <Circle className="w-4 h-4" />
- )}
- {req.label}
- </div>
- ))}
- </div>
-
- <button
- disabled={loading}
- className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:from-indigo-400 hover:to-purple-500 disabled:opacity-50 shadow-lg shadow-black/20 transition-all active:scale-95 border border-indigo-500/30"
- >
- {loading ? "Updating..." : (token ? "Set New Password" : "Set New Password & Logout")}
- </button>
- </form>
- </div>
- </div>
- );
+            <Button
+              type="submit"
+              isLoading={loading}
+              className="w-full h-14 uppercase tracking-widest text-[11px]"
+              icon={ArrowRight}
+            >
+              Update Credentials
+            </Button>
+          </form>
+        </Card>
+      </motion.div>
+    </div>
+  );
 };
 
 export default ResetPassword;

@@ -59,6 +59,19 @@ export const getAssets = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @desc    Get all unique asset categories
+ * @route   GET /api/assets/categories
+ * @access  Private
+ */
+export const getCategories = catchAsync(async (req, res, next) => {
+  const categories = await Asset.distinct("category");
+  res.status(200).json({
+    status: "success",
+    data: categories,
+  });
+});
+
 export const getAsset = catchAsync(async (req, res, next) => {
   const asset = await Asset.findById(req.params.id)
     .populate({
@@ -196,8 +209,11 @@ export const assignAsset = catchAsync(async (req, res, next) => {
 
   try {
     const { employeeId } = req.body;
-    const existingAsset = await Asset.findById(req.params.id).session(session);
 
+    const employee = await Employee.findOne({ _id: employeeId, status: "ACTIVE" }).session(session);
+    if (!employee) throw new AppError("Employee not found or is not active", 400);
+
+    const existingAsset = await Asset.findById(req.params.id).session(session);
     if (!existingAsset) throw new AppError("Asset not found", 404);
     if (
       existingAsset.status === "ALLOCATED" &&
@@ -253,7 +269,13 @@ export const returnAsset = catchAsync(async (req, res, next) => {
   session.startTransaction();
 
   try {
+    const VALID_RETURN_STATUSES = ["READY_TO_DEPLOY", "UNDER_MAINTENANCE", "DECOMMISSIONED", "BROKEN"];
     const returnStatus = req.body?.returnStatus || "READY_TO_DEPLOY";
+    if (!VALID_RETURN_STATUSES.includes(returnStatus)) {
+      await session.abortTransaction();
+      return next(new AppError(`Invalid return status: ${returnStatus}`, 400));
+    }
+
     const asset = await Asset.findById(req.params.id).session(session);
 
     if (!asset) throw new AppError("Asset not found", 404);

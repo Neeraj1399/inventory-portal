@@ -12,6 +12,16 @@ const requestSchema = new Schema(
       enum: ["ALLOCATION", "REPLACEMENT", "SERVICE", "INCIDENT"],
       required: [true, "Request type is required"],
     },
+    requestType: {
+      type: String,
+      enum: ["NEW", "REPLACEMENT"],
+      default: "NEW",
+    },
+    category: {
+      type: String,
+      enum: ["Laptop", "Monitor", "Mobile", "Headphones", "Keyboard", "Others"],
+      default: "Others",
+    },
     status: {
       type: String,
       enum: ["PENDING", "APPROVED", "REJECTED", "FULFILLED"],

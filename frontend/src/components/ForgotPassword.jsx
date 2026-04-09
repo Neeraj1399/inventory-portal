@@ -1,142 +1,165 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
- Mail,
- Loader2,
- ArrowLeft,
- Send,
- CheckCircle2,
- ShieldCheck,
+  Mail,
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
-import api from "../hooks/api";
+import api from "../services/api";
+
+// Premium Primitives
+import Button from "./common/Button";
+import Input from "./common/Input";
+import Card from "./common/Card";
 
 const ForgotPassword = () => {
- const [email, setEmail] = useState("");
- const [status, setStatus] = useState({
- loading: false,
- error: "",
- success: false,
- });
- const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState({
+    loading: false,
+    error: "",
+    success: false,
+  });
+  const navigate = useNavigate();
 
- const handleSubmit = async (e) => {
- e.preventDefault();
- if (status.loading) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (status.loading) return;
 
- setStatus({ loading: true, error: "", success: false });
+    setStatus({ loading: true, error: "", success: false });
 
- try {
- // Hits the POST /api/auth/forgot-password route
- await api.post("/auth/forgot-password", {
- email: email.trim().toLowerCase(),
- });
+    try {
+      await api.post("/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+      });
 
- setStatus({ loading: false, error: "", success: true });
- } catch (err) {
- setStatus({
- loading: false,
- error:
- err.response?.data?.message ||
- "Could not process request. Please try again.",
- success: false,
- });
- }
- };
+      setStatus({ loading: false, error: "", success: true });
+    } catch (err) {
+      setStatus({
+        loading: false,
+        error: err.response?.data?.message || "Could not process identity recovery request.",
+        success: false,
+      });
+    }
+  };
 
- return (
- <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-900 p-6">
- <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl shadow-black/20/60 p-10 border border-zinc-800 transition-all">
- {/* Branding/Icon */}
- <div className="flex flex-col items-center mb-8">
- <div className="w-12 h-12 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
- <ShieldCheck className="text-zinc-300 w-6 h-6" />
- </div>
- <h1 className="text-2xl font-extrabold text-zinc-50 tracking-tight">
- Account Recovery
- </h1>
- </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary p-6 relative overflow-hidden">
+      {/* Background Ambience */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-secondary/10 rounded-full blur-[120px] animate-pulse delay-700" />
+      
+      <motion.div 
+        initial={{ scale: 0.98, opacity: 0, y: 0 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-md relative z-10"
+      >
+        <Card className="p-10 backdrop-blur-2xl border-border shadow-2xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-bg-elevated rounded-2xl mb-8 shadow-inner border border-border group transition-all duration-500 hover:scale-105 cursor-default">
+              <ShieldCheck className="text-accent-primary w-10 h-10 group-hover:text-white transition-colors" />
+            </div>
+            <h1 className="text-3xl font-black text-text-primary tracking-tight">
+              Recovery <span className="text-accent-primary">Vector</span>
+            </h1>
+            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+              Identity Restoration Protocols
+            </p>
+          </div>
 
- {!status.success ? (
- <>
- <p className="text-zinc-500 text-sm text-center mb-8 leading-relaxed">
- Enter your registered work email address. We'll send you a secure
- link to reset your password.
- </p>
+          <AnimatePresence mode="wait">
+            {!status.success ? (
+              <motion.div
+                key="form"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-text-secondary text-sm text-center mb-10 leading-relaxed font-medium">
+                  Input your authenticated identity (email). We will generate a secure 
+                  temporal link to restore your access protocols.
+                </p>
 
- {status.error && (
- <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium animate-in fade-in slide-in-from-top-1">
- {status.error}
- </div>
- )}
+                {status.error && (
+                  <div className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 rounded-2xl text-status-danger text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 bg-status-danger rounded-full animate-pulse" />
+                    {status.error}
+                  </div>
+                )}
 
- <form onSubmit={handleSubmit} className="space-y-6">
- <div className="space-y-1.5">
- <label className="text-xs font-semibold text-zinc-300 uppercase tracking-widest ml-1">
- Work Email
- </label>
- <div className="relative group">
- <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
- <input
- type="email"
- required
- autoFocus
- value={email}
- onChange={(e) => setEmail(e.target.value)}
- placeholder="e.g. employee@company.com"
- className="w-full pl-12 pr-4 py-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/30/10 focus:border-indigo-500 focus:bg-zinc-900 border border-zinc-800 transition-all outline-none"
- />
- </div>
- </div>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                      Identity Descriptor
+                    </label>
+                    <Input
+                      icon={Mail}
+                      type="email"
+                      required
+                      autoFocus
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="identity@athiva.com"
+                    />
+                  </div>
 
- <button
- type="submit"
- disabled={status.loading || !email}
- className="w-full bg-zinc-950 hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-blue-200 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
- >
- {status.loading ? (
- <Loader2 className="w-5 h-5 animate-spin" />
- ) : (
- <>
- <Send size={18} />
- Send Reset Link
- </>
- )}
- </button>
- </form>
- </>
- ) : (
- /* Success State */
- <div className="text-center py-4 animate-in fade-in zoom-in duration-300">
- <div className="w-16 h-16 bg-emerald-100 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
- <CheckCircle2 size={32} />
- </div>
- <h2 className="text-xl font-bold text-zinc-50">
- Check your inbox
- </h2>
- <p className="text-zinc-500 mt-3 text-sm leading-relaxed px-4">
- If an account exists for{" "}
- <span className="font-semibold text-zinc-50">{email}</span>, you
- will receive a password reset link shortly.
- </p>
- </div>
- )}
+                  <Button
+                    type="submit"
+                    isLoading={status.loading}
+                    disabled={!email}
+                    className="w-full h-14 uppercase tracking-widest text-[11px]"
+                    icon={Send}
+                  >
+                    Transmit Recovery Vector
+                  </Button>
+                </form>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="text-center py-6"
+              >
+                <div className="w-24 h-24 bg-status-success/10 text-status-success rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner border border-status-success/10 group">
+                  <CheckCircle2 size={48} className="group-hover:scale-110 transition-transform duration-500" />
+                </div>
+                <h2 className="text-2xl font-black text-text-primary tracking-tight">
+                  Transmission Success
+                </h2>
+                <p className="text-text-secondary mt-6 text-sm leading-relaxed px-4 font-medium">
+                  If an identity cluster exists for{" "}
+                  <span className="font-bold text-accent-primary underline decoration-accent-primary/20 underline-offset-4">{email}</span>, 
+                  you will receive the recovery vector shortly.
+                </p>
+                <div className="mt-10 p-6 bg-bg-elevated rounded-2xl border border-border shadow-inner">
+                  <p className="text-[10px] text-text-muted uppercase tracking-[0.2em] font-black flex items-center justify-center gap-3">
+                    <span className="w-1.5 h-1.5 bg-status-warning rounded-full animate-pulse" />
+                    Check spam repositories
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
- {/* Navigation Footer */}
- <div className="mt-8 pt-6 border-t border-slate-50 flex justify-center">
- <button
- onClick={() => navigate("/login")}
- className="flex items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-indigo-400 transition-colors"
- >
- <ArrowLeft size={16} /> Back to Sign In
- </button>
- </div>
- </div>
-
- <p className="mt-8 text-zinc-400 text-xs">
- &copy; {new Date().getFullYear()} Internal Inventory Portal
- </p>
- </div>
- );
+          <div className="mt-12 pt-8 border-t border-border flex justify-center">
+            <button
+              onClick={() => navigate("/login")}
+              className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-white transition-all group active:scale-95"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
+              Return to Authentication
+            </button>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
 };
 
 export default ForgotPassword;

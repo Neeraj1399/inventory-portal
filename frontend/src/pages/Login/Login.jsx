@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import api from "../../hooks/api";
+import { Lock, Mail, Loader2, ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
+import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+
+// Premium Primitives
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import Card from "../../components/common/Card";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -32,12 +37,11 @@ const Login = () => {
         password,
       });
 
-      // //update: Access data correctly based on your authController structure
       const userData = resBody.data.user;
       const accessToken = resBody.accessToken;
 
       if (resBody.mustChangePassword) {
-        localStorage.setItem("token", accessToken);
+        login(userData, accessToken);
         navigate("/reset-password");
         return;
       }
@@ -45,7 +49,6 @@ const Login = () => {
       login(userData, accessToken);
       navigate("/");
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.response?.data?.message || "Invalid login credentials");
     } finally {
       setLoading(false);
@@ -67,199 +70,189 @@ const Login = () => {
       setSuccessMessage(res.data.message || "Reset request sent successfully.");
       setResetEmail("");
     } catch (err) {
-      console.error("Forgot password error:", err);
-      setError(err.response?.data?.message || "Error submitting request. Please try again.");
+      setError(err.response?.data?.message || "Error submitting request.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
-      {/* Decorative Blob */}
-      <div className="absolute top-10 left-10 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob"></div>
-      <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-96 h-96 bg-indigo-600/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary p-6 relative overflow-hidden">
+      {/* Background Ambience */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-secondary/10 rounded-full blur-[120px] animate-pulse delay-700" />
       
       <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        initial={{ scale: 0.98, opacity: 0, y: 0 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="max-w-md w-full bg-zinc-900 rounded-3xl shadow-2xl shadow-indigo-500/10 p-8 border border-zinc-800 relative z-10"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-md relative z-10"
       >
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mb-4 shadow-lg shadow-black/20 transform hover:scale-105 transition-transform duration-300">
-            <ShieldCheck className="text-white w-10 h-10" />
+        <Card className="p-10 backdrop-blur-2xl border-border shadow-2xl">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-bg-elevated rounded-2xl mb-8 shadow-inner border border-border transition-all duration-500 hover:scale-105 group cursor-default">
+              <ShieldCheck className="text-accent-primary w-10 h-10 group-hover:text-white transition-colors" />
+            </div>
+            <h1 className="text-3xl font-black text-text-primary tracking-tight">
+              Inventory <span className="text-accent-primary">Portal</span>
+            </h1>
+            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+              {isForgotPassword ? "Secure Access Recovery" : "Enterprise Authentication Gate"}
+            </p>
           </div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            Inventory Portal
-          </h1>
-          <p className="text-zinc-400 mt-2">
-            {isForgotPassword ? "Request a password reset" : "Sign in to manage company assets"}
-          </p>
-        </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border-l-4 border-red-500 text-red-400 text-sm rounded-r-lg shadow-sm">
-            {error}
-          </div>
-        )}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 text-status-danger text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3"
+              >
+                <div className="w-1.5 h-1.5 bg-status-danger rounded-full animate-pulse" />
+                {error}
+              </motion.div>
+            )}
 
-        {successMessage && (
-          <div className="mb-6 p-4 bg-emerald-500/10 border-l-4 border-emerald-500 text-emerald-400 text-sm rounded-r-lg shadow-sm">
-            {successMessage}
-          </div>
-        )}
+            {successMessage && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-8 p-4 bg-status-success/10 border border-status-success/20 text-status-success text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3"
+              >
+                <div className="w-1.5 h-1.5 bg-status-success rounded-full animate-pulse" />
+                {successMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        <AnimatePresence mode="wait">
-          {isForgotPassword ? (
-            <motion.form 
-              key="forgot-password"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              onSubmit={handleForgotPasswordSubmit} 
-              className="space-y-6"
-            >
-              <div>
-                <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
-                  Work Email
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
-                  <input
-                    autoFocus
+          <AnimatePresence mode="wait">
+            {isForgotPassword ? (
+              <motion.form 
+                key="forgot"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleForgotPasswordSubmit} 
+                className="space-y-8"
+              >
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                    Identity Verification
+                  </label>
+                  <Input
+                    icon={Mail}
                     type="email"
                     required
-                    placeholder="name@company.com"
+                    placeholder="name@athiva.com"
                     value={resetEmail}
                     onChange={(e) => {
                       setResetEmail(e.target.value);
                       if (error) setError("");
-                      if (successMessage) setSuccessMessage("");
                     }}
-                    className="w-full pl-11 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 transition-all active:scale-[0.98] hover:shadow-xl disabled:opacity-70 disabled:hover:scale-100"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin w-5 h-5" />
-                    Sending Request...
-                  </>
-                ) : (
-                  "Request Reset"
-                )}
-              </button>
-
-              <p className="text-center text-zinc-400 text-sm mt-8">
-                Remember your password?{" "}
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setIsForgotPassword(false);
-                    setError("");
-                    setSuccessMessage("");
-                  }}
-                  className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  className="w-full h-14 uppercase tracking-widest text-[11px]"
                 >
-                  Sign In
-                </button>
-              </p>
-            </motion.form>
-          ) : (
-            <motion.form 
-              key="login"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onSubmit={handleLogin} 
-              className="space-y-6"
-            >
-              <div>
-                <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
-                  Work Email
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
-                  <input
-                    autoFocus
+                  Request Reset Link
+                </Button>
+
+                <div className="text-center pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => { setIsForgotPassword(false); setError(""); setSuccessMessage(""); }}
+                    className="text-text-muted hover:text-white transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </motion.form>
+            ) : (
+              <motion.form 
+                key="login"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleLogin} 
+                className="space-y-8"
+              >
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                    Work Email
+                  </label>
+                  <Input
+                    icon={Mail}
                     type="email"
                     required
-                    placeholder="name@company.com"
+                    placeholder="name@athiva.com"
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError("");
                     }}
-                    className="w-full pl-11 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-semibold uppercase text-zinc-400 ml-1 mb-2 block">
-                  Password
-                </label>
-                <div className="relative group">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors w-5 h-5" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (error) setError("");
-                    }}
-                    className="w-full pl-11 pr-10 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-50 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:bg-zinc-950 focus:border-indigo-500 outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-indigo-400 transition-colors"
-                  >
-                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled">
+                      Password
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-primary hover:text-white transition-colors"
+                    >
+                      Recovery?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      icon={Lock}
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError("");
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors z-10"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-black/20 transition-all active:scale-[0.98] hover:shadow-xl disabled:opacity-70 disabled:hover:scale-100"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin w-5 h-5" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Login to Dashboard"
-                )}
-              </button>
-              <p className="text-center text-zinc-400 text-sm mt-8">
-                Forgot your password?{" "}
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setIsForgotPassword(true);
-                    setError("");
-                  }}
-                  className="text-indigo-400 font-medium hover:underline hover:text-indigo-300 transition-colors"
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  className="w-full h-14 uppercase tracking-widest text-[11px]"
+                  icon={ArrowRight}
                 >
-                  Reset it here
-                </button>
-              </p>
-            </motion.form>
-          )}
-        </AnimatePresence>
+                  Enter Dashboard
+                </Button>
+
+                <div className="pt-8 text-center">
+                  <p className="text-text-disabled text-[9px] font-black uppercase tracking-[0.3em] opacity-40">
+                    Proprietary Resource Access
+                  </p>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </Card>
       </motion.div>
     </div>
   );

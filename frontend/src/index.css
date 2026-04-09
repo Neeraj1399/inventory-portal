@@ -1,8 +1,75 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-primary: #0A0D14;
+  --color-bg-secondary: #0F172A;
+  --color-bg-tertiary: #1E293B;
+  --color-bg-elevated: #020617;
+  --color-bg-input: #0F172A;
+  --color-bg-hover: rgba(255, 255, 255, 0.04);
+
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-text-disabled: #64748B;
+
+  --color-accent-primary: #8B5CF6;
+  --color-accent-secondary: #6366F1;
+  --color-accent-purple: #8B5CF6;
+  --color-accent-indigo: #6366F1;
+  /* Tailwind v4 allows custom background image / gradient tokens via `--background-image-*` */
+  --background-image-accent-gradient: linear-gradient(135deg, #8B5CF6, #6366F1);
+  --color-border: rgba(148, 163, 184, 0.2);
+
+  --color-status-success: #10B981;
+  --color-status-warning: #F59E0B;
+  --color-status-danger: #EF4444;
+  --color-status-info: #3B82F6;
+
+  --radius-2xl: 1rem;
+
+  --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.25);
+  --shadow-glow-sm: 0 0 15px rgba(139, 92, 246, 0.18);
+}
+
+@keyframes bounce-slow {
+
+  0%,
+  100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite;
+}
+
+.shadow-premium {
+  box-shadow: var(--shadow-premium);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-glow-sm {
+  box-shadow: var(--shadow-glow-sm);
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-bg-primary);
+}
+
 body {
-  @apply bg-zinc-950 text-zinc-200 antialiased min-h-screen;
-  background-color: #09090b;
+  @apply bg-bg-primary text-text-secondary antialiased min-h-screen overflow-x-hidden;
 }
 
 /* Global cursor rules for interactive elements */
@@ -11,4 +78,76 @@ select,
 a,
 label[for] {
   cursor: pointer;
+}
+
+/* Fix date picker icon visibility on dark backgrounds */
+::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Remove default number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Global input transitions */
+input,
+select,
+textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Enforce minimum readable font size for tiny labels */
+.text-\[10px\] {
+  font-size: 11px !important;
+}
+
+/* Standardized form input */
+.input-base {
+  @apply w-full px-4 py-2 bg-bg-input border border-border rounded-xl
+         text-text-primary placeholder:text-text-disabled
+         focus:outline-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary
+         transition-all duration-200;
+}
+
+/* Standardized select */
+.select-base {
+  @apply w-full px-4 py-2 bg-bg-input border border-border rounded-xl
+         text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30
+         focus:border-accent-primary transition-all duration-200 appearance-none;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  @apply fixed inset-0 flex items-start justify-center pt-8 pb-4 px-4
+         bg-bg-primary/80 backdrop-blur-sm;
+}
+
+/* Modal panel */
+.modal-panel {
+  @apply bg-bg-secondary border border-border rounded-2xl shadow-premium w-full overflow-hidden;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-disabled);
 }

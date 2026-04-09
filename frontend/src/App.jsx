@@ -6,7 +6,10 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ToastProvider } from "./context/ToastContext";
+import { ToastProvider, useToast } from "./context/ToastContext";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "./components/common/PageTransition";
 
 // Eagerly loaded: needed immediately on app start
 import Login from "./pages/Login/Login";
@@ -21,6 +24,7 @@ const AssetList = lazy(() => import("./pages/assets/AssetList"));
 const ConsumableList = lazy(() => import("./pages/consumables/ConsumableList"));
 const EmployeeList = lazy(() => import("./pages/employees/EmployeeList"));
 const RequestList = lazy(() => import("./pages/requests/RequestList"));
+const RequestDashboard = lazy(() => import("./pages/requests/RequestDashboard"));
 const AuditLogs = lazy(() => import("./pages/audit/AuditLogs"));
 
 /**
@@ -28,13 +32,50 @@ const AuditLogs = lazy(() => import("./pages/audit/AuditLogs"));
  */
 function AppContent() {
   const { user, loading } = useAuth();
+  const { addToast } = useToast();
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+
+  React.useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      addToast("Connection Re-established. Syncing...", "success");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      addToast("Local mode active. Checking connectivity...", "warning");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [addToast]);
 
   // 1. Loading State
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="min-h-screen flex flex-col items-center justify-center bg-bg-primary gap-6"
+        >
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-accent-primary border-t-transparent rounded-full animate-spin shadow-glow" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-2 h-2 bg-accent-primary rounded-full animate-ping" />
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-primary">Athiva Matrix</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted opacity-60">Synchronizing Environment...</span>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -60,9 +101,16 @@ function AppContent() {
             <ProtectedRoute>
               <Suspense
                 fallback={
-                  <div className="min-h-screen flex items-center justify-center bg-zinc-900">
-                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  </div>
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="min-h-screen flex flex-col items-center justify-center bg-bg-primary gap-6"
+                    >
+                      <div className="w-10 h-10 border-4 border-accent-secondary border-t-transparent rounded-full animate-spin shadow-glow-sm" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-text-disabled opacity-40">Loading Module...</span>
+                    </motion.div>
                 }
               >
                 <DashboardLayout />
@@ -85,6 +133,7 @@ function AppContent() {
           <Route path="assets" element={<AssetList />} />
           <Route path="consumables" element={<ConsumableList />} />
           <Route path="requests" element={<RequestList />} />
+          <Route path="requests/stats" element={user?.roleAccess === "ADMIN" ? <RequestDashboard /> : <Navigate to="/requests" />} />
 
           {/* Admin-Only Management */}
           <Route
@@ -139,10 +188,19 @@ const ProtectedRoute = ({ children }) => {
  */
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="min-h-screen bg-bg-primary text-text-secondary antialiased"
+          >
+            <AppContent />
+          </motion.div>
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

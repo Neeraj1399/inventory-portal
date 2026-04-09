@@ -1,10 +1,9 @@
 import { Parser } from "json2csv";
 import mongoose from "mongoose";
-import crypto from "crypto"; // Added missing import
+import crypto from "crypto";
 import AuditLog from "../models/AuditLog.js";
 import Asset from "../models/Asset.js";
 import Employee from "../models/Employee.js";
-import AppError from "../utils/appError.js";
 import sendEmail from "../utils/email.js";
 
 /**
@@ -12,55 +11,23 @@ import sendEmail from "../utils/email.js";
  */
 export const getSystemStats = async (req, res, next) => {
   try {
-    // Compute all stats in MongoDB via aggregation — no documents loaded into Node.js memory
     const [assetStats, activeEmployees, brokenCount, dbStats] = await Promise.all([
       Asset.aggregate([
-        { $match: { isDeleted: { $ne: true } } },
         {
           $group: {
             _id: null,
             totalAssets: { $sum: 1 },
             totalValue: { $sum: { $ifNull: ["$purchasePrice", 0] } },
-            needsMaintenance: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ne: ["$lastMaintenance", null] },
-                      {
-                        $gt: [
-                          new Date(),
-                          {
-                            $dateAdd: {
-                              startDate: "$lastMaintenance",
-                              unit: "month",
-                              amount: { $ifNull: ["$maintenanceCycle", 6] },
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  1,
-                  // Also count assets with no lastMaintenance as needing maintenance
-                  { $cond: [{ $eq: ["$lastMaintenance", null] }, 1, 0] },
-                ],
-              },
-            },
           },
         },
       ]),
       Employee.countDocuments({ status: "ACTIVE" }),
-      Asset.countDocuments({ status: "BROKEN", isDeleted: { $ne: true } }),
+      Asset.countDocuments({ status: "BROKEN" }),
       mongoose.connection.db.command({ dbStats: 1 }),
     ]);
 
-    const stats = assetStats[0] || { totalAssets: 0, totalValue: 0, needsMaintenance: 0 };
-
-    const sizeMB =
-      ((dbStats?.dataSize || 0) + (dbStats?.indexSize || 0)) / (1024 * 1024);
-    const storageLimitMB = 512;
-    const percentUsed = (sizeMB / storageLimitMB) * 100;
+    const stats = assetStats[0] || { totalAssets: 0, totalValue: 0 };
+    const sizeMB = ((dbStats?.dataSize || 0) + (dbStats?.indexSize || 0)) / (1024 * 1024);
 
     res.status(200).json({
       status: "success",
@@ -69,13 +36,10 @@ export const getSystemStats = async (req, res, next) => {
           totalAssets: stats.totalAssets,
           activeEmployees,
           brokenAssets: brokenCount,
-          needsMaintenance: stats.needsMaintenance,
           totalValue: stats.totalValue,
         },
         systemHealth: {
           dbUsedMB: `${sizeMB.toFixed(2)} MB`,
-          usagePercent: `${percentUsed.toFixed(1)}%`,
-          isNearLimit: percentUsed > 80,
         },
       },
     });
@@ -90,22 +54,14 @@ export const getSystemStats = async (req, res, next) => {
 export const archiveAndPurgeLogs = async (req, res, next) => {
   try {
     const { confirmPurge } = req.body;
-
     const logs = await AuditLog.find()
-      .populate("performedBy targetEmployee", "name email")
+      .populate("performedBy", "name email")
       .sort({ createdAt: -1 })
       .lean();
 
-    if (!logs.length) return next(new AppError("No audit logs found.", 404));
+    if (!logs.length) return res.status(404).json({ message: "No audit logs found." });
 
-    const fields = [
-      "createdAt",
-      "action",
-      "entityType",
-      "performedBy.name",
-      "targetEmployee.name",
-      "description",
-    ];
+    const fields = ["createdAt", "action", "entityType", "description"];
     const parser = new Parser({ fields });
     const csv = parser.parse(logs);
 
@@ -114,10 +70,7 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
     }
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=audit_${Date.now()}.csv`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename=audit_${Date.now()}.csv`);
     res.status(200).send(csv);
   } catch (err) {
     next(err);
@@ -130,41 +83,25 @@ export const archiveAndPurgeLogs = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const employee = await Employee.findOne({ email: req.body.email });
-    if (!employee)
-      return next(new AppError("No user found with that email address.", 404));
+    if (!employee) return res.status(404).json({ message: "No user found with that email." });
 
     const resetToken = employee.createPasswordResetToken();
-    employee.resetRequested = false; // Admin has processed the request
     await employee.save({ validateBeforeSave: false });
 
-    // In a real app, you would use a mail service here.
-    // We log it to the console for development testing.
-    const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
-    const resetURL = `${frontendURL}/reset-password/${resetToken}`;
-    console.log(`🔗 Recovery URL: ${resetURL}`);
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     try {
       await sendEmail({
         email: employee.email,
-        subject: "Your Password Reset Link (Valid for 10 minutes)",
-        message: `Your IT Administrator has approved your password reset request. Click this link to proceed: ${resetURL}\n\nIf you did not request this, please ignore this email.`,
+        subject: "Password Reset Link",
+        message: `Click here to reset: ${resetURL}`,
       });
-
-      res.status(200).json({
-        status: "success",
-        message: "Reset link generated and emailed to the user.",
-      });
+      res.status(200).json({ status: "success", message: "Email sent." });
     } catch (err) {
       employee.passwordResetToken = undefined;
       employee.passwordResetExpires = undefined;
       await employee.save({ validateBeforeSave: false });
-
-      return next(
-        new AppError(
-          "There was an error sending the email. Try again later.",
-          500,
-        ),
-      );
+      return res.status(500).json({ message: "Email failed to send." });
     }
   } catch (err) {
     next(err);
@@ -176,30 +113,20 @@ export const forgotPassword = async (req, res, next) => {
  */
 export const resetPasswordWithToken = async (req, res, next) => {
   try {
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(req.params.token)
-      .digest("hex");
-
+    const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
     const employee = await Employee.findOne({
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: Date.now() },
     });
 
-    if (!employee)
-      return next(new AppError("Token is invalid or has expired", 400));
+    if (!employee) return res.status(400).json({ message: "Token invalid or expired." });
 
     employee.password = req.body.password;
     employee.passwordResetToken = undefined;
     employee.passwordResetExpires = undefined;
-    employee.passwordResetRequired = false;
-
     await employee.save();
 
-    res.status(200).json({
-      status: "success",
-      message: "Password modified! You can now log in.",
-    });
+    res.status(200).json({ status: "success", message: "Password reset." });
   } catch (err) {
     next(err);
   }
@@ -210,14 +137,21 @@ export const resetPasswordWithToken = async (req, res, next) => {
  */
 export const getResetRequests = async (req, res, next) => {
   try {
-    const requests = await Employee.find({ resetRequested: true }).select(
-      "name email department role level type"
-    );
+    const requests = await Employee.find({ resetRequested: true });
+    res.status(200).json({ status: "success", data: requests });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    res.status(200).json({
-      status: "success",
-      data: requests,
-    });
+/**
+ * @desc    Reject / Clear a password reset request
+ */
+export const rejectResetRequest = async (req, res, next) => {
+  try {
+    const employee = await Employee.findByIdAndUpdate(req.params.id, { resetRequested: false });
+    if (!employee) return res.status(404).json({ message: "Employee not found." });
+    res.status(200).json({ status: "success" });
   } catch (err) {
     next(err);
   }

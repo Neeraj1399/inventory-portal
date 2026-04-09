@@ -7,6 +7,12 @@ import fs from "fs";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
+import dns from "dns";
+
+// Fix for Atlas connection issues on some networks (e.g. Windows dev machines)
+if (process.env.NODE_ENV === "development") {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -96,7 +102,7 @@ if (process.env.NODE_ENV === "development") {
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   message: "Too many login attempts from this IP, please try again after 15 minutes",
   standardHeaders: true,
   legacyHeaders: false,
@@ -119,7 +125,7 @@ if (process.env.NODE_ENV !== "production") {
 // Global rate limiter for all API routes (DDoS / abuse protection)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   message: "Too many requests from this IP, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
@@ -137,7 +143,6 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/consumables", consumableRoutes);
 app.use("/api/audit-logs", auditRoutes);
 app.use("/api/requests", requestRoutes);
-
 // --- 4. ERROR HANDLING ---
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

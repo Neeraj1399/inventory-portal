@@ -1,592 +1,492 @@
 import { useAuth } from "../../context/AuthContext";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
- Plus,
- Search,
- Trash2,
- Edit3,
- UserPlus,
- Package,
- RotateCcw,
- FileText,
- Wrench,
- CheckSquare,
- Square,
- X,
- RefreshCw,
- ChevronDown,
- Filter,
+  Plus,
+  Search,
+  Trash2,
+  Edit3,
+  UserPlus,
+  Package,
+  RotateCcw,
+  FileText,
+  Wrench,
+  X,
+  RefreshCw,
+  ChevronDown,
+  Filter,
   AlertCircle,
+  MoreVertical,
+  Laptop,
+  Monitor,
+  Smartphone,
 } from "lucide-react";
-import api from "../../hooks/api";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import api from "../../services/api";
+import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "../../components/common/PageTransition";
 
-// Component Imports
 import RequestModal from "../../components/common/RequestModal";
 import AddAssetModal from "../../components/assets/AddAssetModal";
 import AssignAssetModal from "../../components/assets/AssignAssetModal";
 import ReturnAssetModal from "../../components/assets/ReturnAssetModal";
 import AssetConditionModal from "../../components/assets/AssetConditionModal";
 import AssetDetailsSidebar from "../../components/assets/AssetDetailsSidebar";
+import { useToast } from "../../context/ToastContext";
+import Pagination from "../../components/common/Pagination";
+
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
+const AssetTableSkeleton = () => (
+  <tbody className="divide-y divide-border animate-pulse">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <tr key={i} className="border-b border-border last:border-0 h-[88px]">
+        <td className="px-8 py-5">
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 bg-bg-tertiary rounded-2xl" />
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-bg-tertiary rounded-md" />
+              <div className="h-3 w-16 bg-bg-tertiary/50 rounded-md" />
+            </div>
+          </div>
+        </td>
+        <td className="px-8 py-5"><div className="h-5 w-24 bg-bg-tertiary/50 rounded-xl" /></td>
+        <td className="px-8 py-5"><div className="flex justify-center"><div className="h-6 w-20 bg-bg-tertiary/30 rounded-full" /></div></td>
+        <td className="px-8 py-5 text-right pr-10"><div className="flex justify-end"><div className="h-10 w-28 bg-bg-tertiary/50 rounded-2xl" /></div></td>
+      </tr>
+    ))}
+  </tbody>
+);
 
 const AssetList = () => {
   const { user } = useAuth();
- // --- State Management ---
- const [assets, setAssets] = useState([]);
- const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
+
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
- const [error, setError] = useState(null);
- const [searchTerm, setSearchTerm] = useState("");
- const [statusFilter, setStatusFilter] = useState("ALL");
- const [selectedIds, setSelectedIds] = useState([]);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [categories, setCategories] = useState([]);
 
- // UI State
- const [activeModal, setActiveModal] = useState(null); // 'ADD', 'ASSIGN', 'RETURN', 'CONDITION'
- const [isSidebarOpen, setSidebarOpen] = useState(false);
- const [selectedAsset, setSelectedAsset] = useState(null);
- const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedCategory = useDebounce(categoryFilter, 500);
 
- const filterOptions = ["ALL", "READY_TO_DEPLOY", "ALLOCATED", "UNDER_MAINTENANCE", "DECOMMISSIONED"];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const itemsPerPage = 25;
 
- // --- Data Fetching ---
- const fetchAssets = useCallback(async (isSilent = false) => {
- if (!isSilent) setLoading(true);
- try {
- const res = await api.get(`/assets`, {
- params: {
- // REMOVED: category: "Laptop,Monitor" (This was hiding your new manual categories!)
- _t: Date.now(),
- },
- });
+  const [activeModal, setActiveModal] = useState(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
- const freshData = res.data.data || [];
- setAssets(freshData);
+  // Action dropdown state
+  const [actionMenuAsset, setActionMenuAsset] = useState(null);
+  const [actionMenuPos, setActionMenuPos] = useState({ top: 0, right: 0 });
+  const actionMenuRef = useRef(null);
 
- // Clean up selected IDs if assets were removed
- setSelectedIds((prev) =>
- prev.filter((id) => freshData.some((a) => a._id === id)),
- );
- setError(null);
- } catch (err) {
- setError("Failed to sync with inventory. Check connection.");
- } finally {
- setLoading(false);
- }
- }, []);
+  const filterOptions = ["ALL", "READY_TO_DEPLOY", "ALLOCATED", "UNDER_MAINTENANCE", "DECOMMISSIONED"];
 
- useEffect(() => {
- fetchAssets();
- }, [fetchAssets]);
+  const fetchAssets = useCallback(async (isSilent = false, signal, overrides = null) => {
+    if (!isSilent) setLoading(true);
+    try {
+      const search = overrides?.search !== undefined ? overrides.search : debouncedSearch;
+      const category = overrides?.category !== undefined ? (overrides.category === "ALL" ? "" : overrides.category) : (debouncedCategory === "ALL" ? "" : debouncedCategory);
+      const status = overrides?.status !== undefined ? (overrides.status === "ALL" ? "" : overrides.status) : (statusFilter === "ALL" ? "" : statusFilter);
+      const page = overrides?.page ?? currentPage;
 
- // --- Action Handlers ---
- const closeAllModals = () => {
- setActiveModal(null);
- setSelectedAsset(null);
- };
+      const res = await api.get(`/assets`, {
+        signal,
+        params: { page, limit: itemsPerPage, search, status, category },
+      });
 
- const handleDelete = async (e, asset) => {
- e.stopPropagation();
- if (!window.confirm(`Permanently delete ${asset.model}?`)) return;
+      if (res.data.status === "success") {
+        setAssets(res.data.data || []);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalResults(res.data.totalResults || 0);
+        setError(null);
+      }
+    } catch (err) {
+      if (signal?.aborted) return;
+      setError(err.response?.data?.message || "Failed to fetch assets");
+    } finally {
+      setTimeout(() => setLoading(false), 300);
+    }
+  }, [currentPage, debouncedSearch, statusFilter, debouncedCategory]);
 
- const previousAssets = [...assets];
- setAssets((prev) => prev.filter((a) => a._id !== asset._id));
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter, debouncedCategory]);
 
- try {
- await api.delete(`/assets/${asset._id}`);
- setSelectedIds((prev) => prev.filter((id) => id !== asset._id));
- } catch (err) {
- if (err.response?.status !== 404) {
- setAssets(previousAssets);
- alert("Delete failed. Reverting changes.");
- }
- }
- };
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAssets(false, controller.signal);
+    return () => controller.abort();
+  }, [fetchAssets]);
 
- const handleBulkDelete = async () => {
- const count = selectedIds.length;
- if (!window.confirm(`Delete ${count} assets permanently?`)) return;
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get("/assets/categories");
+        setCategories(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
- const previousAssets = [...assets];
- const idsToDelete = [...selectedIds];
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setActionMenuAsset(null);
+      }
+    };
+    if (actionMenuAsset) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [actionMenuAsset]);
 
- setAssets((prev) => prev.filter((a) => !idsToDelete.includes(a._id)));
- setSelectedIds([]);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState(null);
 
- try {
- await Promise.allSettled(
- idsToDelete.map((id) => api.delete(`/assets/${id}`)),
- );
- fetchAssets(true);
- } catch (err) {
- setAssets(previousAssets);
- alert("Bulk delete encountered issues. Refreshing list.");
- fetchAssets();
- }
- };
+  const closeAllModals = () => { setActiveModal(null); setSelectedAsset(null); };
 
- const filteredAssets = useMemo(() => {
- return assets.filter((asset) => {
- const searchStr = searchTerm.toLowerCase();
- const matchesSearch =
- (asset.model?.toLowerCase() || "").includes(searchStr) ||
- (asset.serialNumber?.toLowerCase() || "").includes(searchStr);
- const matchesStatus =
- statusFilter === "ALL" || asset.status === statusFilter;
- return matchesSearch && matchesStatus;
- });
- }, [assets, searchTerm, statusFilter]);
+  const handleDelete = (e, asset) => {
+    e?.stopPropagation();
+    setAssetToDelete(asset);
+    setIsConfirmOpen(true);
+    setActionMenuAsset(null);
+  };
 
- if (loading && assets.length === 0) {
- return (
- <div className="p-20 flex flex-col items-center justify-center animate-pulse">
- <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
- <p className="text-zinc-400 font-bold tracking-tight">
- Syncing Inventory...
- </p>
- </div>
- );
- }
+  const executeDelete = async () => {
+    if (assetToDelete) {
+      const previousAssets = [...assets];
+      setAssets((prev) => prev.filter((a) => a._id !== assetToDelete._id));
+      try {
+        await api.delete(`/assets/${assetToDelete._id}`);
+        addToast(`Asset ${assetToDelete.serialNumber} deleted.`, "success");
+      } catch (err) {
+        if (err.response?.status !== 404) {
+          setAssets(previousAssets);
+          addToast(err.response?.data?.message || "Delete failed.", "error");
+        }
+      }
+    }
+    setIsConfirmOpen(false);
+    setAssetToDelete(null);
+  };
 
- return (
- <div className="relative space-y-6 pb-32 max-w-7xl mx-auto">
- {/* 1. FLOATING BULK ACTION BAR */}
- {selectedIds.length > 0 && (
- <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-zinc-950 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 duration-300">
- <div className="flex items-center gap-3">
- <span className="bg-indigo-600 px-2 py-0.5 rounded text-xs font-bold">
- {selectedIds.length}
- </span>
- <span className="text-sm font-semibold text-zinc-300">
- Selected
- </span>
- </div>
+  const handleManualRefresh = () => {
+    setSearchTerm("");
+    setCategoryFilter("ALL");
+    setStatusFilter("ALL");
+    setCurrentPage(1);
+    fetchAssets(false, null, { search: "", category: "ALL", status: "ALL", page: 1 });
+  };
 
- <div className="h-6 w-px bg-zinc-700 mx-2" />
+  const openActionMenu = (e, asset) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setActionMenuPos({
+      top: rect.bottom + 6,
+      right: window.innerWidth - rect.right,
+    });
+    setActionMenuAsset(actionMenuAsset?._id === asset._id ? null : asset);
+    setSelectedAsset(asset);
+  };
 
- {/* Bulk Update Trigger */}
- <button
- onClick={() => setActiveModal("CONDITION")}
- className="flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold text-sm transition-colors"
- >
- <Wrench size={16} /> Update Condition
- </button>
+  return (
+    <>
+      <PageTransition>
+        <div className="max-w-[1600px] mx-auto pb-12 space-y-12">
+          {/* HEADER */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8 border-b border-bg-tertiary pb-8">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-text-primary tracking-tight">
+                Hardware <span className="text-accent-primary">Inventory</span>
+              </h1>
+              <p className="text-text-secondary font-medium text-sm">
+                {loading ? "Refreshing..." : `${totalResults} Assets Registered`}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={handleManualRefresh}
+                className="p-3.5 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-all shadow-premium active:scale-95"
+              >
+                <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+              </button>
+              {user?.roleAccess === "ADMIN" ? (
+                <button
+                  onClick={() => { setSelectedAsset(null); setActiveModal("ADD"); }}
+                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                >
+                  <Plus size={20} /> Add Asset
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setSelectedAsset(null); setIsRequestModalOpen(true); }}
+                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                >
+                  <AlertCircle size={20} /> Request Allocation
+                </button>
+              )}
+            </div>
+          </div>
 
- <button
- onClick={handleBulkDelete}
- className="flex items-center gap-2 text-rose-400 hover:text-rose-300 font-bold text-sm transition-colors"
- >
- <Trash2 size={16} /> Delete
- </button>
+          {/* CONTROLS */}
+          <div className="flex flex-col lg:flex-row gap-6 items-center">
+            <div className="flex-1 relative group w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" size={18} />
+              <input
+                type="text"
+                placeholder="Search Serial or Model..."
+                className="w-full pl-12 pr-4 py-3.5 bg-bg-secondary border border-border rounded-2xl text-text-primary placeholder-text-muted focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all outline-none text-sm shadow-premium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
- <button
- onClick={() => setSelectedIds([])}
- className="hover:bg-zinc-800 p-1.5 rounded-lg transition-colors text-zinc-400"
- >
- <X size={20} />
- </button>
- </div>
- )}
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <div className="relative w-full lg:w-64 group">
+                <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" size={18} />
+                <input
+                  type="text"
+                  placeholder="Filter Category..."
+                  className="w-full pl-12 pr-10 py-3.5 bg-bg-secondary border border-border rounded-2xl text-text-primary placeholder-text-muted focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all shadow-premium text-sm"
+                  value={categoryFilter === "ALL" ? "" : categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value || "ALL")}
+                />
+              </div>
 
- {/* 2. HEADER */}
- <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-800/60 pb-6">
- <div>
- <h1 className="text-3xl font-black text-zinc-50 tracking-tight">
- Hardware Inventory
- </h1>
- <p className="text-zinc-400 font-medium text-sm mt-1">
- {loading ? "Refreshing..." : `${assets.length} Assets Registered`}
- </p>
- </div>
- <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => fetchAssets()}
-            className="p-3 bg-zinc-800 border border-zinc-800 rounded-xl text-zinc-300 hover:bg-zinc-700 hover:text-white transition-all shadow-sm "
-          >
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-          </button>
-          {user?.roleAccess === "ADMIN" ? (
-            <button
-              onClick={() => {
-                setSelectedAsset(null);
-                setActiveModal("ADD");
-              }}
-              className="flex-1 sm:flex-none bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg font-bold transition-all"
-            >
-              <Plus size={20} /> Add Asset
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setSelectedAsset(null);
-                setIsRequestModalOpen(true);
-              }}
-              className="flex-1 sm:flex-none bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg font-bold transition-all"
-            >
-              <AlertCircle size={20} /> Request Allocation
-            </button>
-          )}
+              <div className="relative w-full lg:w-64">
+                <button
+                  onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                  className={`w-full flex items-center justify-between px-5 py-3.5 bg-bg-secondary border rounded-2xl transition-all shadow-premium text-text-primary ${isFilterDropdownOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Filter size={16} className={statusFilter !== "ALL" ? "text-accent-primary" : "text-text-muted"} />
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                      {statusFilter === "ALL" ? "Status"
+                        : statusFilter === "READY_TO_DEPLOY" ? "Available"
+                        : statusFilter === "ALLOCATED" ? "Allocated"
+                        : statusFilter === "UNDER_MAINTENANCE" ? "Maintenance"
+                        : statusFilter === "DECOMMISSIONED" ? "Retiring"
+                        : statusFilter.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isFilterDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isFilterDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsFilterDropdownOpen(false)} />
+                    <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      {filterOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => { setStatusFilter(opt); setIsFilterDropdownOpen(false); }}
+                          className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${statusFilter === opt ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}
+                        >
+                          {opt === "READY_TO_DEPLOY" ? "Available" : opt === "ALLOCATED" ? "Allocated" : opt === "UNDER_MAINTENANCE" ? "Maintenance" : opt === "DECOMMISSIONED" ? "Retiring" : opt.replace(/_/g, " ")}
+                          {statusFilter === opt && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ASSET TABLE */}
+          <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+                  <tr>
+                    <th className="px-8 py-6">Asset Specification</th>
+                    <th className="px-8 py-6">Identity</th>
+                    <th className="px-8 py-6 text-center">Status</th>
+                    <th className="px-8 py-6 text-right pr-12">Control</th>
+                  </tr>
+                </thead>
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <AssetTableSkeleton key="skeleton" />
+                  ) : assets.length === 0 ? (
+                    <motion.tbody key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border">
+                      <tr>
+                        <td colSpan="4" className="py-24 text-center">
+                          <div className="space-y-4">
+                            <div className="w-16 h-16 bg-bg-tertiary rounded-3xl mx-auto flex items-center justify-center text-text-disabled/20 ring-1 ring-white/5">
+                              <Search size={32} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-text-primary font-bold text-lg">No assets match your search</p>
+                              <p className="text-text-muted text-sm max-w-xs mx-auto">Try refining your filters or search terms.</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </motion.tbody>
+                  ) : (
+                    <motion.tbody key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border">
+                      {assets.map((asset) => (
+                        <tr
+                          key={asset._id}
+                          onClick={() => { setSelectedAsset(asset); setSidebarOpen(true); }}
+                          className="group cursor-pointer hover:bg-bg-tertiary/20 transition-all border-b border-border last:border-0 h-[88px]"
+                        >
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-5">
+                              <div className="p-3 bg-bg-tertiary ring-1 ring-white/5 rounded-2xl text-text-muted group-hover:bg-accent-primary group-hover:text-white transition-all duration-300">
+                                <CategoryIcon category={asset.category} />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="font-bold text-text-primary group-hover:text-white transition-colors text-sm">{asset.model}</div>
+                                <div className="text-[9px] font-black text-accent-primary uppercase tracking-[0.2em]">{asset.category}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-[11px] font-bold text-text-muted">{asset.serialNumber}</td>
+                          <td className="px-8 py-5">
+                            <div className="flex justify-center">
+                              <StatusBadge status={asset.status} />
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-right pr-10">
+                            <button
+                              onClick={(e) => openActionMenu(e, asset)}
+                              className={`inline-flex items-center gap-2 px-5 py-2.5 border rounded-2xl transition-all active:scale-[0.97] font-black text-[10px] uppercase tracking-[0.2em] shadow-premium group/btn ${
+                                actionMenuAsset?._id === asset._id
+                                  ? "bg-accent-primary/10 border-accent-primary/40 text-accent-primary"
+                                  : "bg-bg-tertiary hover:bg-bg-tertiary/80 text-text-primary border-border"
+                              }`}
+                            >
+                              <span>Actions</span>
+                              <ChevronDown size={13} className={`transition-transform duration-200 ${actionMenuAsset?._id === asset._id ? "rotate-180 text-accent-primary" : "text-text-disabled"}`} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </motion.tbody>
+                  )}
+                </AnimatePresence>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalResults}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </div>
- </div>
+      </PageTransition>
 
- {/* 3. CONTROLS (Search & Filter) */}
- <div className="flex flex-col md:flex-row gap-4 items-center">
- <div className="flex-1 relative group w-full">
- <Search
- className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-indigo-400 transition-colors"
- size={18}
- />
- <input
- type="text"
- placeholder="Search Serial or Model..."
- className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-200 placeholder-zinc-500 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none "
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- />
- </div>
+      {/* ── ALL MODALS & OVERLAYS OUTSIDE PageTransition ── */}
 
- <div className="relative w-full md:w-64">
- <button
- onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
- className={`w-full flex items-center justify-between px-5 py-3 bg-zinc-900 border rounded-2xl transition-all shadow-sm hover:border-slate-600 text-zinc-200 ${
- isFilterDropdownOpen
- ? "border-indigo-500/50 ring-4 ring-indigo-500/10"
- : "border-zinc-800"
- }`}
- >
- <div className="flex items-center gap-3">
- <Filter
- size={16}
- className={
- statusFilter !== "ALL" ? "text-indigo-400" : "text-zinc-400"
- }
- />
- <span className="text-xs font-black uppercase tracking-wider text-zinc-300">
- {statusFilter === "ALL" ? "Filter by Status" : statusFilter}
- </span>
- </div>
- <ChevronDown
- size={18}
- className={`text-zinc-400 transition-transform duration-200 ${isFilterDropdownOpen ? "rotate-180" : ""}`}
- />
- </button>
+      {/* Action dropdown — anchored to the clicked button */}
+      {actionMenuAsset && (
+        <>
+          <div className="fixed inset-0 z-[150]" onClick={() => setActionMenuAsset(null)} />
+          <motion.div
+            ref={actionMenuRef}
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            style={{ top: actionMenuPos.top, right: actionMenuPos.right }}
+            className="fixed z-[151] w-52 bg-bg-secondary border border-border rounded-2xl shadow-premium overflow-hidden"
+          >
+            <div className="px-4 py-3 border-b border-border bg-bg-tertiary/30">
+              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest truncate">{actionMenuAsset.model}</p>
+            </div>
+            <div className="p-1.5 space-y-0.5">
+              <MenuOption icon={<FileText size={15} />} label="View Receipt" onClick={() => { if (actionMenuAsset.receiptUrl) window.open(actionMenuAsset.receiptUrl, "_blank"); else addToast("No receipt found", "info"); setActionMenuAsset(null); }} />
+              <MenuOption icon={<Edit3 size={15} />} label="Edit Details" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ADD"); setActionMenuAsset(null); }} />
+              <div className="h-px bg-border mx-2 my-1" />
+              {actionMenuAsset.status === "READY_TO_DEPLOY" && (
+                <>
+                  <MenuOption icon={<UserPlus size={15} />} label="Allocate" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ASSIGN"); setActionMenuAsset(null); }} color="text-accent-primary" />
+                  <MenuOption icon={<Wrench size={15} />} label="Condition" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
+                </>
+              )}
+              {actionMenuAsset.status === "ALLOCATED" && (
+                <MenuOption icon={<RotateCcw size={15} />} label="Return" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("RETURN"); setActionMenuAsset(null); }} color="text-accent-secondary" />
+              )}
+              {actionMenuAsset.status === "UNDER_MAINTENANCE" && (
+                <MenuOption icon={<Wrench size={15} />} label="Resolve Repair" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
+              )}
+              <div className="h-px bg-border mx-2 my-1" />
+              <MenuOption icon={<Trash2 size={15} />} label="Delete" onClick={(e) => handleDelete(e, actionMenuAsset)} color="text-status-danger" />
+            </div>
+          </motion.div>
+        </>
+      )}
 
- {isFilterDropdownOpen && (
- <>
- <div
- className="fixed inset-0 z-10"
- onClick={() => setIsFilterDropdownOpen(false)}
- />
- <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-800 border border-zinc-800 rounded-2xl shadow-2xl shadow-slate-900/50 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
- {filterOptions.map((opt) => (
- <button
- key={opt}
- onClick={() => {
- setStatusFilter(opt);
- setIsFilterDropdownOpen(false);
- }}
- className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-between ${
- statusFilter === opt
- ? "bg-indigo-500/10 text-indigo-400"
- : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-50"
- }`}
- >
- {opt}
- {statusFilter === opt && (
- <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
- )}
- </button>
- ))}
- </div>
- </>
- )}
- </div>
- </div>
-
- {/* 4. ASSET LIST */}
- <div className="space-y-3">
- {/* Table Header (Desktop Only) */}
- <div className="hidden md:grid grid-cols-[60px_3fr_2fr_120px_240px] gap-6 px-5 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
- <div className="flex items-center justify-center">
- <button
- onClick={() =>
- setSelectedIds(
- selectedIds.length === filteredAssets.length
- ? []
- : filteredAssets.map((a) => a._id),
- )
- }
- className="text-zinc-500 hover:text-indigo-400 transition-colors"
- >
- {selectedIds.length === filteredAssets.length &&
- filteredAssets.length > 0 ? (
- <CheckSquare size={18} className="text-indigo-500" />
- ) : (
- <Square size={18} />
- )}
- </button>
- </div>
- <div className="flex items-center">Asset Details</div>
- <div className="flex items-center">Serial Number</div>
- <div className="flex items-center justify-center">Status</div>
- <div className="flex items-center justify-end pr-2">Actions</div>
- </div>
-
- {/* Mobile select all (Visible only on small screens) */}
- <div className="md:hidden flex items-center gap-3 px-2 mb-2">
- <button
- onClick={() =>
- setSelectedIds(
- selectedIds.length === filteredAssets.length
- ? []
- : filteredAssets.map((a) => a._id),
- )
- }
- className="text-zinc-500 hover:text-indigo-400 transition-colors"
- >
- {selectedIds.length === filteredAssets.length &&
- filteredAssets.length > 0 ? (
- <CheckSquare size={20} className="text-indigo-500" />
- ) : (
- <Square size={20} />
- )}
- </button>
- <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
- Select All Visible
- </span>
- </div>
-
- {filteredAssets.map((asset) => (
- <div
- key={asset._id}
- onClick={() => {
- setSelectedAsset(asset);
- setSidebarOpen(true);
- }}
- className={`grid grid-cols-[auto_1fr] md:grid-cols-[60px_3fr_2fr_120px_240px] gap-4 md:gap-6 items-center p-5 rounded-3xl border transition-all cursor-pointer group w-full ${
- selectedIds.includes(asset._id)
- ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
- : "border-zinc-800/40 bg-zinc-800/40 hover:border-zinc-700 hover:bg-zinc-800 hover:shadow-xl"
- }`}
- >
- <div
- onClick={(e) => {
- e.stopPropagation();
- setSelectedIds((prev) =>
- prev.includes(asset._id)
- ? prev.filter((i) => i !== asset._id)
- : [...prev, asset._id],
- );
- }}
- className="flex items-center justify-center p-1"
- >
- {selectedIds.includes(asset._id) ? (
- <CheckSquare size={22} className="text-indigo-500" />
- ) : (
- <Square size={22} className="text-zinc-300 group-hover:text-zinc-400" />
- )}
- </div>
-
- <div className="flex flex-row items-center gap-4 truncate">
- <div className="p-3 bg-zinc-700/50 rounded-2xl text-zinc-300 group-hover:bg-gradient-to-br group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all shadow-inner border border-zinc-700 group-hover:border-transparent shrink-0">
- <Package size={22} />
- </div>
- <div className="truncate">
- <h3 className="font-extrabold text-zinc-50 text-lg leading-tight truncate">
- {asset.model}
- </h3>
- <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1 truncate">
- {asset.category}
- </p>
- </div>
- </div>
-
- <div className="hidden md:flex items-center truncate">
- <code className="text-[11px] font-bold text-zinc-400 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800 truncate">
- {asset.serialNumber}
- </code>
- </div>
-
- <div className="hidden md:flex items-center justify-center">
- <StatusBadge status={asset.status} />
- </div>
-
- {/* ACTION BUTTONS */}
- <div
- className="col-span-2 md:col-span-1 flex items-center justify-end gap-1.5 mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-800"
- onClick={(e) => e.stopPropagation()}
- >
- <ActionButton
- icon={<FileText size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- if (asset.receiptUrl) window.open(asset.receiptUrl, "_blank");
- else alert("No receipt found.");
- }}
- color="hover:text-emerald-400 hover:bg-emerald-500/10 text-zinc-400"
- title="View Receipt"
- />
- <ActionButton
- icon={<Edit3 size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- setSelectedAsset(asset);
- setActiveModal("ADD");
- }}
- color="hover:text-indigo-400 hover:bg-indigo-500/10 text-zinc-400"
- title="Edit Details"
- />
-
- {/* Status-specific Smart Actions */}
- {asset.status === "READY_TO_DEPLOY" && (
- <>
- <ActionButton
- icon={<UserPlus size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- setSelectedAsset(asset);
- setActiveModal("ASSIGN");
- }}
- color="hover:text-indigo-400 hover:bg-indigo-500/10 text-zinc-400"
- title="Allocate to User"
- />
- <ActionButton
- icon={<Wrench size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- setSelectedAsset(asset);
- setActiveModal("CONDITION");
- }}
- color="hover:text-amber-400 hover:bg-amber-500/10 text-zinc-400"
- title="Update Condition"
- />
- </>
- )}
-
- {asset.status === "ALLOCATED" && (
- <ActionButton
- icon={<RotateCcw size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- setSelectedAsset(asset);
- setActiveModal("RETURN");
- }}
- color="hover:text-purple-400 hover:bg-purple-500/10 text-zinc-400"
- title="Return to Stock"
- />
- )}
-
- {asset.status === "UNDER_MAINTENANCE" && (
- <ActionButton
- icon={<CheckSquare size={18} />}
- onClick={(e) => {
- e.stopPropagation();
- setSelectedAsset(asset);
- setActiveModal("CONDITION");
- }}
- color="hover:text-emerald-400 hover:bg-emerald-500/10 text-zinc-400"
- title="Complete Repair"
- />
- )}
-
- <ActionButton
- icon={<Trash2 size={18} />}
- onClick={(e) => handleDelete(e, asset)}
- color="hover:text-rose-400 hover:bg-rose-500/10 text-zinc-400"
- title="Delete Asset"
- />
- </div>
- {/* Mobile-only status display, since it's hidden in the grid on small screens */}
- <div className="md:hidden col-span-2 flex items-center justify-between border-t border-zinc-800 pt-2 pb-0">
- <code className="text-[10px] font-bold text-zinc-400 bg-zinc-900 px-2 py-1 rounded-md border border-zinc-800 truncate">
- {asset.serialNumber}
- </code>
- <StatusBadge status={asset.status} />
- </div>
- </div>
- ))}
- </div>
-
- {/* 5. MODALS & SIDEBAR */}
- <AddAssetModal
- isOpen={activeModal === "ADD"}
- asset={selectedAsset}
- onClose={closeAllModals}
- onRefresh={() => fetchAssets(true)}
- />
- <AssignAssetModal
- isOpen={activeModal === "ASSIGN"}
- asset={selectedAsset}
- onClose={closeAllModals}
- onRefresh={() => fetchAssets(true)}
- />
- <ReturnAssetModal
- isOpen={activeModal === "RETURN"}
- asset={selectedAsset}
- onClose={closeAllModals}
- onRefresh={() => fetchAssets(true)}
- />
- <AssetConditionModal
- isOpen={activeModal === "CONDITION"}
- asset={selectedAsset}
- selectedIds={selectedIds} // Pass bulk IDs
- onClose={() => {
- closeAllModals();
- setSelectedIds([]); // Clear selection after bulk update
- }}
- onRefresh={() => fetchAssets(true)}
- />
- <AssetDetailsSidebar
- isOpen={isSidebarOpen}
- entityId={selectedAsset?._id}
- type="assets"
- onClose={() => {
- setSidebarOpen(false);
- setSelectedAsset(null);
- }}
- />
-   <RequestModal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} item={selectedAsset} type={selectedAsset ? "INCIDENT" : "ALLOCATION"} />
-    </div>
- );
+      <AddAssetModal isOpen={activeModal === "ADD"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
+      <AssignAssetModal isOpen={activeModal === "ASSIGN"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
+      <ReturnAssetModal isOpen={activeModal === "RETURN"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
+      <AssetConditionModal isOpen={activeModal === "CONDITION"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
+      <AssetDetailsSidebar isOpen={isSidebarOpen} entityId={selectedAsset?._id} type="assets" onClose={() => { setSidebarOpen(false); setSelectedAsset(null); }} />
+      <RequestModal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} item={selectedAsset} type={selectedAsset ? "INCIDENT" : "ALLOCATION"} />
+      <ConfirmModal isOpen={isConfirmOpen} onConfirm={executeDelete} onCancel={() => setIsConfirmOpen(false)} title="Delete Asset" message={`Permanently delete this ${assetToDelete?.model}?`} confirmText="Delete Asset" />
+    </>
+  );
 };
 
-// --- Atomic Components ---
-const ActionButton = ({ icon, onClick, color, title }) => (
- <button
- onClick={onClick}
- title={title}
- className={`p-2.5 rounded-2xl transition-all duration-200 active:scale-95 ${color}`}
- >
- {icon}
- </button>
-);
+const CategoryIcon = ({ category }) => {
+  const cat = (category || "").toUpperCase();
+  const props = { size: 20 };
+  if (cat.includes("LAPTOP")) return <Laptop {...props} />;
+  if (cat.includes("MONITOR")) return <Monitor {...props} />;
+  if (cat.includes("MOBILE")) return <Smartphone {...props} />;
+  return <Package {...props} />;
+};
 
 const StatusBadge = ({ status }) => {
- const themes = {
- READY_TO_DEPLOY:
- "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
- ALLOCATED: 
- "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]",
- UNDER_MAINTENANCE:
- "bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]",
- DECOMMISSIONED: 
- "bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]",
- };
-
- const labels = {
- UNDER_MAINTENANCE: "Under Maintenance",
- DECOMMISSIONED: "Decommissioned",
- READY_TO_DEPLOY: "Ready to Deploy",
- ALLOCATED: "Allocated",
- };
-
- return (
- <span
- className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border tracking-widest shadow-sm transition-all inline-block truncate max-w-full ${
- themes[status] || "bg-zinc-700/50 text-zinc-300 border-zinc-700"
- }`}
- >
- {labels[status] || status}
- </span>
- );
+  const themes = {
+    READY_TO_DEPLOY: "bg-status-success/10 text-status-success border-status-success/20",
+    ALLOCATED: "bg-accent-primary/10 text-accent-primary border-accent-primary/20",
+    UNDER_MAINTENANCE: "bg-status-warning/10 text-status-warning border-status-warning/20",
+    DECOMMISSIONED: "bg-status-danger/10 text-status-danger border-status-danger/20",
+  };
+  const labels = {
+    READY_TO_DEPLOY: "Available",
+    ALLOCATED: "Allocated",
+    UNDER_MAINTENANCE: "Maintenance",
+    DECOMMISSIONED: "Retiring",
+  };
+  return (
+    <span className={`px-3 py-1.5 rounded-2xl text-[9px] font-black uppercase border tracking-widest ${themes[status] || "bg-bg-tertiary text-text-disabled"}`}>
+      {labels[status] || status}
+    </span>
+  );
 };
+
+const MenuOption = ({ icon, label, onClick, color = "text-text-primary" }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-bg-tertiary transition-all duration-150 text-left group"
+  >
+    <span className={`transition-transform duration-200 group-hover:scale-110 shrink-0 ${color}`}>{icon}</span>
+    <span className={`text-[11px] font-bold tracking-wide ${color === "text-text-primary" ? "text-text-secondary group-hover:text-text-primary" : color}`}>
+      {label}
+    </span>
+  </button>
+);
 
 export default AssetList;

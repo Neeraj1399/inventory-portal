@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X, Wrench, Trash2, AlertTriangle, Loader2 } from "lucide-react";
-import api from "../../hooks/api";
+import api from "../../services/api";
 
 const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
   const [formData, setFormData] = useState({
-    actionType: "MAINTENANCE", // 'MAINTENANCE' or 'SCRAP'
+    actionType: "MAINTENANCE",
     quantity: 1,
     reason: "",
   });
   const [loading, setLoading] = useState(false);
 
-  // Reset form when modal opens with a new item
   useEffect(() => {
     if (isOpen) {
       setFormData({ actionType: "MAINTENANCE", quantity: 1, reason: "" });
@@ -20,6 +19,7 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
   if (!isOpen || !item) return null;
 
   const available = (item.totalQuantity || 0) - (item.assignedQuantity || 0);
+  const isMaintenance = formData.actionType === "MAINTENANCE";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,71 +42,67 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-12 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div
-        className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm animate-in fade-in duration-300"
+        className="absolute inset-0"
         onClick={onClose}
       />
 
-      {/* Modal Card */}
-      <div className="relative bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-8">
+      <div className="relative bg-bg-secondary border border-border w-full max-w-xl rounded-[2rem] shadow-premium overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-6">
           {/* Header */}
-          <div className="flex justify-between items-start mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl">
-                <Wrench size={24} />
+          <div className="flex justify-between items-start mb-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-status-warning/10 text-status-warning rounded-2xl border border-status-warning/20">
+                <Wrench size={20} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-zinc-50 tracking-tight">
+                <h2 className="text-xl font-black text-text-primary tracking-tight">
                   Condition
                 </h2>
-                <p className="text-zinc-500 font-medium text-sm">
+                <p className="text-text-muted font-medium text-sm">
                   {item.itemName}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-zinc-800 rounded-xl transition-colors"
+              className="p-2 hover:bg-bg-tertiary rounded-xl transition-all duration-200"
             >
-              <X size={20} className="text-zinc-400" />
+              <X size={18} className="text-text-muted" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Action Selector */}
-            <div className="grid grid-cols-2 gap-3 p-1.5 bg-zinc-800 rounded-2xl">
+            <div className="grid grid-cols-2 gap-2 p-1.5 bg-bg-tertiary rounded-2xl">
               <button
                 type="button"
-                onClick={() =>
-                  setFormData({ ...formData, actionType: "MAINTENANCE" })
-                }
-                className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all ${
-                  formData.actionType === "MAINTENANCE"
-                    ? "bg-zinc-900 border border-zinc-800 text-amber-400 shadow-sm"
-                    : "text-zinc-500"
+                onClick={() => setFormData({ ...formData, actionType: "MAINTENANCE" })}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${
+                  isMaintenance
+                    ? "bg-bg-secondary border border-border text-status-warning shadow-sm"
+                    : "text-text-muted hover:text-text-secondary"
                 }`}
               >
-                <Wrench size={14} /> MAINTENANCE
+                <Wrench size={13} /> MAINTENANCE
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, actionType: "SCRAP" })}
-                className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all ${
-                  formData.actionType === "SCRAP"
-                    ? "bg-zinc-900 border border-zinc-800 text-rose-400 shadow-sm"
-                    : "text-zinc-500"
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${
+                  !isMaintenance
+                    ? "bg-bg-secondary border border-border text-status-danger shadow-sm"
+                    : "text-text-muted hover:text-text-secondary"
                 }`}
               >
-                <Trash2 size={14} /> SCRAP ITEM
+                <Trash2 size={13} /> SCRAP ITEM
               </button>
             </div>
 
             {/* Quantity Input */}
             <div>
-              <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
                 Quantity to Adjust (Max: {available})
               </label>
               <input
@@ -114,26 +110,23 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
                 min="1"
                 max={available}
                 required
-                className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-zinc-100"
+                className="input-base bg-bg-tertiary font-bold"
                 value={formData.quantity}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    quantity: parseInt(e.target.value),
-                  })
+                  setFormData({ ...formData, quantity: parseInt(e.target.value) })
                 }
               />
             </div>
 
             {/* Reason Input */}
             <div>
-              <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
                 Reason / Remarks
               </label>
               <textarea
-                rows="3"
+                rows="2"
                 placeholder="Describe the issue..."
-                className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-sm text-zinc-200"
+                className="input-base bg-bg-tertiary font-medium text-sm resize-none"
                 value={formData.reason}
                 onChange={(e) =>
                   setFormData({ ...formData, reason: e.target.value })
@@ -142,12 +135,11 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
             </div>
 
             {/* Warning Note */}
-            {formData.actionType === "SCRAP" && (
-              <div className="flex gap-3 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
-                <AlertTriangle className="text-rose-400 shrink-0" size={18} />
-                <p className="text-[11px] font-bold text-rose-400 leading-tight">
-                  Scrapping will permanently remove these {formData.quantity}{" "}
-                  units from the total inventory count.
+            {!isMaintenance && (
+              <div className="flex gap-3 p-3.5 bg-status-danger/10 rounded-2xl border border-status-danger/20">
+                <AlertTriangle className="text-status-danger shrink-0" size={16} />
+                <p className="text-xs font-bold text-status-danger leading-tight">
+                  Scrapping will permanently remove these {formData.quantity} units from the total inventory count.
                 </p>
               </div>
             )}
@@ -156,10 +148,10 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
             <button
               type="submit"
               disabled={loading || available === 0}
-              className="w-full bg-zinc-950 hover:bg-zinc-800 text-white py-4 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl disabled:opacity-50"
+              className="w-full bg-accent-gradient hover:brightness-110 text-white py-3 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-glow-sm disabled:opacity-50 disabled:shadow-none"
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={20} />
+                <Loader2 className="animate-spin" size={18} />
               ) : (
                 "CONFIRM ADJUSTMENT"
               )}

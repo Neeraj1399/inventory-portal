@@ -10,9 +10,10 @@ import {
   Monitor, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../hooks/api";
+import api from "../../services/api";
 import UserMenu from "../common/UserMenu";
 import LogoutModal from "../common/LogoutModal";
+import PageTransition from "../common/PageTransition";
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -69,17 +70,17 @@ const DashboardLayout = () => {
       icon: LayoutDashboard,
       roles: ["ADMIN", "STAFF"],
     },
-    { name: "Hardware Assets", path: "/assets", icon: Monitor, roles: ["ADMIN"] },
-    { name: "Service Tickets", path: "/requests", icon: ClipboardList, roles: ["ADMIN", "STAFF"], badge: pendingCount > 0 && user?.roleAccess === "ADMIN" ? pendingCount : null },
+    { name: "Assets", path: "/assets", icon: Monitor, roles: ["ADMIN"] },
+    { name: "Tickets", path: "/requests", icon: ClipboardList, roles: ["ADMIN", "STAFF"], badge: pendingCount > 0 && user?.roleAccess === "ADMIN" ? pendingCount : null },
     {
-      name: "Consumable Stock",
+      name: "Consumables",
       path: "/consumables",
       icon: Keyboard,
       roles: ["ADMIN"],
     },
-    { name: "Employee Directory", path: "/employees", icon: Users, roles: ["ADMIN"] },
+    { name: "Employees", path: "/employees", icon: Users, roles: ["ADMIN"] },
     {
-      name: "Audit Logs",
+      name: "Audits",
       path: "/audit-logs",
       icon: ShieldAlert,
       roles: ["ADMIN"],
@@ -91,68 +92,81 @@ const DashboardLayout = () => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden text-zinc-200">
+    <div className="flex min-h-screen w-full bg-bg-primary text-text-secondary font-sans selection:bg-accent-primary/30">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
+          className="fixed inset-0 bg-bg-primary/80 z-40 lg:hidden backdrop-blur-xl transition-all duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fix height to screen and stick it */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 border-r border-zinc-800
-          transform transition-transform duration-300 ease-out lg:relative lg:translate-x-0
-          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          fixed inset-y-0 left-0 z-50 bg-bg-secondary border-r border-border
+          transform transition-transform duration-200 ease-out
+          md:sticky md:top-0 md:h-screen md:translate-x-0
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          w-64 md:w-20 lg:w-64 flex-shrink-0 shadow-md
         `}
       >
-        <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-zinc-800 flex items-center gap-3">
-            <div className="bg-emerald-500 p-2.5 rounded-xl text-white">
-              <Package size={20} />
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Logo Section */}
+          <div className="h-20 flex items-center gap-4 px-6 border-b border-border flex-shrink-0">
+            <div className="bg-accent-gradient p-2.5 rounded-2xl text-white flex-shrink-0 shadow-glow-sm ring-1 ring-accent-primary/20">
+              <Package size={22} />
             </div>
-            <span className="font-bold text-lg text-zinc-50 tracking-tight">
-              Inventory
+            <span className="font-bold text-xl text-text-primary tracking-tight whitespace-nowrap overflow-hidden md:hidden lg:block transition-all duration-200 ease-out">
+              Inventory<span className="text-accent-primary">.</span>
             </span>
           </div>
 
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {filteredNav.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={`
-                  flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200
-                  ${
-                    location.pathname === item.path
-                      ? "bg-zinc-800 text-zinc-50"
-                      : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                  }
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon size={20} className={location.pathname === item.path ? "text-emerald-400" : ""} />
-                  {item.name}
-                </div>
-                {item.badge && (
-                  <span title="Pending" className="bg-amber-500 text-amber-950 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
+          {/* Navigation Links */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1 custom-scrollbar">
+            {filteredNav.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`
+                    flex items-center justify-between px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 ease-out group
+                    ${
+                      isActive
+                        ? "bg-bg-tertiary text-text-primary shadow-sm border border-border"
+                        : "text-text-muted hover:bg-bg-tertiary/50 hover:text-text-primary hover:-translate-y-0.5"
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon 
+                      size={20} 
+                      className={`transition-all duration-200 ease-out ${isActive ? "text-accent-primary scale-110" : "group-hover:text-accent-primary"}`} 
+                    />
+                    <span className="md:hidden lg:block whitespace-nowrap transition-all duration-200 ease-out">
+                      {item.name}
+                    </span>
+                  </div>
+                  {item.badge && (
+                    <span title="Pending" className="md:hidden lg:block bg-accent-primary text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-widest shadow-glow-sm">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="p-4 border-t border-zinc-800">
+          {/* Logout Section */}
+          <div className="p-4 border-t border-border bg-bg-primary/30">
             <button
               onClick={triggerLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all text-sm font-medium group"
+              className="flex items-center gap-3 w-full px-4 py-3.5 text-text-muted hover:text-status-danger hover:bg-status-danger/15 rounded-2xl transition-all duration-200 ease-out text-sm font-semibold group active:scale-95"
             >
-              <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-              Logout
+              <LogOut size={20} className="group-hover:-translate-x-1 transition-transform duration-200 ease-out flex-shrink-0" />
+              <span className="md:hidden lg:block whitespace-nowrap transition-all duration-200 ease-out">Logout</span>
             </button>
           </div>
         </div>
@@ -166,37 +180,34 @@ const DashboardLayout = () => {
         onCancel={() => setShowLogoutModal(false)}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <header className="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6 lg:px-8 flex-shrink-0">
+      {/* Main Content Area - No internal scrollbars here */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Header - Sticky with glass effect */}
+        <header className="h-20 sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 lg:px-12 bg-bg-primary/80 backdrop-blur-xl border-b border-border flex-shrink-0 transition-colors duration-200 ease-out">
           <button
-            className="lg:hidden p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+            className="md:hidden p-2.5 rounded-2xl bg-bg-secondary text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-all duration-200 ease-out active:scale-95"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu size={20} />
           </button>
-
           <div className="ml-auto">
             <UserMenu user={user} onUpdate={handleUserUpdate} />
           </div>
         </header>
 
-        {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 flex flex-col justify-between">
-          <div className="mb-auto">
-            <Outlet />
+        <main className="flex-1 flex flex-col px-6 sm:px-8 lg:px-12 py-8">
+          <div className="flex-1">
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
           </div>
           
-          {/* Footer */}
-          <footer className="mt-12 py-6 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 font-medium">
-            <p>&copy; {new Date().getFullYear()} Inventory Portal. All rights reserved.</p>
-            <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <a href="#" className="hover:text-zinc-300 transition-colors">Privacy Policy</a>
-              <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-              <a href="#" className="hover:text-zinc-300 transition-colors">Terms of Service</a>
-              <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-              <a href="#" className="hover:text-zinc-300 transition-colors">Support</a>
+          <footer className="mt-12 py-10 border-t border-border flex flex-col sm:flex-row items-center justify-between text-[11px] text-text-muted font-bold uppercase tracking-[0.2em] gap-6">
+            <p>&copy; {new Date().getFullYear()} Inventory Portal <span className="text-accent-primary font-black">SYSTEM</span></p>
+            <div className="flex items-center gap-8">
+              <a href="#" className="hover:text-text-primary transition-all duration-200 ease-out hover:-translate-y-0.5">Privacy Policy</a>
+              <a href="#" className="hover:text-text-primary transition-all duration-200 ease-out hover:-translate-y-0.5">Terms of Service</a>
+              <a href="#" className="hover:text-text-primary transition-all duration-200 ease-out hover:-translate-y-0.5">Technical Support</a>
             </div>
           </footer>
         </main>

@@ -1,395 +1,444 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
- UserPlus,
- Mail,
- UserMinus,
- Laptop,
- Plus,
- Edit,
- Package,
- ShieldCheck,
- Ban,
+  UserPlus,
+  Mail,
+  UserMinus,
+  Laptop,
+  Plus,
+  Edit,
+  Package,
+  ShieldCheck,
+  Ban,
+  RotateCcw,
+  RefreshCw,
+  Search
 } from "lucide-react";
 
-import api from "../../hooks/api";
+import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "../../components/common/PageTransition";
 
 import AddEmployeeModal from "../../components/employees/AddEmployeeModal";
 import EditEmployeeModal from "../../components/employees/EditEmployeeModal";
 import ManageAssetsModal from "../assets/ManageAssetsModal";
 import ManageConsumablesModal from "../consumables/ManageConsumablesModal";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import Pagination from "../../components/common/Pagination";
+
+// --- Custom Hooks ---
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    if (value === debouncedValue) return;
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay, debouncedValue]);
+  return debouncedValue;
+};
+
+const EmployeeTableSkeleton = () => (
+  <tbody className="divide-y divide-border animate-pulse">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <tr key={i} className="border-b border-border last:border-0 h-[92px]">
+        <td className="px-8 py-5">
+          <div className="flex items-center gap-5">
+            <div className="h-14 w-14 bg-bg-tertiary rounded-2xl" />
+            <div className="space-y-2">
+              <div className="h-5 w-40 bg-bg-tertiary rounded-md" />
+              <div className="h-3 w-32 bg-bg-tertiary/50 rounded-md" />
+            </div>
+          </div>
+        </td>
+        <td className="px-8 py-5">
+          <div className="h-6 w-12 bg-bg-tertiary/50 rounded-md" />
+        </td>
+        <td className="px-8 py-5">
+          <div className="h-6 w-12 bg-bg-tertiary/50 rounded-md" />
+        </td>
+        <td className="px-8 py-5 text-right pr-12">
+          <div className="flex justify-end gap-2">
+             <div className="w-10 h-10 bg-bg-tertiary/50 rounded-2xl" />
+             <div className="w-10 h-10 bg-bg-tertiary/50 rounded-2xl" />
+             <div className="w-10 h-10 bg-bg-tertiary/50 rounded-2xl" />
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+);
+
+const itemsPerPage = 25;
 
 const EmployeeList = () => {
- const [employees, setEmployees] = useState([]);
- const [loading, setLoading] = useState(true);
- const [searchTerm, setSearchTerm] = useState("");
- const [isAddModalOpen, setIsAddModalOpen] = useState(false);
- const [isEditModalOpen, setIsEditModalOpen] = useState(false);
- const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewStatus, setViewStatus] = useState("ACTIVE");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isConsumableModalOpen, setIsConsumableModalOpen] = useState(false);
- const [viewStatus, setViewStatus] = useState("ACTIVE");
- const [selectedEmployee, setSelectedEmployee] = useState(null);
- const [resetRequests, setResetRequests] = useState([]);
- const { addToast } = useToast();
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    message: "",
+    confirmText: "",
+    type: "info",
+    onConfirm: () => {},
+  });
+  
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
- const fetchEmployees = useCallback(async () => {
- try {
- setLoading(true);
- const res = await api.get("admin/employees");
- // res.data.data should include assignedAssetsCount and assignedConsumablesCount from backend
- setEmployees(res.data.data || []);
- } catch (err) {
- console.error("Error fetching employees", err);
- } finally {
- setLoading(false);
- }
- }, []);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
 
- const fetchResetRequests = useCallback(async () => {
- try {
- const res = await api.get("admin/reset-requests");
- setResetRequests(res.data.data || []);
- } catch (err) {
- console.error("Error fetching reset requests", err);
- }
- }, []);
+  const [resetRequests, setResetRequests] = useState([]);
+  const { addToast } = useToast();
 
- useEffect(() => {
- fetchEmployees();
- fetchResetRequests();
- }, [fetchEmployees, fetchResetRequests]);
+  const fetchEmployees = useCallback(async (signal, overrides = null) => {
+    try {
+      const search = overrides?.search !== undefined ? overrides.search : debouncedSearch;
+      const status = overrides?.status !== undefined ? overrides.status : viewStatus;
+      const page = overrides?.page ?? currentPage;
 
- const handleToggleStatus = async (id, currentStatus) => {
- try {
- if (currentStatus === "ACTIVE") {
- if (
- !window.confirm(
- "Initiate workforce offboarding protocol? All hardware and consumables must be returned first.",
- )
- )
- return;
- await api.patch(`admin/employees/${id}/offboard`);
- addToast("Employee offboarded successfully.", "success");
- } else {
- if (!window.confirm("Reactivate this employee?")) return;
- await api.patch(`admin/employees/${id}`, { status: "ACTIVE" });
- addToast("Employee reactivated successfully.", "success");
- }
- fetchEmployees();
- } catch (err) {
- addToast(err.response?.data?.message || "Operation failed", "error");
- }
- };
+      if (!overrides?.isSilent) setLoading(true);
 
- const handleApproveReset = async (email) => {
- if (!window.confirm(`Approve reset for ${email}? This sends a temporary link.`)) return;
- try {
- const res = await api.post("admin/forgot-password", { email });
- addToast(res.data?.message || "Reset link generated and sent.", "success");
- fetchResetRequests(); 
- fetchEmployees(); 
- } catch (err) {
- addToast(err.response?.data?.message || "Failed to approve reset", "error");
- }
- };
+      const res = await api.get("admin/employees", { 
+        signal,
+        params: {
+          page,
+          limit: itemsPerPage,
+          search,
+          status
+        }
+      });
+      
+      if (res.data?.status === "success") {
+        setEmployees(res.data.data || []);
+        setTotalPages(res.data.pages || 1);
+        setTotalResults(res.data.total || 0);
+      }
+    } catch (err) {
+      if (signal?.aborted) return;
+      console.error("Error fetching employees", err);
+    } finally {
+      // Artificial delay to prevent skeleton flicker
+      setTimeout(() => {
+        setLoading(false);
+      }, 300);
+    }
+  }, [currentPage, debouncedSearch, viewStatus]);
 
- const filteredEmployees = useMemo(() => {
- return employees.filter((emp) => {
- const name = (emp.name || "").toLowerCase();
- const email = (emp.email || "").toLowerCase();
- const matchesSearch =
- name.includes(searchTerm.toLowerCase()) ||
- email.includes(searchTerm.toLowerCase());
- return matchesSearch && emp.status === viewStatus;
- });
- }, [employees, searchTerm, viewStatus]);
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, viewStatus]);
 
- if (loading && employees.length === 0) {
- return (
- <div className="p-20 flex flex-col items-center justify-center">
- <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
- <p className="text-zinc-500 font-medium">Loading Directory...</p>
- </div>
- );
- }
+  const fetchResetRequests = useCallback(async (signal) => {
+    try {
+      const res = await api.get("admin/reset-requests", { signal });
+      if (res.data?.status === "success") {
+        setResetRequests(res.data.data || []);
+      }
+    } catch (err) {
+      if (signal?.aborted) return;
+      console.error("Error fetching reset requests", err);
+    }
+  }, []);
 
- return (
- <div className="space-y-6 p-4 md:p-0">
-  {/* Header */}
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-  <div className="flex-1">
-  <h1 className="text-3xl font-black text-zinc-50 tracking-tight">
-  Employee Directory
-  </h1>
-  <p className="text-zinc-400 text-sm mt-1">
-  Organization directory and asset allocation management
-  </p>
-  </div>
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchEmployees(controller.signal);
+    fetchResetRequests(controller.signal);
+    return () => controller.abort();
+  }, [fetchEmployees, fetchResetRequests]);
 
-  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-  <div className="relative flex-1 sm:w-64">
-  <input
-    type="text"
-    placeholder="Search directory..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-    className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-3 text-sm text-zinc-200 focus:border-indigo-500 outline-none transition-all pl-12"
-  />
-  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  </div>
-  </div>
+  const handleManualRefresh = () => {
+    setSearchTerm("");
+    setViewStatus("ACTIVE");
+    setCurrentPage(1);
+    fetchEmployees(null, { search: "", status: "ACTIVE", page: 1 });
+  };
 
-  <button
-  onClick={() => setIsAddModalOpen(true)}
-  className="bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold shadow-xl shadow-indigo-200 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap"
-  >
-  <UserPlus size={20} />
-  Add Employee
-  </button>
-  </div>
-  </div>
+  const handleToggleStatus = (id, currentStatus) => {
+    if (currentStatus === "ACTIVE") {
+      setConfirmConfig({
+        title: "Initiate Offboarding?",
+        message: "Deactivate employee. Verify all assets are returned first.",
+        confirmText: "Offboard",
+        type: "danger",
+        onConfirm: async () => {
+          try {
+            await api.patch(`admin/employees/${id}/offboard`);
+            addToast("Offboarded.", "success");
+            fetchEmployees();
+          } catch (err) {
+            addToast("Failed to offboard.", "error");
+          }
+          setIsConfirmOpen(false);
+        },
+      });
+    } else {
+      setConfirmConfig({
+        title: "Reactivate?",
+        message: "Restore system access?",
+        confirmText: "Reactivate",
+        type: "info",
+        onConfirm: async () => {
+          try {
+            await api.patch(`admin/employees/${id}`, { status: "ACTIVE" });
+            addToast("Reactivated.", "success");
+            fetchEmployees();
+          } catch (err) {
+            addToast("Failed to reactivate.", "error");
+          }
+          setIsConfirmOpen(false);
+        },
+      });
+    }
+    setIsConfirmOpen(true);
+  };
 
- {/* Pending Reset Requests Section */}
- {resetRequests.length > 0 && (
- <div className="bg-zinc-900 border border-amber-500/20 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl shadow-amber-900/5 relative overflow-hidden group">
- <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent pointer-events-none" />
- <div className="flex items-center gap-4 mb-6 relative">
- <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl shadow-lg shadow-amber-500/20">
- <ShieldCheck size={24} />
- </div>
- <div>
- <h2 className="text-xl font-bold text-zinc-50">
- Pending Password Resets
- </h2>
- <p className="text-zinc-400 text-sm">{resetRequests.length} employees waiting for your approval</p>
- </div>
- </div>
- 
- <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative">
- {resetRequests.map((req) => (
- <div key={req._id} className="bg-zinc-800 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-amber-500/30 transition-all duration-300">
- <div className="mb-4">
- <div className="font-bold text-zinc-50 text-lg">{req.name}</div>
- <div className="text-sm text-zinc-400 mb-4">{req.email}</div>
- <div className="flex flex-wrap gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
- <span className="bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">{req.role}</span>
- <span className="bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">{req.department}</span>
- </div>
- </div>
- <button
- onClick={() => handleApproveReset(req.email)}
- className="w-full bg-zinc-950 hover:bg-zinc-950 text-amber-500 font-bold py-3 rounded-xl text-sm transition-all shadow-md active:scale-95 border border-amber-500/20"
- >
- Approve & Email Link
- </button>
- </div>
- ))}
- </div>
- </div>
- )}
+  const handleApproveReset = (email) => {
+    setConfirmConfig({
+      title: "Approve Reset?",
+      message: `Send reset link to ${email}?`,
+      confirmText: "Approve",
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          await api.post("admin/forgot-password", { email });
+          addToast("Reset link sent.", "success");
+          fetchResetRequests();
+        } catch (err) {
+          addToast("Failed to approve.", "error");
+        }
+        setIsConfirmOpen(false);
+      },
+    });
+    setIsConfirmOpen(true);
+  };
 
- {/* Directory Grid */}
- {filteredEmployees.length === 0 ? (
- <div className="text-center py-16 text-zinc-400 border border-zinc-800 rounded-3xl">
- No employees found
- </div>
- ) : (
- <div className="flex flex-col gap-3">
- {/* Table Header (Desktop Only) */}
-  <div className="hidden md:grid grid-cols-[3fr_1.2fr_1.2fr_380px] gap-6 px-6 py-3 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-800 mb-2">
- <div>Employee</div>
- <div className="flex items-center">Hardware</div>
- <div className="flex items-center">Consumables</div>
- <div className="flex items-center justify-end pr-2">Actions</div>
- </div>
+  const handleRejectReset = (id) => {
+    setConfirmConfig({
+      title: "Reject Request?",
+      message: "Clear this security exception?",
+      confirmText: "Reject",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.patch(`admin/reset-requests/${id}/reject`);
+          addToast("Rejected.", "success");
+          fetchResetRequests();
+        } catch (err) {
+          addToast("Failed to reject.", "error");
+        }
+        setIsConfirmOpen(false);
+      },
+    });
+    setIsConfirmOpen(true);
+  };
 
- {filteredEmployees.map((emp) => {
- // Check if employee has ANY company property
-  const hasItemsAssigned =
-  (emp.assignedAssetsCount || 0) > 0 || (emp.assignedConsumablesCount || 0) > 0;
+  const openAddModal = () => setIsAddModalOpen(true);
+  const closeAddModal = () => setIsAddModalOpen(false);
+  const openEditModal = (emp) => { setSelectedEmployee(emp); setIsEditModalOpen(true); };
+  const closeEditModal = () => { setSelectedEmployee(null); setIsEditModalOpen(false); };
+  const openAssetModal = (emp) => { setSelectedEmployee(emp); setIsAssetModalOpen(true); };
+  const closeAssetModal = () => { setSelectedEmployee(null); setIsAssetModalOpen(false); };
+  const openConsumableModal = (emp) => { setSelectedEmployee(emp); setIsConsumableModalOpen(true); };
+  const closeConsumableModal = () => { setSelectedEmployee(null); setIsConsumableModalOpen(false); };
 
- return (
- <div
- key={emp._id}
-  className="group bg-zinc-900 border border-zinc-800 rounded-3xl p-6 grid grid-cols-1 md:grid-cols-[3fr_1.2fr_1.2fr_380px] gap-4 md:gap-6 items-center hover:shadow-2xl hover:-translate-y-1 hover:border-indigo-500/50 hover:bg-zinc-800/90 transition-all duration-300 w-full"
-  >
- <div className="flex items-center gap-5">
- <div className="h-14 w-14 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner border border-indigo-500/30">
- {emp.name?.charAt(0) || "U"}
- </div>
-  <div className="flex flex-col">
-   <div className="flex items-center gap-2 mb-0.5">
-   <span className="font-extrabold text-zinc-50 text-lg">{emp.name}</span>
-   {emp.isSuperAdmin ? (
-   <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">
-   🔒 Super Admin
-   </span>
-   ) : emp.roleAccess === "ADMIN" ? (
-   <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">
-   Admin
-   </span>
-   ) : null}
-   </div>
-  <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
-  <Mail size={14} className="text-indigo-400" />
-  {emp.email}
-  </span>
-  </div>
- </div>
+  return (
+    <PageTransition>
+      <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8 pb-8 border-b border-bg-tertiary text-sans">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-text-primary tracking-tight">
+              Employee <span className="text-accent-primary">Directory</span>
+            </h1>
+            <p className="text-text-secondary font-medium text-sm">Organization directory and lifecycle management</p>
+          </div>
 
- {/* Inventory Status Indicators */}
- <div className="flex items-center gap-4">
- <div className="flex flex-col">
- <span className="text-[10px] font-bold text-zinc-400 uppercase md:hidden block mb-1">
- Hardware
- </span>
- <div
- className={`flex items-center gap-2 text-sm font-medium ${
- emp.assignedAssetsCount > 0
- ? "text-amber-400"
- : "text-zinc-400"
- }`}
- >
- <Laptop size={16} />
- <span>{emp.assignedAssetsCount || 0}</span>
- </div>
- </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+            <button
+              onClick={handleManualRefresh}
+              className="p-3.5 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary transition-all shadow-premium active:scale-95"
+              title="Refresh"
+            >
+              <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+            </button>
+            <div className="relative flex-1 sm:w-72 group">
+              <input
+                type="text"
+                placeholder="Lookup Name or Email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-bg-secondary border border-border rounded-2xl px-5 py-3.5 text-sm text-text-primary placeholder-text-muted focus:border-accent-primary transition-all pl-12 shadow-premium"
+              />
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary" />
+            </div>
+            <button
+              onClick={openAddModal}
+              className="bg-gradient-to-tr from-accent-primary to-accent-secondary text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-[0.97] transition-all border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+            >
+              <UserPlus size={20} /> Add Employee
+            </button>
+          </div>
+        </div>
 
- </div>
+        {/* Reset Requests Section */}
+        <AnimatePresence>
+          {resetRequests.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="bg-bg-secondary border border-border rounded-2xl p-8 mb-4 shadow-premium relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-status-warning/5 rounded-full -mr-32 -mt-32 blur-[80px]" />
+              <div className="flex items-center gap-5 mb-8 relative">
+                <div className="p-4 bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20 rounded-2xl shadow-glow">
+                  <ShieldCheck size={28} />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-bold text-text-primary tracking-tight">Pending <span className="text-status-warning">Security Approvals</span></h2>
+                  <p className="text-text-secondary font-medium">{resetRequests.length} recovery requests pending</p>
+                </div>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 relative font-sans">
+                {resetRequests.map((req) => (
+                  <div key={req._id} className="bg-bg-tertiary/40 border border-border rounded-2xl p-6 flex flex-col justify-between hover:bg-bg-tertiary/60 transition-all group/card">
+                    <div className="mb-6">
+                      <div className="font-bold text-text-primary text-xl tracking-tight group-hover/card:text-white">{req.name}</div>
+                      <div className="text-sm text-text-muted mb-4">{req.email}</div>
+                      <div className="flex gap-2">
+                        <span className="bg-bg-tertiary text-[9px] font-black text-accent-primary px-2.5 py-1.5 rounded-xl border border-border uppercase tracking-widest">{req.role}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => handleApproveReset(req.email)} className="flex-1 bg-status-warning/10 hover:bg-status-warning text-status-warning hover:text-white font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-all">Approve</button>
+                      <button onClick={() => handleRejectReset(req._id)} className="px-5 bg-bg-secondary border border-border text-text-muted hover:text-status-danger transition-all py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest">Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
- <div className="flex items-center gap-4">
- <div className="flex flex-col">
- <span className="text-[10px] font-bold text-zinc-400 uppercase md:hidden block mb-1">
- Consumables
- </span>
- <div
- className={`flex items-center gap-2 text-sm font-medium ${
- // Explicitly check for > 0 to handle null/undefined safely
- (emp.assignedConsumablesCount || 0) > 0
- ? "text-indigo-400"
- : "text-zinc-400"
- }`}
- >
- <Package size={16} />
- {/* Use a fallback of 0 */}
- <span>{emp.assignedConsumablesCount || 0}</span>
- </div>
- </div>
- </div>
+        {/* Directory Table */}
+        <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+                <tr>
+                  <th className="px-8 py-6">Identity & Authorization</th>
+                  <th className="px-8 py-6">Hardware</th>
+                  <th className="px-8 py-6">Inventory</th>
+                  <th className="px-8 py-6 text-right pr-12">Controls</th>
+                </tr>
+              </thead>
+              <AnimatePresence mode="wait">
+                {loading && employees.length === 0 ? (
+                  <EmployeeTableSkeleton key="skeleton" />
+                ) : employees.length === 0 ? (
+                  <motion.tbody 
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="divide-y divide-border"
+                  >
+                    <tr>
+                      <td colSpan="4" className="py-24 text-center">
+                        <div className="space-y-4">
+                          <div className="w-16 h-16 bg-bg-tertiary rounded-3xl mx-auto flex items-center justify-center text-text-disabled/20 ring-1 ring-white/5">
+                            <Search size={32} />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-text-primary font-bold text-lg">Empty Directory</p>
+                            <p className="text-text-muted text-sm max-w-xs mx-auto">No employees found matching your criteria.</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </motion.tbody>
+                ) : (
+                  <motion.tbody 
+                    key="content"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="divide-y divide-border"
+                  >
+                    {employees.map((emp) => {
+                      const hasItemsAssigned = (emp.assignedAssetsCount || 0) > 0 || (emp.assignedConsumablesCount || 0) > 0;
+                      return (
+                        <tr key={emp._id} className="group hover:bg-bg-tertiary/20 transition-all border-b border-border last:border-0 h-[92px]">
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-5">
+                              <div className="h-14 w-14 bg-bg-tertiary ring-1 ring-white/10 text-accent-primary rounded-2xl flex items-center justify-center font-bold text-xl transition-all duration-300 group-hover:shadow-glow group-hover:scale-105">
+                                {emp.name?.charAt(0) || "U"}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-text-primary group-hover:text-white transition-colors tracking-tight text-lg">{emp.name}</span>
+                                  {emp.roleAccess === "ADMIN" && <span className="text-[9px] bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/20 px-2.5 py-1 rounded-2xl font-black uppercase tracking-widest">Admin</span>}
+                                </div>
+                                <div className="text-xs font-medium text-text-muted flex items-center gap-2">
+                                  <Mail size={12} className="text-accent-primary opacity-60" />
+                                  {emp.email}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                             <div className={`flex items-center group-hover:scale-110 transition-transform gap-3 text-lg font-black tabular-nums tracking-tighter ${emp.assignedAssetsCount > 0 ? "text-status-warning" : "text-text-disabled"}`}>
+                               <Laptop size={18} /> <span>{emp.assignedAssetsCount || 0}</span>
+                             </div>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                             <div className={`flex items-center group-hover:scale-110 transition-transform gap-3 text-lg font-black tabular-nums tracking-tighter ${emp.assignedConsumablesCount > 0 ? "text-status-success" : "text-text-disabled"}`}>
+                               <Package size={18} /> <span>{emp.assignedConsumablesCount || 0}</span>
+                             </div>
+                          </td>
+                          <td className="px-8 py-5 text-right pr-12">
+                            <div className="flex items-center justify-end gap-3" onClick={e => e.stopPropagation()}>
+                              {emp.status === "ACTIVE" && (
+                                <>
+                                  <button onClick={() => openAssetModal(emp)} className="p-3 rounded-2xl text-accent-primary bg-accent-primary/10 hover:bg-accent-primary/20 transition-all active:scale-90 border border-accent-primary/20 shadow-sm" title="Assets"><Laptop size={16} /></button>
+                                  <button onClick={() => openConsumableModal(emp)} className="p-3 rounded-2xl text-status-success bg-status-success/10 hover:bg-status-success/20 transition-all active:scale-90 border border-status-success/20 shadow-sm" title="Items"><Package size={16} /></button>
+                                  <button onClick={() => openEditModal(emp)} className="p-3 rounded-2xl text-text-muted bg-bg-tertiary border border-border active:scale-90 transition-all hover:text-text-primary" title="Edit"><Edit size={16} /></button>
+                                  <button disabled={hasItemsAssigned} onClick={() => handleToggleStatus(emp._id, emp.status)} className={`p-3 rounded-2xl transition-all border active:scale-90 ${hasItemsAssigned ? "border-border text-text-disabled/20 bg-bg-tertiary opacity-40 cursor-not-allowed" : "text-status-danger bg-status-danger/10 border-status-danger/20 hover:bg-status-danger hover:text-white"}`} title="Offboard"><Ban size={16} /></button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </motion.tbody>
+                )}
+              </AnimatePresence>
+            </table>
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalResults} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} />
+        </div>
+      </div>
 
- <div className="flex items-center justify-end gap-3 border-t border-zinc-800 md:border-t-0 pt-4 md:pt-0">
- {emp.status === "ACTIVE" && (
- <>
-  <button
-  onClick={() => {
-  setSelectedEmployee(emp);
-  setIsAssetModalOpen(true);
-  }}
-  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors shadow-sm"
-  >
-  <Laptop size={16} />
-  Hardware
-  </button>
-
-  <button
-  onClick={() => {
-  setSelectedEmployee(emp);
-  setIsConsumableModalOpen(true);
-  }}
-  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors shadow-sm"
-  >
-  <Package size={16} />
-  Consumables
-  </button>
-
- <button
- onClick={() => {
- setSelectedEmployee(emp);
- setIsEditModalOpen(true);
- }}
- className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-zinc-300 bg-zinc-700/50 hover:bg-zinc-700 transition-colors shadow-sm"
- >
- <Edit size={16} />
- Edit
- </button>
-
- <button
- disabled={hasItemsAssigned}
- title={
- hasItemsAssigned
- ? "Return all assets and consumables before offboarding"
- : "Offboard employee"
- }
- onClick={() => handleToggleStatus(emp._id, emp.status)}
- className={`p-2 rounded-xl transition-all group/offboard ${
- hasItemsAssigned
- ? "cursor-not-allowed opacity-60"
- : "text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10"
- }`}
- >
- {hasItemsAssigned ? (
- <Ban size={18} className="text-rose-400" />
- ) : (
- <UserMinus size={18} />
- )}
- </button>
- </>
- )}
- {/* <button className="p-2 text-zinc-300 hover:text-indigo-400 transition-colors">
- <ArrowRight size={20} />
- </button> */}
- </div>
- </div>
- );
- })}
- </div>
- )}
-
- {/* Modals */}
- <AddEmployeeModal
- isOpen={isAddModalOpen}
- onClose={() => setIsAddModalOpen(false)}
- onRefresh={fetchEmployees}
- />
-
- {selectedEmployee && (
- <>
- <EditEmployeeModal
- isOpen={isEditModalOpen}
- onClose={() => {
- setIsEditModalOpen(false);
- setSelectedEmployee(null);
- }}
- employeeData={selectedEmployee}
- onRefresh={fetchEmployees}
- />
-
-  <ManageAssetsModal
-  isOpen={isAssetModalOpen}
-  employee={selectedEmployee}
-  onClose={() => {
-  setIsAssetModalOpen(false);
-  setSelectedEmployee(null);
-  }}
-  onRefresh={fetchEmployees}
-  />
-
-  <ManageConsumablesModal
-  isOpen={isConsumableModalOpen}
-  employee={selectedEmployee}
-  onClose={() => {
-  setIsConsumableModalOpen(false);
-  setSelectedEmployee(null);
-  }}
-  onRefresh={fetchEmployees}
-  />
-  </>
-  )}
- </div>
- );
+      {/* Modals */}
+      <AddEmployeeModal isOpen={isAddModalOpen} onClose={closeAddModal} onRefresh={() => fetchEmployees(null)} />
+      <EditEmployeeModal isOpen={isEditModalOpen} onClose={closeEditModal} employeeData={selectedEmployee} onRefresh={() => fetchEmployees(null)} />
+      <ManageAssetsModal isOpen={isAssetModalOpen} employee={selectedEmployee} onClose={closeAssetModal} onRefresh={() => fetchEmployees(null)} />
+      <ManageConsumablesModal isOpen={isConsumableModalOpen} employee={selectedEmployee} onClose={closeConsumableModal} onRefresh={() => fetchEmployees(null)} />
+      <ConfirmModal isOpen={isConfirmOpen} onConfirm={confirmConfig.onConfirm} onCancel={() => setIsConfirmOpen(false)} title={confirmConfig.title} message={confirmConfig.message} confirmText={confirmConfig.confirmText} type={confirmConfig.type} />
+    </PageTransition>
+  );
 };
 
 export default EmployeeList;

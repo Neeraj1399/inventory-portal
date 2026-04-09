@@ -29,7 +29,6 @@ const consumableSchema = new Schema(
       type: String,
       required: [true, "Asset Classification is required"],
     },
-    // 🟢 ADDED: Unit Cost field
     unitCost: {
       type: Number,
       required: [true, "Unit cost is required"],
@@ -64,27 +63,16 @@ const consumableSchema = new Schema(
   },
 );
 
-/**
- * VIRTUAL: Available Quantity
- * Subtracts both allocated and maintenance stock.
- */
 consumableSchema.virtual("availableQuantity").get(function () {
   return (
     this.totalQuantity - this.assignedQuantity - (this.maintenanceQuantity || 0)
   );
 });
 
-/**
- * VIRTUAL: Total Inventory Value
- * Calculates the dollar value of the total stock for this item.
- */
 consumableSchema.virtual("totalValue").get(function () {
   return (this.totalQuantity || 0) * (this.unitCost || 0);
 });
 
-/**
- * VIRTUAL: Low Stock Alert
- */
 consumableSchema.virtual("isLowStock").get(function () {
   const available =
     this.totalQuantity -
@@ -97,12 +85,12 @@ consumableSchema.pre("save", function () {
   if (this.itemName) {
     this.itemName = this.itemName.trim().toUpperCase();
   }
-
 });
 
 /**
  * INDEXES: Optimized for common query patterns
  */
+consumableSchema.index({ category: 1 });
 consumableSchema.index({ "assignments.employeeId": 1 }); // Employee-consumable lookups (offboarding, staff dashboard)
 
 export default model("Consumable", consumableSchema);

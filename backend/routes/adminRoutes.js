@@ -8,6 +8,7 @@ import {
   forgotPassword,
   resetPasswordWithToken,
   getResetRequests,
+  rejectResetRequest,
 } from "../controllers/adminController.js";
 
 // 2. Employee Management Logic (from employeeController.js)
@@ -42,6 +43,7 @@ router.patch("/employees/:id/offboard", offboardEmployee); // PATCH /api/admin/e
 
 // Reset Requests Dashboard
 router.get("/reset-requests", getResetRequests); // GET /api/admin/reset-requests
+router.patch("/reset-requests/:id/reject", rejectResetRequest); // PATCH /api/admin/reset-requests/:id/reject
 
 // System Health & Maintenance
 router.get("/stats", getSystemStats); // GET /api/admin/system/stats

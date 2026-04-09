@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "../hooks/api";
+import api from "../services/api";
 
 export const useActiveEmployees = (isOpen) => {
   const [employees, setEmployees] = useState([]);

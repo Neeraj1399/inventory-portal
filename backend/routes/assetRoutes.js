@@ -5,6 +5,7 @@ import { uploadReceipt } from "../middleware/uploadMiddleware.js";
 import {
   getAssets,
   getAsset,
+  getCategories,
   createAsset,
   updateAsset, 
   assignAsset,
@@ -19,6 +20,7 @@ router.use(protect);
 
 // STAFF can view assets (their own) and ADMIN can view all
 router.get("/", getAssets);
+router.get("/categories", getCategories);
 router.get("/:id", getAsset);
 
 // --- 2. Admin Only Layer ---

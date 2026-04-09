@@ -22,7 +22,7 @@ const AssetSchema = new Schema(
     status: {
       type: String,
       enum: {
-        values: ["READY_TO_DEPLOY", "ALLOCATED", "UNDER_MAINTENANCE", "DECOMMISSIONED", "ARCHIVED"],
+        values: ["READY_TO_DEPLOY", "ALLOCATED", "UNDER_MAINTENANCE", "DECOMMISSIONED", "ARCHIVED", "BROKEN"],
         message: "{VALUE} is not a supported status",
       },
       default: "READY_TO_DEPLOY",
@@ -55,15 +55,6 @@ const AssetSchema = new Schema(
         createdBy: { type: Schema.Types.ObjectId, ref: "Employee" },
       },
     ],
-    isDeleted: {
-      type: Boolean,
-      default: false,
-      select: false,
-    },
-    deletedAt: {
-      type: Date,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -89,17 +80,7 @@ AssetSchema.pre("save", function () {
 });
 
 /**
- * 3. QUERY MIDDLEWARE (Soft Delete)
- */
-AssetSchema.pre(/^find/, function () {
-  const options = this.getOptions();
-  if (!options || !options.includeDeleted) {
-    this.where({ isDeleted: { $ne: true } });
-  }
-});
-
-/**
- * 4. VIRTUALS (Asset Age, Warranty, Maintenance)
+ * 3. VIRTUALS (Asset Age, Warranty, Maintenance)
  */
 AssetSchema.virtual("assetAge").get(function () {
   if (!this.purchaseDate) return "N/A";

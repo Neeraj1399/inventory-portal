@@ -7,7 +7,7 @@ import {
  Loader2,
  CheckCircle,
 } from "lucide-react";
-import api from "../../hooks/api";
+import api from "../../services/api";
 
 const ConsumableMaintenanceResolveModal = ({
  isOpen,
@@ -16,7 +16,7 @@ const ConsumableMaintenanceResolveModal = ({
  onRefresh,
 }) => {
  const [formData, setFormData] = useState({
- action: "RETURN", // 'RETURN' (to stock) or 'SCRAP' (permanent delete)
+ action: "RETURN",
  quantity: 1,
  });
  const [loading, setLoading] = useState(false);
@@ -54,68 +54,70 @@ const ConsumableMaintenanceResolveModal = ({
  }
  };
 
+ const isReturn = formData.action === "RETURN";
+
  return (
- <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+ <div className="fixed inset-0 z-[110] flex items-start justify-center pt-12 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm">
  <div
- className="absolute inset-0 bg-zinc-900 "
+ className="absolute inset-0"
  onClick={onClose}
  />
 
- <div className="relative bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
- <div className="p-8">
+ <div className="relative bg-bg-secondary border border-border w-full max-w-xl rounded-[2rem] shadow-premium overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="p-6">
  {/* Header */}
- <div className="flex justify-between items-start mb-8">
+ <div className="flex justify-between items-start mb-6">
  <div className="flex items-center gap-4">
- <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl">
- <RefreshCcw size={24} />
+ <div className="p-3 bg-accent-primary/10 text-accent-primary rounded-2xl border border-accent-primary/20">
+ <RefreshCcw size={22} />
  </div>
  <div>
- <h2 className="text-2xl font-black text-zinc-50 tracking-tight">
+ <h2 className="text-xl font-black text-text-primary tracking-tight">
  Resolve Repair
  </h2>
- <p className="text-zinc-500 font-medium text-sm">
+ <p className="text-text-muted font-medium text-sm">
  {inMaintenance} units of {item.itemName} currently sidelined
  </p>
  </div>
  </div>
  <button
  onClick={onClose}
- className="p-2 hover:bg-zinc-800 rounded-xl transition-colors"
+ className="p-2 hover:bg-bg-tertiary rounded-xl transition-all duration-200"
  >
- <X size={20} className="text-zinc-400" />
+ <X size={20} className="text-text-muted" />
  </button>
  </div>
 
- <form onSubmit={handleSubmit} className="space-y-6">
+ <form onSubmit={handleSubmit} className="space-y-4">
  {/* Resolution Toggle */}
- <div className="grid grid-cols-2 gap-3 p-1.5 bg-zinc-800 rounded-2xl">
+ <div className="grid grid-cols-2 gap-2 p-1.5 bg-bg-tertiary rounded-2xl">
  <button
  type="button"
  onClick={() => setFormData({ ...formData, action: "RETURN" })}
- className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all ${
- formData.action === "RETURN"
- ? "bg-zinc-900 border border-zinc-800 text-emerald-400 shadow-sm"
- : "text-zinc-500"
+ className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${
+ isReturn
+ ? "bg-bg-secondary border border-border text-status-success shadow-sm"
+ : "text-text-muted hover:text-text-secondary"
  }`}
  >
- <CheckCircle size={14} /> RETURN TO STOCK
+ <CheckCircle size={13} /> RETURN TO STOCK
  </button>
  <button
  type="button"
  onClick={() => setFormData({ ...formData, action: "SCRAP" })}
- className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all ${
- formData.action === "SCRAP"
- ? "bg-zinc-900 border border-zinc-800 text-rose-400 shadow-sm"
- : "text-zinc-500"
+ className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${
+ !isReturn
+ ? "bg-bg-secondary border border-border text-status-danger shadow-sm"
+ : "text-text-muted hover:text-text-secondary"
  }`}
  >
- <Trash2 size={14} /> SCRAP PERMANENTLY
+ <Trash2 size={13} /> SCRAP PERMANENTLY
  </button>
  </div>
 
  {/* Quantity Input */}
  <div>
- <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+ <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
  Quantity to Resolve
  </label>
  <input
@@ -123,41 +125,32 @@ const ConsumableMaintenanceResolveModal = ({
  min="1"
  max={inMaintenance}
  required
- className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/30/10 focus:border-indigo-500 outline-none transition-all font-bold"
+ className="input-base bg-bg-tertiary font-bold"
  value={formData.quantity}
  onChange={(e) =>
- setFormData({
- ...formData,
- quantity: parseInt(e.target.value),
- })
+ setFormData({ ...formData, quantity: parseInt(e.target.value) })
  }
  />
  </div>
 
  {/* Warning Message */}
  <div
- className={`flex gap-3 p-4 rounded-2xl border ${
- formData.action === "RETURN"
- ? "bg-emerald-500/10 border-emerald-500/20"
- : "bg-rose-500/10 border-rose-100"
+ className={`flex gap-3 p-3.5 rounded-2xl border ${
+ isReturn
+ ? "bg-status-success/10 border-status-success/20"
+ : "bg-status-danger/10 border-status-danger/20"
  }`}
  >
  <AlertTriangle
- className={
- formData.action === "RETURN"
- ? "text-emerald-400"
- : "text-rose-400"
- }
- size={18}
+ className={isReturn ? "text-status-success shrink-0" : "text-status-danger shrink-0"}
+ size={16}
  />
  <p
- className={`text-[11px] font-bold leading-tight ${
- formData.action === "RETURN"
- ? "text-emerald-700"
- : "text-rose-700"
+ className={`text-xs font-bold leading-tight ${
+ isReturn ? "text-status-success" : "text-status-danger"
  }`}
  >
- {formData.action === "RETURN"
+ {isReturn
  ? `These ${formData.quantity} units will be moved back to available warehouse stock.`
  : `These ${formData.quantity} units will be PERMANENTLY deleted from total inventory.`}
  </p>
@@ -166,10 +159,10 @@ const ConsumableMaintenanceResolveModal = ({
  <button
  type="submit"
  disabled={loading || inMaintenance === 0}
- className="w-full bg-zinc-950 hover:bg-zinc-800 text-white py-4 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl"
+ className="w-full bg-accent-gradient hover:brightness-110 text-white py-3 rounded-2xl font-black text-sm tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-glow-sm disabled:opacity-50 disabled:shadow-none"
  >
  {loading ? (
- <Loader2 className="animate-spin" size={20} />
+ <Loader2 className="animate-spin" size={18} />
  ) : (
  "CONFIRM RESOLUTION"
  )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, UserPlus, Loader2, Check } from "lucide-react";
-import api from "../../hooks/api";
+import api from "../../services/api";
 
 const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
   const [employees, setEmployees] = useState([]);
@@ -51,51 +51,51 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
   if (!isOpen || !asset) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
+    <div className="fixed inset-0 z-[70] flex items-start justify-center pt-16 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-bg-secondary border border-border w-full max-w-xl rounded-3xl shadow-premium overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-zinc-50">
-              Allocate Hardware
+            <h2 className="text-xl font-bold text-text-primary">
+              Allocate Asset
             </h2>
-            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
+            <p className="text-[10px] font-black text-status-info uppercase tracking-widest">
               Inventory Management
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 transition-colors"
+            className="p-2 hover:bg-bg-tertiary rounded-full text-text-muted transition-all duration-200"
           >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleAssign} className="p-6 space-y-6">
+        <form onSubmit={handleAssign} className="p-5 space-y-5">
           {/* Target Asset Info */}
-          <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 flex items-center gap-4">
-            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl shadow-sm text-indigo-400">
+          <div className="p-4 bg-accent-primary/10 rounded-2xl border border-accent-primary/20 flex items-center gap-4">
+            <div className="p-3 bg-bg-tertiary border border-border rounded-xl shadow-sm text-accent-primary shrink-0">
               <Check size={20} />
             </div>
             <div>
-              <p className="text-sm font-bold text-zinc-50">{asset.model}</p>
-              <p className="text-[11px] text-zinc-500 font-mono uppercase">
+              <p className="text-sm font-bold text-text-primary">{asset.model}</p>
+              <p className="text-[11px] text-text-muted font-mono uppercase">
                 {asset.serialNumber}
               </p>
             </div>
           </div>
 
-          {/* Recipient Selection - Standardized Select */}
+          {/* Recipient Selection */}
           <div>
-            <label className="block text-[10px] font-black uppercase text-zinc-400 mb-2 px-1 tracking-widest">
+            <label className="block text-[10px] font-black uppercase text-text-muted mb-2 px-1 tracking-widest">
               Recipient Employee
             </label>
             <select
               required
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className="w-full px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-zinc-100 appearance-none"
+              className="select-base px-5 py-3 rounded-2xl font-bold"
             >
-              <option value="" className="text-zinc-500">Select an active staff member...</option>
+              <option value="" className="text-text-muted">Select an active staff member...</option>
               {employees.map((emp) => (
                 <option key={emp._id} value={emp._id}>
                   {emp.name} — {emp.department}
@@ -107,7 +107,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
           <button
             type="submit"
             disabled={loading || !employeeId}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-black/20 disabled:opacity-30 disabled:bg-zinc-800"
+            className="w-full bg-accent-primary hover:brightness-110 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 shadow-glow-sm disabled:opacity-30 disabled:bg-bg-tertiary disabled:shadow-none"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />

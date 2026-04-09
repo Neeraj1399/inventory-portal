@@ -10,17 +10,67 @@ import catchAsync from "../utils/catchAsync.js";
  * @access  Private
  */
 export const getConsumables = catchAsync(async (req, res, next) => {
+  const { search, status } = req.query;
+
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
   const skip = (page - 1) * limit;
 
+  let filter = {};
+
+  if (search?.trim()) {
+    filter.$or = [
+      { itemName: { $regex: search.trim(), $options: "i" } },
+      { category: { $regex: search.trim(), $options: "i" } },
+    ];
+  }
+
+  if (status && status !== "ALL") {
+    switch (status) {
+      case "LOW STOCK":
+        filter.$expr = {
+          $lte: [
+            { $subtract: ["$totalQuantity", { $add: ["$assignedQuantity", { $ifNull: ["$maintenanceQuantity", 0] }] }] },
+            { $ifNull: ["$lowStockThreshold", 5] }
+          ]
+        };
+        break;
+      case "READY_TO_DEPLOY":
+        filter.$expr = {
+          $gt: [
+            { $subtract: ["$totalQuantity", { $add: ["$assignedQuantity", { $ifNull: ["$maintenanceQuantity", 0] }] }] },
+            0
+          ]
+        };
+        break;
+      case "ALLOCATED":
+        filter.assignedQuantity = { $gt: 0 };
+        break;
+      case "UNDER_MAINTENANCE":
+        filter.maintenanceQuantity = { $gt: 0 };
+        break;
+      case "RESTOCK":
+        filter.$expr = {
+          $lte: [
+            { $subtract: ["$totalQuantity", { $add: ["$assignedQuantity", { $ifNull: ["$maintenanceQuantity", 0] }] }] },
+            { $ifNull: ["$lowStockThreshold", 5] }
+          ]
+        };
+        break;
+      default:
+        // Assume direct status match if any other string is passed
+        break;
+    }
+  }
+
   const [items, total] = await Promise.all([
-    Consumable.find()
+    Consumable.find(filter)
       .populate("assignments.employeeId", "name email")
+      .sort("-createdAt")
       .skip(skip)
       .limit(limit)
       .lean(),
-    Consumable.countDocuments(),
+    Consumable.countDocuments(filter),
   ]);
 
   res.status(200).json({
@@ -334,10 +384,10 @@ export const updateCondition = catchAsync(async (req, res, next) => {
 
     if (actionType === "SCRAP") {
       item.totalQuantity -= qty;
-      description = `Scrapped ${qty} units of ${item.itemName}. Reason: ${reason}`;
+      description = `Scrapped ${qty} units of ${item.itemName}`;
     } else {
       item.maintenanceQuantity = (item.maintenanceQuantity || 0) + qty;
-      description = `Moved ${qty} units of ${item.itemName} to UNDER_MAINTENANCE. Reason: ${reason}`;
+      description = `Moved ${qty} units of ${item.itemName} to MAINTENANCE`;
     }
 
     await item.save({ session });
@@ -405,7 +455,7 @@ export const resolveMaintenance = catchAsync(async (req, res, next) => {
             entityType: "Consumable",
             entityId: item._id,
             performedBy: req.user._id,
-            description: `${action === "RETURN" ? "Restored" : "Scrapped"} ${qty} units from maintenance for ${item.itemName}.`,
+            description: `${action === "RETURN" ? "Restored" : "Scrapped"} ${qty} units from maintenance for ${item.itemName}`,
           },
         ],
         { session },

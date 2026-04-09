@@ -1,20 +1,55 @@
-import React, { useState } from "react";
-import { X, Send, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
-import api from "../../hooks/api";
+import React, { useState, useRef, useEffect } from "react";
+import { X, Send, AlertCircle, CheckCircle2, RefreshCw, ClipboardList, Package } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import api from "../../services/api";
+
+// Premium Primitives
+import Button from "./Button";
+import Input from "./Input";
+import Card from "./Card";
+import Badge from "./Badge";
 
 const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => {
   const [formData, setFormData] = useState({
     title: item ? `Issue report for ${item.model || item.itemName}` : "",
     type: type,
+    requestType: "NEW", // NEW or REPLACEMENT
+    category: "Laptop", // Laptop, Monitor, Mobile, Headphones, Keyboard, Others
     priority: "MEDIUM",
     description: "",
     itemCategory: item ? (item.serialNumber ? "Asset" : "Consumable") : null,
     itemId: item ? item._id : null,
   });
 
+  const textareaRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      setLoading(false);
+      setSuccess(false);
+      setError("");
+      setFormData({
+        title: item ? `Issue report for ${item.model || item.itemName}` : "",
+        type: type,
+        requestType: "NEW",
+        category: "Laptop",
+        priority: "MEDIUM",
+        description: "",
+        itemCategory: item ? (item.serialNumber ? "Asset" : "Consumable") : null,
+        itemId: item ? item._id : null,
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [formData.description]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,137 +63,223 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
         onClose();
         setSuccess(false);
         setFormData({ ...formData, description: "" });
-      }, 2000);
+      }, 2500);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to submit request");
+      setError(err.response?.data?.message || "Failed to submit request.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-          <div>
-            <h2 className="text-xl font-bold text-zinc-50 tracking-tight">
-              {success ? "Success!" : "New Service Ticket"}
-            </h2>
-            <p className="text-zinc-500 text-xs mt-0.5">
-              {formData.type === "INCIDENT" ? "Report a spill or damage" : "Request inventory action"}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-500 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        {success ? (
-          <div className="p-12 flex flex-col items-center text-center space-y-4">
-            <div className="p-4 bg-emerald-500/10 rounded-full text-emerald-500">
-              <CheckCircle2 size={48} />
-            </div>
-            <h3 className="text-xl font-bold text-emerald-400">Request Sent</h3>
-            <p className="text-zinc-400 text-sm">Administration has been notified. We will update you shortly.</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-400 text-sm">
-                <AlertCircle size={18} />
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Request Type</label>
-              <select
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              >
-                <option value="ALLOCATION">Request New Allocation</option>
-                <option value="REPLACEMENT">Request Replacement (Faulty Item)</option>
-                <option value="SERVICE">Maintenance / Service</option>
-                <option value="INCIDENT">Report Incident (Spill/Drop)</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Title</label>
-              <input
-                type="text"
-                required
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all"
-                placeholder="Brief summary of your request"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Priority</label>
-                <select
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all pointer"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High (Urgent)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Related Item</label>
-                <div className="w-full bg-zinc-800/50 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-500 italic">
-                  {item ? (item.model || item.itemName) : "None (Global Request)"}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-bg-primary/80 backdrop-blur-xl" 
+            onClick={!loading ? onClose : undefined} 
+          />
+          
+          <motion.div
+            initial={{ scale: 0.98, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.98, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative w-full max-w-xl bg-bg-secondary border border-border rounded-2xl overflow-hidden shadow-xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-8 border-b border-border flex justify-between items-center bg-bg-elevated/50">
+              <div className="flex items-center gap-5">
+                <div className="p-3 bg-accent-primary/10 rounded-xl text-accent-primary border border-accent-primary/10">
+                  <ClipboardList size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-text-primary tracking-tight">
+                    {success ? "Submission Success" : "New Service Entry"}
+                  </h2>
+                  <p className="text-text-muted text-[10px] uppercase font-black tracking-widest mt-1 opacity-60">
+                    {formData.type === "INCIDENT" ? "Critical Event Reporting" : "Resource Allocation Request"}
+                  </p>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Description</label>
-              <textarea
-                required
-                rows={4}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-all resize-none"
-                placeholder="Provide details (e.g., 'Coffee spilled on left side of laptop' or 'Need a noise-canceling headset')"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="pt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-6 py-4 rounded-2xl bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition-all"
+              <button 
+                onClick={onClose} 
+                className="p-3 text-text-muted hover:text-white hover:bg-bg-tertiary rounded-2xl transition-all active:scale-95"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-[2] bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-2xl shadow-xl hover:shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <RefreshCw className="animate-spin" size={20} />
-                ) : (
-                  <>
-                    <Send size={20} /> Submit Request
-                  </>
-                )}
+                <X size={20} />
               </button>
             </div>
-          </form>
-        )}
-      </div>
-    </div>
+
+            <div className="p-10">
+              {success ? (
+                <div className="py-20 flex flex-col items-center text-center space-y-8">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-status-success/20 rounded-full blur-[40px] animate-pulse" />
+                    <div className="relative p-8 bg-bg-elevated border border-border rounded-full text-status-success shadow-inner">
+                      <CheckCircle2 size={56} />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-black text-text-primary tracking-tight">Voucher Transmitted</h3>
+                    <p className="text-text-muted text-sm font-medium opacity-80 px-10">
+                      Administrative oversight has been notified. Your request sequence is now active.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="p-5 bg-status-danger/10 border border-status-danger/20 rounded-[1.5rem] flex items-center gap-4 text-status-danger text-xs font-black uppercase tracking-widest"
+                    >
+                      <AlertCircle size={20} />
+                      {error}
+                    </motion.div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Logic Pattern</label>
+                      <div className="relative">
+                        <select
+                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
+                          value={formData.type}
+                          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        >
+                          <option value="ALLOCATION">Allocation</option>
+                          <option value="REPLACEMENT">Replacement</option>
+                          <option value="SERVICE">Maintenance</option>
+                          <option value="INCIDENT">Incident</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
+                          <AlertCircle size={16} className="opacity-40" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Entity Cluster</label>
+                      <div className="relative">
+                        <select
+                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
+                          value={formData.category}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        >
+                          <option value="Laptop">Laptop</option>
+                          <option value="Monitor">Monitor</option>
+                          <option value="Mobile">Smartphone</option>
+                          <option value="Headphones">Headphones</option>
+                          <option value="Keyboard">Keyboard</option>
+                          <option value="Others">Others</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
+                          <AlertCircle size={16} className="opacity-40" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Acquisition Model</label>
+                      <div className="relative">
+                        <select
+                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
+                          value={formData.requestType}
+                          onChange={(e) => setFormData({ ...formData, requestType: e.target.value })}
+                        >
+                          <option value="NEW">New Provisions</option>
+                          <option value="REPLACEMENT">Hardware Replacement</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
+                          <AlertCircle size={16} className="opacity-40" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Priority Vector</label>
+                      <div className="relative">
+                        <select
+                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
+                          value={formData.priority}
+                          onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        >
+                          <option value="LOW">Optimized (Low)</option>
+                          <option value="MEDIUM">Standard (Medium)</option>
+                          <option value="HIGH">Critical (High)</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
+                          <AlertCircle size={16} className="opacity-40" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Identification Header</label>
+                    <Input
+                      type="text"
+                      required
+                      placeholder="Enter a descriptive title for this entry..."
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Contextual Description</label>
+                    <textarea
+                      ref={textareaRef}
+                      required
+                      className="w-full h-32 px-6 py-5 bg-bg-elevated border border-border rounded-[1.5rem] text-sm text-text-primary placeholder-text-disabled focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all resize-none font-medium leading-relaxed shadow-inner custom-scrollbar"
+                      placeholder="Provide comprehensive details regarding your request..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+
+                  {item && (
+                    <div className="p-5 bg-accent-primary/5 border border-accent-primary/10 rounded-[1.5rem] flex items-center gap-5 group">
+                      <div className="p-3 bg-accent-primary/10 rounded-xl text-accent-primary">
+                        <Package size={20} className="group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-black text-accent-primary uppercase tracking-widest opacity-60">Attached Resource</p>
+                        <p className="text-sm text-text-primary font-black tracking-tight uppercase">{item.model || item.itemName}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-4 flex gap-6">
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={onClose}
+                      className="flex-1 h-16 uppercase tracking-widest text-[11px]"
+                    >
+                      Cancel Sequence
+                    </Button>
+                    <Button
+                      type="submit"
+                      isLoading={loading}
+                      className="flex-[2] h-16 uppercase tracking-widest text-[11px]"
+                      icon={Send}
+                    >
+                      Transmit Vitals
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };
 

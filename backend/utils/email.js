@@ -17,7 +17,7 @@ const sendEmail = async (options) => {
     },
     // Useful for self-signed certificates in some dev environments
     tls: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: process.env.NODE_ENV === "production",
     },
   });
 

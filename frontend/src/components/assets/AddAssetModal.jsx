@@ -1,257 +1,232 @@
 import React, { useEffect, useState } from "react";
-import { X, Upload, Loader2, Package } from "lucide-react"; // Changed CheckCircle to Package for a category icon
-import api from "../../hooks/api";
+import { X, Upload, Loader2, Package, Tag, Layers, Hash, Calendar, DollarSign, ShieldAlert } from "lucide-react";
+import api from "../../services/api";
+import { useToast } from "../../context/ToastContext";
+import Input from "../common/Input";
+import Button from "../common/Button";
 
 const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
- const [formData, setFormData] = useState({
- category: "",
- model: "",
- serialNumber: "",
- purchaseDate: "",
- purchasePrice: "",
- warrantyMonths: 12,
- });
- const [file, setFile] = useState(null);
- const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
+  const [formData, setFormData] = useState({
+    category: "",
+    model: "",
+    serialNumber: "",
+    purchaseDate: "",
+    purchasePrice: "",
+    warrantyMonths: 12,
+  });
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
- useEffect(() => {
- if (asset && isOpen) {
- setFormData({
- category: asset.category || "",
- model: asset.model || "",
- serialNumber: asset.serialNumber || "",
- purchaseDate: asset.purchaseDate
- ? asset.purchaseDate.split("T")[0]
- : "",
- purchasePrice: asset.purchasePrice || "",
- warrantyMonths: asset.warrantyMonths || 12,
- });
- } else if (isOpen) {
- setFormData({
- category: "",
- model: "",
- serialNumber: "",
- purchaseDate: "",
- purchasePrice: "",
- warrantyMonths: 12,
- });
- setFile(null);
- }
- }, [asset, isOpen]);
+  useEffect(() => {
+    if (asset && isOpen) {
+      setFormData({
+        category: asset.category || "",
+        model: asset.model || "",
+        serialNumber: asset.serialNumber || "",
+        purchaseDate: asset.purchaseDate ? asset.purchaseDate.split("T")[0] : "",
+        purchasePrice: asset.purchasePrice || "",
+        warrantyMonths: asset.warrantyMonths || 12,
+      });
+    } else if (isOpen) {
+      setFormData({
+        category: "",
+        model: "",
+        serialNumber: "",
+        purchaseDate: "",
+        purchasePrice: "",
+        warrantyMonths: 12,
+      });
+      setFile(null);
+    }
+  }, [asset, isOpen]);
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
- const handleSubmit = async (e) => {
- e.preventDefault();
- setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
- try {
- const data = new FormData();
- data.append("category", formData.category);
- data.append("model", formData.model);
- data.append("serialNumber", formData.serialNumber);
- data.append("purchaseDate", formData.purchaseDate);
- data.append("purchasePrice", formData.purchasePrice || 0);
- data.append("warrantyMonths", formData.warrantyMonths || 12);
+    try {
+      const data = new FormData();
+      data.append("category", formData.category);
+      data.append("model", formData.model);
+      data.append("serialNumber", formData.serialNumber);
+      data.append("purchaseDate", formData.purchaseDate);
+      data.append("purchasePrice", formData.purchasePrice || 0);
+      data.append("warrantyMonths", formData.warrantyMonths || 12);
 
- if (file) {
- data.append("receipt", file);
- }
+      if (file) {
+        data.append("receipt", file);
+      }
 
- if (asset?._id) {
- await api.patch(`/assets/${asset._id}`, data, {
- headers: { "Content-Type": "multipart/form-data" },
- });
- } else {
- await api.post("/assets", data, {
- headers: { "Content-Type": "multipart/form-data" },
- });
- }
+      if (asset?._id) {
+        await api.patch(`/assets/${asset._id}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        addToast("Fleet intelligence updated.", "success");
+      } else {
+        await api.post("/assets", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        addToast("New unit registered in registry.", "success");
+      }
 
- onRefresh();
- onClose();
- } catch (err) {
- alert(err.response?.data?.message || "Error saving asset");
- } finally {
- setLoading(false);
- }
- };
+      onRefresh();
+      onClose();
+    } catch (err) {
+      addToast(err.response?.data?.message || "Registry update failed.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
- return (
- <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900 ">
- <div className="bg-zinc-900 border border-zinc-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
- {/* Header */}
- <div className="px-6 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
- <h2 className="text-xl font-bold text-zinc-50">
- {asset ? "Edit Asset Details" : "Add New Asset"}
- </h2>
- <button
- onClick={onClose}
- className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
- >
- <X size={20} />
- </button>
- </div>
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-bg-primary/80 backdrop-blur-sm">
+      <div className="bg-bg-secondary border border-border w-full max-w-2xl rounded-2xl shadow-premium overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-black text-text-primary tracking-tight">
+              {asset ? "Update Unit" : "Register Unit"}
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-primary mt-0.5">
+              Hardware Resource Management
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2.5 hover:bg-bg-tertiary rounded-xl transition-all duration-200 text-text-muted hover:text-text-primary"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
- <form onSubmit={handleSubmit} className="p-6 space-y-6">
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- <div className="space-y-4">
- {/* Asset Classification - Now a Manual Text Input */}
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Asset Category
- </label>
- <div className="relative flex items-center">
- <input
- type="text"
- required
- placeholder="e.g. Laptop, Mobile, Furniture"
- className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500/30 outline-none transition-all"
- value={formData.category}
- onChange={(e) =>
- setFormData({ ...formData, category: e.target.value })
- }
- />
- </div>
- </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Left column */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  Classification
+                </label>
+                <Input
+                  icon={Layers}
+                  required
+                  placeholder="e.g. Workstation"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                />
+              </div>
 
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Model Name
- </label>
- <input
- type="text"
- required
- value={formData.model}
- placeholder="e.g. Sony Monitor"
- className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500/30 outline-none"
- onChange={(e) =>
- setFormData({ ...formData, model: e.target.value })
- }
- />
- </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  Model Identifier
+                </label>
+                <Input
+                  icon={Tag}
+                  required
+                  placeholder="e.g. Precision 5570"
+                  value={formData.model}
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                />
+              </div>
 
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Serial Number
- </label>
- <input
- type="text"
- required
- value={formData.serialNumber}
- placeholder="SN-123456"
- className="w-full px-4 py-2 border rounded-xl font-mono focus:ring-2 focus:ring-indigo-500/30 outline-none"
- onChange={(e) =>
- setFormData({ ...formData, serialNumber: e.target.value })
- }
- />
- </div>
- </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  Unique Serial
+                </label>
+                <Input
+                  icon={Hash}
+                  required
+                  placeholder="SN-XXXX-XXXX"
+                  className="font-mono"
+                  value={formData.serialNumber}
+                  onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                />
+              </div>
+            </div>
 
- <div className="space-y-4">
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Purchase Date
- </label>
- <input
- type="date"
- value={formData.purchaseDate}
- className="w-full px-4 py-2 border rounded-xl outline-none"
- onChange={(e) =>
- setFormData({ ...formData, purchaseDate: e.target.value })
- }
- />
- </div>
+            {/* Right column */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  Acquisition Date
+                </label>
+                <Input
+                  icon={Calendar}
+                  type="date"
+                  value={formData.purchaseDate}
+                  onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                />
+              </div>
 
- <div className="grid grid-cols-2 gap-4">
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Price ($)
- </label>
- <input
- type="number"
- value={formData.purchasePrice}
- placeholder="1200"
- className="w-full px-4 py-2 border rounded-xl outline-none"
- onChange={(e) =>
- setFormData({
- ...formData,
- purchasePrice: e.target.value,
- })
- }
- />
- </div>
- <div>
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Warranty (Mo)
- </label>
- <input
- type="number"
- value={formData.warrantyMonths}
- className="w-full px-4 py-2 border rounded-xl outline-none"
- onChange={(e) =>
- setFormData({
- ...formData,
- warrantyMonths: e.target.value,
- })
- }
- />
- </div>
- </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                    Valuation ($)
+                  </label>
+                  <Input
+                    icon={DollarSign}
+                    type="number"
+                    placeholder="0.00"
+                    value={formData.purchasePrice}
+                    onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                    Coverage (Mo)
+                  </label>
+                  <Input
+                    icon={ShieldAlert}
+                    type="number"
+                    value={formData.warrantyMonths}
+                    onChange={(e) => setFormData({ ...formData, warrantyMonths: e.target.value })}
+                  />
+                </div>
+              </div>
 
- <div className="relative group">
- <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
- Receipt Image
- </label>
- <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:bg-indigo-500/10 hover:border-indigo-500 transition-all">
- <Upload
- size={20}
- className="text-zinc-400 group-hover:text-blue-500 mb-1"
- />
- <span className="text-xs text-zinc-500">
- {file
- ? file.name
- : asset?.receiptUrl
- ? "Update Receipt"
- : "Upload Receipt"}
- </span>
- <input
- type="file"
- className="hidden"
- onChange={(e) => setFile(e.target.files[0])}
- accept="image/*"
- />
- </label>
- </div>
- </div>
- </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  Documentation
+                </label>
+                <label className="flex flex-col items-center justify-center w-full h-[72px] border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-bg-elevated hover:border-accent-primary/50 transition-all duration-200 group">
+                  <Upload size={16} className="text-text-disabled group-hover:text-accent-primary mb-1 transition-colors" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-text-disabled group-hover:text-text-primary transition-colors">
+                    {file ? file.name : asset?.receiptUrl ? "Replace Statement" : "Attach Receipt"}
+                  </span>
+                  <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const selected = e.target.files[0];
+                    if (selected && selected.size > 10 * 1024 * 1024) {
+                      addToast("File too large. Maximum size is 10MB.", "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    setFile(selected || null);
+                  }}
+                />
+                </label>
+              </div>
+            </div>
+          </div>
 
- <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
- <button
- type="button"
- onClick={onClose}
- className="px-6 py-2 text-zinc-300 font-semibold hover:bg-zinc-800 rounded-xl transition-colors"
- >
- Cancel
- </button>
- <button
- type="submit"
- disabled={loading}
- className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 disabled:opacity-50"
- >
- {loading ? (
- <Loader2 className="animate-spin" size={18} />
- ) : asset ? (
- "Update Changes"
- ) : (
- "Register Asset"
- )}
- </button>
- </div>
- </form>
- </div>
- </div>
- );
+          <div className="flex justify-end gap-3 pt-3 border-t border-border">
+            <Button variant="secondary" onClick={onClose} className="px-8">
+              Discard
+            </Button>
+            <Button type="submit" isLoading={loading} className="px-8 min-w-[160px]">
+              {asset ? "Synchronize Changes" : "Commit to Registry"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default AddAssetModal;

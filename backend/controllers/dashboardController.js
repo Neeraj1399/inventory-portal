@@ -19,7 +19,6 @@ export const getAdminDashboard = catchAsync(async (req, res) => {
 
       // Aggregate asset stats by status
       Asset.aggregate([
-        { $match: { isDeleted: { $ne: true } } },
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
 
@@ -101,7 +100,7 @@ export const getStaffDashboard = catchAsync(async (req, res) => {
 
   // Fetch staff allocated assets and consumables
   const [myAssets, myConsumables] = await Promise.all([
-    Asset.find({ allocatedTo: employeeId, isDeleted: { $ne: true } })
+    Asset.find({ allocatedTo: employeeId })
       .select("category model serialNumber status updatedAt")
       .lean(),
     Consumable.find({ "assignments.employeeId": employeeId })
