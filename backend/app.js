@@ -45,14 +45,10 @@ const connectDB = async () => {
   mongoose.set("strictQuery", true);
 
   try {
-    console.log("⏳ Database: Connecting...");
     cachedDb = await mongoose.connect(mongoUri, {
-      // Use default buffering (bufferCommands: true) to handle minor races
-      // but ensure we still await the connection in the middleware.
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
-    console.log("✅ Database: Connected Successfully");
     return cachedDb;
   } catch (err) {
     cachedDb = null;
@@ -84,6 +80,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   process.env.FRONTEND_URL 
 ].filter(Boolean);
 
@@ -134,6 +131,7 @@ app.use("/api", globalLimiter);
 
 app.get("/", (req, res) => res.send("Inventory Management System API is live!"));
 app.get("/api/health", (req, res) => res.status(200).json({ status: "success", message: "Backend is running!" }));
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);

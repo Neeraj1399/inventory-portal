@@ -108,11 +108,16 @@ const IssueConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
                 className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all appearance-none cursor-pointer font-bold"
               >
                 <option value="">Select recipient account...</option>
-                {employees.map((emp) => (
-                  <option key={emp._id} value={emp._id}>
-                    {emp.name} — {emp.department}
-                  </option>
-                ))}
+                {employees.map((emp) => {
+                  const existing = item.assignments?.find(
+                    (a) => (a.employeeId?._id || a.employeeId)?.toString() === emp._id.toString()
+                  );
+                  return (
+                    <option key={emp._id} value={emp._id}>
+                      {emp.name} — {emp.department}{existing ? ` · ${existing.quantity} held` : ""}
+                    </option>
+                  );
+                })}
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
                 <PackageCheck size={18} />

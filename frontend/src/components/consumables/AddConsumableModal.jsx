@@ -12,7 +12,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
     category: "",
     totalQuantity: "",
     unitCost: "",
-    lowStockThreshold: 5,
+    lowStockThreshold: 1,
   });
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +78,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
           <div className="space-y-6">
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
-                Resource Descriptor
+                Name
               </label>
               <Input
                 icon={Package}
@@ -107,7 +107,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
-                  Unit Valuation ($)
+                  Unit Cost ($)
                 </label>
                 <Input
                   icon={DollarSign}
@@ -125,7 +125,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
-                  Intake Volume
+                  Stock
                 </label>
                 <Input
                   icon={Hash}

@@ -10,12 +10,10 @@ import {
   RotateCcw,
   FileText,
   Wrench,
-  X,
   RefreshCw,
   ChevronDown,
   Filter,
   AlertCircle,
-  MoreVertical,
   Laptop,
   Monitor,
   Smartphone,
@@ -198,7 +196,7 @@ const AssetList = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     setActionMenuPos({
       top: rect.bottom + 6,
-      right: window.innerWidth - rect.right,
+      right: document.documentElement.clientWidth - rect.right,
     });
     setActionMenuAsset(actionMenuAsset?._id === asset._id ? null : asset);
     setSelectedAsset(asset);
@@ -399,6 +397,7 @@ const AssetList = () => {
       {/* ── ALL MODALS & OVERLAYS OUTSIDE PageTransition ── */}
 
       {/* Action dropdown — anchored to the clicked button */}
+      <AnimatePresence>
       {actionMenuAsset && (
         <>
           <div className="fixed inset-0 z-[150]" onClick={() => setActionMenuAsset(null)} />
@@ -411,31 +410,27 @@ const AssetList = () => {
             style={{ top: actionMenuPos.top, right: actionMenuPos.right }}
             className="fixed z-[151] w-52 bg-bg-secondary border border-border rounded-2xl shadow-premium overflow-hidden"
           >
-            <div className="px-4 py-3 border-b border-border bg-bg-tertiary/30">
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest truncate">{actionMenuAsset.model}</p>
-            </div>
-            <div className="p-1.5 space-y-0.5">
-              <MenuOption icon={<FileText size={15} />} label="View Receipt" onClick={() => { if (actionMenuAsset.receiptUrl) window.open(actionMenuAsset.receiptUrl, "_blank"); else addToast("No receipt found", "info"); setActionMenuAsset(null); }} />
-              <MenuOption icon={<Edit3 size={15} />} label="Edit Details" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ADD"); setActionMenuAsset(null); }} />
-              <div className="h-px bg-border mx-2 my-1" />
+              <MenuOption icon={<FileText size={14} />} label="View Receipt" onClick={() => { if (actionMenuAsset.receiptUrl) window.open(actionMenuAsset.receiptUrl, "_blank"); else addToast("No receipt found", "info"); setActionMenuAsset(null); }} />
+              <MenuOption icon={<Edit3 size={14} />} label="Edit Details" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ADD"); setActionMenuAsset(null); }} />
+              <div className="h-px bg-border" />
               {actionMenuAsset.status === "READY_TO_DEPLOY" && (
                 <>
-                  <MenuOption icon={<UserPlus size={15} />} label="Allocate" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ASSIGN"); setActionMenuAsset(null); }} color="text-accent-primary" />
-                  <MenuOption icon={<Wrench size={15} />} label="Condition" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
+                  <MenuOption icon={<UserPlus size={14} />} label="Allocate" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("ASSIGN"); setActionMenuAsset(null); }} color="text-accent-primary" />
+                  <MenuOption icon={<Wrench size={14} />} label="Condition" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
                 </>
               )}
               {actionMenuAsset.status === "ALLOCATED" && (
-                <MenuOption icon={<RotateCcw size={15} />} label="Return" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("RETURN"); setActionMenuAsset(null); }} color="text-accent-secondary" />
+                <MenuOption icon={<RotateCcw size={14} />} label="Return" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("RETURN"); setActionMenuAsset(null); }} color="text-accent-secondary" />
               )}
               {actionMenuAsset.status === "UNDER_MAINTENANCE" && (
-                <MenuOption icon={<Wrench size={15} />} label="Resolve Repair" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
+                <MenuOption icon={<Wrench size={14} />} label="Resolve Repair" onClick={() => { setSelectedAsset(actionMenuAsset); setActiveModal("CONDITION"); setActionMenuAsset(null); }} color="text-status-warning" />
               )}
-              <div className="h-px bg-border mx-2 my-1" />
-              <MenuOption icon={<Trash2 size={15} />} label="Delete" onClick={(e) => handleDelete(e, actionMenuAsset)} color="text-status-danger" />
-            </div>
+              <div className="h-px bg-border" />
+              <MenuOption icon={<Trash2 size={14} />} label="Delete" onClick={(e) => handleDelete(e, actionMenuAsset)} color="text-status-danger" />
           </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       <AddAssetModal isOpen={activeModal === "ADD"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
       <AssignAssetModal isOpen={activeModal === "ASSIGN"} asset={selectedAsset} onClose={closeAllModals} onRefresh={() => fetchAssets(true)} />
@@ -477,15 +472,13 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const MenuOption = ({ icon, label, onClick, color = "text-text-primary" }) => (
+const MenuOption = ({ icon, label, onClick, color = "text-text-muted hover:text-text-primary" }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-bg-tertiary transition-all duration-150 text-left group"
+    className={`w-full flex items-center gap-3 px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all text-left hover:bg-bg-tertiary ${color}`}
   >
-    <span className={`transition-transform duration-200 group-hover:scale-110 shrink-0 ${color}`}>{icon}</span>
-    <span className={`text-[11px] font-bold tracking-wide ${color === "text-text-primary" ? "text-text-secondary group-hover:text-text-primary" : color}`}>
-      {label}
-    </span>
+    <span className="shrink-0">{icon}</span>
+    <span>{label}</span>
   </button>
 );
 

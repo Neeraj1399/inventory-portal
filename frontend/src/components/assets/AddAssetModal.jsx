@@ -108,7 +108,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
             <div className="space-y-3">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                  Classification
+                  Category
                 </label>
                 <Input
                   icon={Layers}
@@ -121,7 +121,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                  Model Identifier
+                  Model
                 </label>
                 <Input
                   icon={Tag}
@@ -134,7 +134,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                  Unique Serial
+                  Serial Number
                 </label>
                 <Input
                   icon={Hash}
@@ -164,7 +164,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                    Valuation ($)
+                    Cost
                   </label>
                   <Input
                     icon={DollarSign}
@@ -176,7 +176,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                    Coverage (Mo)
+                    Warranty (Mo)
                   </label>
                   <Input
                     icon={ShieldAlert}
@@ -189,12 +189,12 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
-                  Documentation
+                  Receipt
                 </label>
                 <label className="flex flex-col items-center justify-center w-full h-[72px] border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-bg-elevated hover:border-accent-primary/50 transition-all duration-200 group">
                   <Upload size={16} className="text-text-disabled group-hover:text-accent-primary mb-1 transition-colors" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-text-disabled group-hover:text-text-primary transition-colors">
-                    {file ? file.name : asset?.receiptUrl ? "Replace Statement" : "Attach Receipt"}
+                    {file ? file.name : asset?.receiptUrl ? "Replace" : "Attach Receipt"}
                   </span>
                   <input
                   type="file"

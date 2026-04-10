@@ -2,14 +2,11 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import {
   UserPlus,
   Mail,
-  UserMinus,
   Laptop,
-  Plus,
   Edit,
   Package,
   ShieldCheck,
   Ban,
-  RotateCcw,
   RefreshCw,
   Search
 } from "lucide-react";
@@ -414,7 +411,7 @@ const EmployeeList = () => {
                                   <button onClick={() => openAssetModal(emp)} className="p-3 rounded-2xl text-accent-primary bg-accent-primary/10 hover:bg-accent-primary/20 transition-all active:scale-90 border border-accent-primary/20 shadow-sm" title="Assets"><Laptop size={16} /></button>
                                   <button onClick={() => openConsumableModal(emp)} className="p-3 rounded-2xl text-status-success bg-status-success/10 hover:bg-status-success/20 transition-all active:scale-90 border border-status-success/20 shadow-sm" title="Items"><Package size={16} /></button>
                                   <button onClick={() => openEditModal(emp)} className="p-3 rounded-2xl text-text-muted bg-bg-tertiary border border-border active:scale-90 transition-all hover:text-text-primary" title="Edit"><Edit size={16} /></button>
-                                  <button disabled={hasItemsAssigned} onClick={() => handleToggleStatus(emp._id, emp.status)} className={`p-3 rounded-2xl transition-all border active:scale-90 ${hasItemsAssigned ? "border-border text-text-disabled/20 bg-bg-tertiary opacity-40 cursor-not-allowed" : "text-status-danger bg-status-danger/10 border-status-danger/20 hover:bg-status-danger hover:text-white"}`} title="Offboard"><Ban size={16} /></button>
+                                  <button disabled={hasItemsAssigned} onClick={() => handleToggleStatus(emp._id, emp.status)} className={`p-3 rounded-2xl transition-all border active:scale-90 ${hasItemsAssigned ? "border-border text-text-disabled bg-bg-tertiary opacity-50 cursor-not-allowed" : "text-status-danger bg-status-danger/10 border-status-danger/20 hover:bg-status-danger hover:text-white"}`} title="Offboard"><Ban size={16} /></button>
                                 </>
                               )}
                             </div>

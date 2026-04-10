@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { User, Settings, ShieldCheck } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { User, ShieldCheck } from "lucide-react";
 import EditProfileModal from "./EditProfileModal";
-import { motion, AnimatePresence } from "framer-motion";
 
 const UserMenu = ({ user, onUpdate }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const btnRef = useRef(null);
 
   if (!user) {
     return (
@@ -21,6 +21,7 @@ const UserMenu = ({ user, onUpdate }) => {
   return (
     <div className="flex items-center gap-3">
       <button
+        ref={btnRef}
         onClick={() => setIsEditModalOpen(true)}
         className="flex items-center gap-4 px-3 py-2 rounded-2xl hover:bg-bg-secondary border border-transparent hover:border-border transition-all group active:scale-[0.98] cursor-pointer"
         title="Account Configuration"
@@ -42,8 +43,6 @@ const UserMenu = ({ user, onUpdate }) => {
         <div className="h-12 w-12 bg-bg-elevated rounded-2xl flex items-center justify-center border border-border group-hover:border-accent-primary/50 transition-all shadow-premium group-hover:shadow-glow-sm relative overflow-hidden">
           <div className="absolute inset-0 bg-accent-primary/0 group-hover:bg-accent-primary/5 transition-colors" />
           <User size={22} className="text-text-muted group-hover:text-accent-primary transition-colors relative z-10" />
-          
-          {/* Subtle indicator dot */}
           <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-accent-primary rounded-full shadow-glow animate-pulse" />
         </div>
       </button>
@@ -53,6 +52,7 @@ const UserMenu = ({ user, onUpdate }) => {
         onClose={() => setIsEditModalOpen(false)}
         user={user}
         onUpdate={onUpdate}
+        anchorRef={btnRef}
       />
     </div>
   );

@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { User, Mail, X, Save } from "lucide-react";
+import { User, Mail, Save } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/api";
 
-// Premium Primitives
 import Button from "./Button";
 import Input from "./Input";
 
-const EditProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
+const EditProfileModal = ({ isOpen, onClose, user, onUpdate, anchorRef }) => {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    if (isOpen && anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 8,
+        right: document.documentElement.clientWidth - rect.right,
+      });
+    }
+  }, [isOpen, anchorRef]);
 
   useEffect(() => {
     if (user && isOpen) {
@@ -37,7 +47,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
       onUpdate(res.data.data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update identity parameters.");
+      setError(err.response?.data?.message || "Failed to update profile.");
     } finally {
       setIsSaving(false);
     }
@@ -46,101 +56,83 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-bg-primary/85 backdrop-blur-xl"
+        <>
+          <div
+            className="fixed inset-0 z-[200]"
             onClick={!isSaving ? onClose : undefined}
           />
-
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 8 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-sm bg-bg-tertiary border border-accent-primary/20 rounded-[2.5rem] overflow-hidden shadow-glow z-10"
+            style={{ top: pos.top, right: pos.right }}
+            className="fixed z-[201] w-80 bg-bg-secondary border border-border rounded-2xl shadow-premium overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
-            {!isSaving && (
-              <button 
-                onClick={onClose}
-                className="absolute top-8 right-8 p-3 text-text-muted hover:text-white hover:bg-bg-tertiary rounded-2xl transition-all active:scale-95 z-10"
-              >
-                <X size={20} />
-              </button>
-            )}
+            <div className="px-5 py-4 border-b border-border bg-bg-tertiary/40">
+              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                Edit Profile
+              </p>
+            </div>
 
-            <div className="p-10 text-center space-y-10">
-              {/* Header Icon */}
-              <div className="relative mx-auto w-24 h-24">
-                <div className="absolute inset-0 bg-accent-primary/20 rounded-full blur-[40px] animate-pulse" />
-                <div className="relative bg-bg-elevated border border-border w-full h-full rounded-3xl flex items-center justify-center text-accent-primary shadow-inner">
-                  <User size={40} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black text-text-primary tracking-tight">Identity Settings</h3>
-                <p className="text-text-muted text-[10px] uppercase font-black tracking-widest opacity-60">Manage your authenticated profile</p>
-              </div>
-
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
-                <div className="p-4 bg-status-danger/10 border border-status-danger/20 rounded-2xl text-status-danger text-[10px] font-black uppercase tracking-widest">
+                <div className="p-3 bg-status-danger/10 border border-status-danger/20 rounded-xl text-status-danger text-[10px] font-black uppercase tracking-widest">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6 text-left">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Full Name</label>
-                  <Input
-                    icon={User}
-                    type="text"
-                    required
-                    placeholder="Identity Label"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">
+                  Full Name
+                </label>
+                <Input
+                  icon={User}
+                  type="text"
+                  required
+                  placeholder="Full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Email Address</label>
-                  <Input
-                    icon={Mail}
-                    type="email"
-                    required
-                    placeholder="Identity Link"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">
+                  Email Address
+                </label>
+                <Input
+                  icon={Mail}
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
 
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 h-14 uppercase tracking-widest text-[11px]"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    isLoading={isSaving}
-                    className="flex-[2] h-14 uppercase tracking-widest text-[11px]"
-                    icon={Save}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 uppercase tracking-widest text-[10px]"
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  isLoading={isSaving}
+                  className="flex-[2] uppercase tracking-widest text-[10px]"
+                  icon={Save}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
           </motion.div>
-        </div>
+        </>
       )}
     </AnimatePresence>
   );

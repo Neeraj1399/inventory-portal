@@ -30,7 +30,7 @@ const RestockConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-bg-primary/80 backdrop-blur-sm">
       <div className="bg-bg-secondary border border-border w-full max-w-sm rounded-3xl shadow-premium overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex justify-between items-center">

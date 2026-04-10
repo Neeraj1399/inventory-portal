@@ -61,10 +61,12 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
 
  const inputClass = "input-base bg-bg-tertiary";
  const labelClass = "block text-[10px] font-bold uppercase text-text-muted mb-1 ml-1 tracking-wide";
+ const iconWrap = "flex items-center gap-2 px-3 py-2 bg-bg-tertiary border border-border rounded-xl focus-within:ring-2 focus-within:ring-accent-primary/30 focus-within:border-accent-primary transition-all duration-200";
+ const iconInput = "flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-disabled focus:outline-none min-w-0";
 
  return (
- <div className="fixed inset-0 z-[60] flex items-start justify-center pt-10 px-4 pb-4 bg-bg-primary/80 backdrop-blur-sm">
- <div className="bg-bg-secondary border border-border w-full max-w-lg rounded-2xl shadow-premium overflow-hidden animate-in fade-in zoom-in duration-200">
+ <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 bg-bg-primary/80 backdrop-blur-sm animate-in fade-in duration-200">
+ <div className="bg-bg-secondary border border-border w-full max-w-lg rounded-2xl shadow-premium overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
   {/* Header */}
   <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
  <h2 className="text-lg font-bold text-text-primary">Edit Employee</h2>
@@ -93,12 +95,12 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  {/* Email */}
  <div>
  <label className={labelClass}>Work Email</label>
- <div className="relative flex items-center">
- <Mail className="absolute left-3 text-text-muted" size={15} />
+ <div className={iconWrap}>
+ <Mail size={15} className="text-text-muted shrink-0" />
  <input
  type="email"
  required
- className={`${inputClass} pl-9`}
+ className={iconInput}
  value={formData.email}
  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
  />
@@ -142,13 +144,13 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  {/* Employment Type */}
  <div>
  <label className={labelClass}>Type</label>
- <div className="relative flex items-center">
- <Briefcase className="absolute left-3 text-text-muted" size={15} />
+ <div className={iconWrap}>
+ <Briefcase size={15} className="text-text-muted shrink-0" />
  <input
  type="text"
  required
  placeholder="Full-Time"
- className={`${inputClass} pl-9`}
+ className={iconInput}
  value={formData.type}
  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
  />
@@ -158,13 +160,13 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  {/* Role */}
  <div>
  <label className={labelClass}>Role</label>
- <div className="relative flex items-center">
- <Shield className="absolute left-3 text-text-muted" size={15} />
+ <div className={iconWrap}>
+ <Shield size={15} className="text-text-muted shrink-0" />
  <input
  type="text"
  required
  placeholder="Developer"
- className={`${inputClass} pl-9`}
+ className={iconInput}
  value={formData.role}
  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
  />
@@ -174,13 +176,13 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  {/* Level */}
  <div>
  <label className={labelClass}>Level</label>
- <div className="relative flex items-center">
- <Layers className="absolute left-3 text-text-muted" size={15} />
+ <div className={iconWrap}>
+ <Layers size={15} className="text-text-muted shrink-0" />
  <input
  type="text"
  required
  placeholder="Senior"
- className={`${inputClass} pl-9`}
+ className={iconInput}
  value={formData.level}
  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
  />
@@ -191,13 +193,13 @@ const EditEmployeeModal = ({ isOpen, onClose, employeeData, onRefresh }) => {
  {/* Department */}
  <div>
  <label className={labelClass}>Department</label>
- <div className="relative flex items-center">
- <Building2 className="absolute left-3 text-text-muted" size={15} />
+ <div className={iconWrap}>
+ <Building2 size={15} className="text-text-muted shrink-0" />
  <input
  type="text"
  required
  placeholder="Engineering"
- className={`${inputClass} pl-9`}
+ className={iconInput}
  value={formData.department}
  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
  />

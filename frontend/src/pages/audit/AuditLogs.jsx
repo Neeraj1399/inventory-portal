@@ -192,9 +192,9 @@ const AuditLogs = () => {
           <div className="lg:col-span-4">
             <Input icon={Search} placeholder="Search by activity, user, or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="lg:col-span-2 relative">
-             <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-             <input type="date" className="w-full h-14 bg-bg-elevated border border-border rounded-2xl pl-12 pr-4 text-sm text-text-primary focus:border-accent-primary outline-none transition-all [color-scheme:dark]" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+          <div className="lg:col-span-2 flex items-center gap-2 h-14 bg-bg-elevated border border-border rounded-2xl px-4 transition-all focus-within:border-accent-primary">
+            <Calendar size={16} className="text-text-muted shrink-0 cursor-pointer hover:text-accent-primary transition-colors" onClick={(e) => e.currentTarget.closest('div').querySelector('input')?.showPicker?.()} />
+            <input type="date" className="flex-1 bg-transparent text-sm text-text-primary focus:outline-none [color-scheme:dark] min-w-0" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
           </div>
           <div className="lg:col-span-2 relative">
             <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
