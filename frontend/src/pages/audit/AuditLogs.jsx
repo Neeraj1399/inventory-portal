@@ -95,7 +95,9 @@ const AuditLogs = () => {
   const [userFilter, setUserFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-
+  const [isActionOpen, setIsActionOpen] = useState(false);
+  const [isUserOpen, setIsUserOpen] = useState(false);
+  const [isEntityOpen, setIsEntityOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -187,7 +189,7 @@ const AuditLogs = () => {
         }
       />
 
-      <Card className="p-6">
+      <Card className="p-6 !overflow-visible">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4">
             <Input icon={Search} placeholder="Search by activity, user, or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -197,25 +199,85 @@ const AuditLogs = () => {
             <input type="date" className="flex-1 bg-transparent text-sm text-text-primary focus:outline-none [color-scheme:dark] min-w-0" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
           </div>
           <div className="lg:col-span-2 relative">
-            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
-              <option value="">All Actions</option>
-              {Array.from(new Set(logs.map(l => l.action))).filter(Boolean).map(a => (<option key={a}>{a}</option>))}
-            </select>
-            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+            <button
+              onClick={() => { setIsActionOpen(o => !o); setIsUserOpen(false); setIsEntityOpen(false); }}
+              className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isActionOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
+            >
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                {actionFilter || "All Actions"}
+              </span>
+              <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isActionOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isActionOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsActionOpen(false)} />
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
+                    {["", ...Array.from(new Set(logs.map(l => l.action))).filter(Boolean)].map(a => (
+                      <button key={a || "__all"} onClick={() => { setActionFilter(a); setIsActionOpen(false); }}
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${actionFilter === a ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        {a || "All Actions"}
+                        {actionFilter === a && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <div className="lg:col-span-2 relative">
-            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={userFilter} onChange={(e) => setUserFilter(e.target.value)}>
-              <option value="">All Users</option>
-              {Array.from(new Set(logs.map(l => l.performedBy?.name || "System"))).map(u => (<option key={u}>{u}</option>))}
-            </select>
-            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+            <button
+              onClick={() => { setIsUserOpen(o => !o); setIsActionOpen(false); setIsEntityOpen(false); }}
+              className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isUserOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
+            >
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                {userFilter || "All Users"}
+              </span>
+              <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isUserOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isUserOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsUserOpen(false)} />
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
+                    {["", ...Array.from(new Set(logs.map(l => l.performedBy?.name).filter(Boolean)))].map(u => (
+                      <button key={u || "__all"} onClick={() => { setUserFilter(u); setIsUserOpen(false); }}
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${userFilter === u ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        {u || "All Users"}
+                        {userFilter === u && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <div className="lg:col-span-2 relative">
-            <select className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary outline-none appearance-none cursor-pointer" value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)}>
-              <option value="">All Entities</option>
-              {Array.from(new Set(logs.map(l => l.entityType))).filter(Boolean).map(e => (<option key={e}>{e}</option>))}
-            </select>
-            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+            <button
+              onClick={() => { setIsEntityOpen(o => !o); setIsActionOpen(false); setIsUserOpen(false); }}
+              className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isEntityOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
+            >
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                {entityFilter || "All Entities"}
+              </span>
+              <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isEntityOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isEntityOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsEntityOpen(false)} />
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
+                    {["", ...Array.from(new Set(logs.map(l => l.entityType))).filter(Boolean)].map(e => (
+                      <button key={e || "__all"} onClick={() => { setEntityFilter(e); setIsEntityOpen(false); }}
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${entityFilter === e ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        {e || "All Entities"}
+                        {entityFilter === e && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Card>

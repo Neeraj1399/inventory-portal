@@ -84,6 +84,7 @@ const RequestList = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   
   const debouncedSearch = useDebounce(searchTerm, 500);
   const isAdmin = user?.roleAccess === "ADMIN";
@@ -269,7 +270,7 @@ const RequestList = () => {
         }
       />
 
-      <Card className="p-6">
+      <Card className="p-6 !overflow-visible">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
             <Input 
@@ -281,21 +282,43 @@ const RequestList = () => {
           </div>
           
           <div className="relative min-w-[240px]">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-              <Filter size={18} />
-            </div>
-            <select 
-              className="w-full h-14 bg-bg-elevated border border-border rounded-2xl pl-12 pr-10 text-sm text-text-primary focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all appearance-none cursor-pointer"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+            <button
+              onClick={() => setIsStatusOpen(o => !o)}
+              className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isStatusOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
             >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending Approval</option>
-              <option value="APPROVED">Approved</option>
-              <option value="FULFILLED">Fulfilled</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
-            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none" />
+              <div className="flex items-center gap-3">
+                <Filter size={16} className={statusFilter ? "text-accent-primary" : "text-text-muted"} />
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                  {statusFilter === "" ? "All Statuses"
+                    : statusFilter === "PENDING" ? "Pending Approval"
+                    : statusFilter === "APPROVED" ? "Approved"
+                    : statusFilter === "FULFILLED" ? "Fulfilled"
+                    : statusFilter === "REJECTED" ? "Rejected"
+                    : statusFilter}
+                </span>
+              </div>
+              <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isStatusOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isStatusOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsStatusOpen(false)} />
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  {[
+                    { value: "", label: "All Statuses" },
+                    { value: "PENDING", label: "Pending Approval" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "FULFILLED", label: "Fulfilled" },
+                    { value: "REJECTED", label: "Rejected" },
+                  ].map(({ value, label }) => (
+                    <button key={value || "__all"} onClick={() => { setStatusFilter(value); setIsStatusOpen(false); }}
+                      className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${statusFilter === value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                      {label}
+                      {statusFilter === value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Card>
