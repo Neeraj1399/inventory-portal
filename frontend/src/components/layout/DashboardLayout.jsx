@@ -202,8 +202,8 @@ const DashboardLayout = () => {
             </PageTransition>
           </div>
           
-          <footer className="mt-12 py-10 border-t border-border flex flex-col sm:flex-row items-center justify-between text-[11px] text-text-muted font-bold uppercase tracking-[0.2em] gap-6">
-            <p>&copy; {new Date().getFullYear()} Inventory Portal <span className="text-accent-primary font-black">SYSTEM</span></p>
+          <footer className="mt-12 py-10 border-t border-border flex flex-col sm:flex-row items-center justify-between text-[11px] text-text-muted font-bold tracking-[0.2em] gap-6">
+            <p>&copy; {new Date().getFullYear()} Inventory Portal <span className="text-accent-primary font-black">System</span></p>
             <div className="flex items-center gap-8">
               <a href="#" className="hover:text-text-primary transition-all duration-200 ease-out hover:-translate-y-0.5">Privacy Policy</a>
               <a href="#" className="hover:text-text-primary transition-all duration-200 ease-out hover:-translate-y-0.5">Terms of Service</a>

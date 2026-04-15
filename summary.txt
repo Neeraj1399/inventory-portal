@@ -1,0 +1,127 @@
+EKS Docker + Lambda + SQS Retry Architecture
+=============================================
+Plan, Suggestions & Possible Issues
+
+
+HOW IT WORKS (CONCEPT)
+-----------------------
+Your EKS Docker app does NOT call Lambda directly.
+The connection flow is:
+
+  EKS FastAPI (Docker) → SQS Queue → Lambda (auto-triggered) → Email/Ticket retry
+
+SQS is the bridge. EKS writes a message to SQS when something fails.
+Lambda is triggered automatically by SQS (event source mapping — already in your SAM template).
+
+
+WHAT NEEDS TO BE DONE
+----------------------
+
+1. EKS Side — Publish Failures to SQS
+   - In your FastAPI code, when an email or ticket operation fails, use boto3 to
+     send a message to the correct SQS queue.
+   - Queue URLs already exist as env vars in your SAM template:
+       EMAIL_RETRY_QUEUE_URL, TICKET_RETRY_QUEUE_URL, ACTIVE_RECOVERY_QUEUE_URL
+   - These same env vars must be injected into the EKS pod via Deployment manifest.
+
+2. IAM Permissions for EKS (IRSA — Critical)
+   - EKS pods do NOT automatically have AWS permissions.
+   - Create a Kubernetes Service Account with an IAM role annotation (IRSA).
+   - That IAM role needs: sqs:SendMessage on the retry queue ARNs.
+   - Without this, every boto3 call from EKS will return AccessDenied.
+
+3. Lambda Handler Files (Missing from Repo)
+   - The SAM template references handler files that do not exist yet:
+       lambda/email_retry_processor.py
+       lambda/ticket_retry_processor.py
+       lambda/active_recovery_processor.py
+       lambda/clean_webhooks.py
+       lambda/check_pending_payments.py
+   - Each file must export a handler(event, context) function.
+   - The handler receives SQS messages and performs the retry logic.
+
+4. Deploy the SAM Template
+   - The SAM template (template.yaml) has not been deployed yet.
+   - Use: sam build → sam deploy with parameter overrides (env, secrets, SMTP, Stripe, etc.)
+   - Creates: SQS queues, Lambda functions, RDS, VPC, CloudWatch alarms, SNS alerts.
+
+
+ARCHITECTURE SUGGESTIONS
+-------------------------
+
+SQS Queue Design (already in template — good)
+   - EmailRetryQueue      : failed emails (ticket confirmations, receipts)
+   - TicketRetryQueue     : failed ticket delivery to customers
+   - ActiveRecoveryQueue  : active order recovery scenarios
+   - TalentaDLQ           : final dead-letter queue — messages land here after all retries exhausted
+
+Retry Strategy
+   - Each queue has maxReceiveCount (3 for dev, 5 for prod) before moving to DLQ.
+   - Use exponential backoff: re-enqueue with DelaySeconds (5 → 30 → 120 → 600 seconds).
+   - Lambda VisibilityTimeout must be longer than max Lambda execution time.
+
+Alerting (already in template — good)
+   - DLQAlarm fires when any message enters TalentaDLQ.
+   - Sends alert via SNS → email + Slack channel email.
+   - Also has API Gateway 5XX alarm and custom backend 5XX metric alarm.
+
+
+VPC CONSIDERATION
+------------------
+Your EKS cluster and the SAM-created VPC are separate.
+
+SQS is a public AWS managed service (HTTPS endpoint).
+EKS pods reach SQS over the internet via NAT Gateway — no VPC peering needed.
+Lambda stays in the SAM VPC to reach RDS over private subnet.
+
+  EKS VPC → NAT GW → public internet → SQS (AWS managed)
+  Lambda (SAM VPC) ← SQS triggers → Lambda → RDS (same private subnet)
+
+This is the standard pattern. No cross-VPC complexity required.
+
+
+POSSIBLE ISSUES TO WATCH
+--------------------------
+
+Issue                          | Risk                                          | Recommendation
+-------------------------------|-----------------------------------------------|--------------------------------------------------
+Missing IRSA setup             | EKS can't write to SQS (AccessDenied)         | Create service account + IAM role before deploying
+Lambda handler files missing   | SAM deploy fails or Lambda errors on invoke   | Create all 5 handler files before sam deploy
+VisibilityTimeout < timeout    | SQS re-delivers before Lambda finishes         | VisibilityTimeout = Lambda Timeout x6 (template already does this)
+EKS env vars not set           | EKS app doesn't know queue URLs               | Inject EMAIL_RETRY_QUEUE_URL etc. into Deployment manifest
+SAM VPC vs EKS VPC confusion   | EKS can't reach SQS                           | SQS needs no VPC — just IAM permission + NAT
+DLQ not monitored              | Failed emails silently dropped                | DLQAlarm is correct — subscribe a real email to SNS
+Retry storms                   | Same failure enqueued multiple times          | Deduplicate using order_id as MessageDeduplicationId (FIFO queue)
+Lambda cold start              | First retry 1–3s slower                       | Use Provisioned Concurrency for EmailRetryFunction in prod
+SMTP rate limits               | Rapid retries hit Gmail/SMTP limits           | Exponential backoff in retry delays prevents this (already configured)
+
+
+DEPLOYMENT ORDER
+-----------------
+1. Deploy SAM template → creates SQS queues, Lambda, RDS, VPC
+2. Note the SQS queue URLs from SAM Outputs
+3. Create IRSA service account in EKS with SQS write permissions
+4. Update EKS Deployment manifest with queue URL env vars
+5. Add SQS publish code to FastAPI wherever email/ticket operations can fail
+6. Test: trigger a failure manually, verify message appears in SQS, Lambda retries it
+7. Test DLQ: exhaust all retries, verify DLQAlarm fires and SNS sends alert
+
+
+IS "EMAIL NOT RECEIVED" A TECHNICAL ISSUE?
+-------------------------------------------
+Yes — but only some causes are retryable:
+
+RETRYABLE (Lambda retry helps):
+  - SMTP timeout or connection refused
+  - SES/SMTP rate limit exceeded
+  - Lambda cold start timeout
+  - Temporary DB unavailability when reading order data
+
+NOT RETRYABLE (needs manual fix):
+  - Wrong SMTP credentials (auth failure)
+  - Invalid or nonexistent email address
+  - Email delivered but landed in spam (not a backend issue)
+  - Stripe webhook arrived but order not yet in DB (race condition — needs delay, not retry)
+
+The DLQ + alert system covers the non-retryable cases:
+your team gets notified and can investigate manually.

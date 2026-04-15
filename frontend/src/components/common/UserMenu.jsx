@@ -31,7 +31,7 @@ const UserMenu = ({ user, onUpdate }) => {
             {user.name}
           </p>
           <div className="flex items-center justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-            <span className="text-[9px] text-accent-primary font-black uppercase tracking-[0.2em]">
+            <span className="text-[9px] text-accent-primary font-black tracking-[0.2em]">
               {user.role || "STAFF"}
             </span>
             {user.roleAccess === "ADMIN" && (

@@ -8,6 +8,7 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider, useToast } from "./context/ToastContext";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import ScrollManager from "./components/common/ScrollManager";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./components/common/PageTransition";
 
@@ -71,8 +72,8 @@ function AppContent() {
             </div>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-primary">Athiva Matrix</span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted opacity-60">Synchronizing Environment...</span>
+            <span className="text-[10px] font-black tracking-[0.3em] text-text-primary">Athiva Matrix</span>
+            <span className="text-[9px] font-black tracking-widest text-text-muted opacity-60">Synchronizing Environment...</span>
           </div>
         </motion.div>
       </AnimatePresence>
@@ -81,6 +82,7 @@ function AppContent() {
 
   return (
     <Router>
+      <ScrollManager />
       <Routes>
         {/* --- PUBLIC ROUTES --- */}
         <Route
@@ -109,7 +111,7 @@ function AppContent() {
                       className="min-h-screen flex flex-col items-center justify-center bg-bg-primary gap-6"
                     >
                       <div className="w-10 h-10 border-4 border-accent-secondary border-t-transparent rounded-full animate-spin shadow-glow-sm" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-text-disabled opacity-40">Loading Module...</span>
+                      <span className="text-[9px] font-black tracking-widest text-text-disabled opacity-40">Loading Module...</span>
                     </motion.div>
                 }
               >

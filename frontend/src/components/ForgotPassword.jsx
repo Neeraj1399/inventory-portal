@@ -65,7 +65,7 @@ const ForgotPassword = () => {
             <h1 className="text-3xl font-black text-text-primary tracking-tight">
               Recovery <span className="text-accent-primary">Vector</span>
             </h1>
-            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+            <p className="text-text-muted font-black tracking-[0.2em] mt-4 text-[10px] opacity-60">
               Identity Restoration Protocols
             </p>
           </div>
@@ -85,7 +85,7 @@ const ForgotPassword = () => {
                 </p>
 
                 {status.error && (
-                  <div className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 rounded-2xl text-status-danger text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                  <div className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 rounded-2xl text-status-danger text-[10px] font-black tracking-widest flex items-center gap-3">
                     <div className="w-1.5 h-1.5 bg-status-danger rounded-full animate-pulse" />
                     {status.error}
                   </div>
@@ -93,7 +93,7 @@ const ForgotPassword = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                    <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1">
                       Identity Descriptor
                     </label>
                     <Input
@@ -111,7 +111,7 @@ const ForgotPassword = () => {
                     type="submit"
                     isLoading={status.loading}
                     disabled={!email}
-                    className="w-full h-14 uppercase tracking-widest text-[11px]"
+                    className="w-full h-14 tracking-widest text-[11px]"
                     icon={Send}
                   >
                     Transmit Recovery Vector
@@ -138,7 +138,7 @@ const ForgotPassword = () => {
                   you will receive the recovery vector shortly.
                 </p>
                 <div className="mt-10 p-6 bg-bg-elevated rounded-2xl border border-border shadow-inner">
-                  <p className="text-[10px] text-text-muted uppercase tracking-[0.2em] font-black flex items-center justify-center gap-3">
+                  <p className="text-[10px] text-text-muted tracking-[0.2em] font-black flex items-center justify-center gap-3">
                     <span className="w-1.5 h-1.5 bg-status-warning rounded-full animate-pulse" />
                     Check spam repositories
                   </p>
@@ -150,7 +150,7 @@ const ForgotPassword = () => {
           <div className="mt-12 pt-8 border-t border-border flex justify-center">
             <button
               onClick={() => navigate("/login")}
-              className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-white transition-all group active:scale-95"
+              className="flex items-center gap-3 text-[10px] font-black tracking-[0.2em] text-text-muted hover:text-white transition-all group active:scale-95"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
               Return to Authentication

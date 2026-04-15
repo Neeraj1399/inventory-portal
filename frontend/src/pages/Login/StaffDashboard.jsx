@@ -20,7 +20,7 @@ const StatCard = ({ icon, title, value, colorClass }) => (
     {React.cloneElement(icon, { size: 22 })}
   </div>
   <div className="space-y-1">
-    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">{title}</p>
+    <p className="text-[10px] font-black text-text-muted tracking-[0.2em]">{title}</p>
     <p className="text-3xl font-bold text-text-primary tabular-nums tracking-tighter">{value}</p>
   </div>
  </div>
@@ -30,7 +30,7 @@ const AssetRow = ({ asset }) => (
  <tr className="hover:bg-bg-tertiary/30 transition-all group border-b border-bg-tertiary/50 last:border-0 cursor-default h-[72px]">
   <td className="px-6 py-5">
     <div className="flex flex-col">
-      <span className="text-xs font-black text-accent-purple uppercase tracking-widest opacity-80 mb-1">{asset.category}</span>
+      <span className="text-xs font-black text-accent-purple tracking-widest opacity-80 mb-1">{asset.category}</span>
       <span className="text-sm font-bold text-text-primary group-hover:text-white transition-colors tracking-tight">{asset.model}</span>
     </div>
   </td>
@@ -38,7 +38,7 @@ const AssetRow = ({ asset }) => (
   {asset.serialNumber}
   </td>
   <td className="px-6 py-5">
-  <span className="px-3 py-1.5 bg-status-success/10 text-status-success border border-status-success/20 text-[9px] font-black rounded-2xl uppercase tracking-[0.15em] shadow-sm">
+  <span className="px-3 py-1.5 bg-status-success/10 text-status-success border border-status-success/20 text-[9px] font-black rounded-2xl tracking-[0.15em] shadow-sm">
   {statusLabels[asset.status] || asset.status}
   </span>
   </td>
@@ -49,11 +49,11 @@ const ConsumableCard = ({ c }) => (
  <div className="flex items-center justify-between p-5 bg-bg-secondary rounded-2xl border border-border hover:bg-bg-tertiary/40 hover:-translate-y-1 transition-all duration-300 hover:shadow-premium group h-[88px]">
   <div className="space-y-1">
   <p className="text-sm font-bold text-text-primary group-hover:text-accent-primary transition-colors tracking-tight">{c.name}</p>
-  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Standard Issue</p>
+  <p className="text-[10px] font-black text-text-muted tracking-widest">Standard Issue</p>
   </div>
   <div className="text-right space-y-0.5">
   <p className="text-2xl font-black text-accent-secondary tracking-tighter">{c.quantity}</p>
-  <p className="text-[9px] text-text-disabled uppercase font-black tracking-[0.2em]">In Hand</p>
+  <p className="text-[9px] text-text-disabled font-black tracking-[0.2em]">In Hand</p>
   </div>
  </div>
 );
@@ -76,8 +76,8 @@ const DashboardSkeleton = () => (
 const AssetCard = ({ asset }) => (
     <div className="p-6 bg-bg-secondary rounded-2xl border border-border hover:border-accent-purple/30 transition-all shadow-premium group">
       <div className="flex justify-between items-start mb-4">
-        <p className="text-[10px] font-black text-accent-purple uppercase tracking-[0.2em]">{asset.category}</p>
-        <span className="px-3 py-1 bg-status-success/10 text-status-success border border-status-success/20 text-[9px] font-black rounded-2xl uppercase tracking-[0.15em]">
+        <p className="text-[10px] font-black text-accent-purple tracking-[0.2em]">{asset.category}</p>
+        <span className="px-3 py-1 bg-status-success/10 text-status-success border border-status-success/20 text-[9px] font-black rounded-2xl tracking-[0.15em]">
           {statusLabels[asset.status] || asset.status}
         </span>
       </div>
@@ -129,7 +129,7 @@ const StaffDashboard = () => {
           </div>
           <div className="flex items-center gap-4 relative z-10">
              <Button variant="secondary" size="sm" onClick={() => fetchStaffData()} icon={RefreshCw} className={loading ? "animate-spin" : ""} />
-             <Button onClick={() => navigate("/requests")} icon={MessageSquare} className="px-8 py-4 text-[11px] uppercase tracking-[0.2em] shadow-glow">
+             <Button onClick={() => navigate("/requests")} icon={MessageSquare} className="px-8 py-4 text-[11px] tracking-[0.2em] shadow-glow">
                 New Ticket
              </Button>
           </div>
@@ -163,7 +163,7 @@ const StaffDashboard = () => {
                   <div className="hidden md:block bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
                     <div className="overflow-x-auto custom-scrollbar">
                       <table className="w-full text-left">
-                        <thead className="bg-bg-tertiary/50 text-text-muted text-[10px] uppercase font-black tracking-[0.2em] border-b border-border">
+                        <thead className="bg-bg-tertiary/50 text-text-muted text-[10px] font-black tracking-[0.2em] border-b border-border">
                           <tr><th className="px-6 py-5">Classification</th><th className="px-6 py-5">S/N</th><th className="px-6 py-5">Status</th></tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">

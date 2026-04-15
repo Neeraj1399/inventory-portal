@@ -155,7 +155,7 @@ const RequestDashboard = () => {
                           <div className="w-14 h-14 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center font-black text-xl border border-accent-primary/10 group-hover/insight:scale-110 transition-transform shadow-premium">{s.pending}</div>
                           <div className="space-y-1">
                             <p className="text-text-primary font-black text-lg tracking-tight">Bulk Capacity: {s._id}</p>
-                            <p className="text-text-muted text-[10px] font-black uppercase tracking-widest opacity-60">Scale resolution required</p>
+                            <p className="text-text-muted text-[10px] font-black tracking-widest opacity-60">Scale resolution required</p>
                           </div>
                         </div>
                         <ChevronRight size={24} className="text-text-disabled group-hover/insight:text-accent-primary group-hover/insight:translate-x-1 transition-all" />
@@ -164,7 +164,7 @@ const RequestDashboard = () => {
                   ) : (
                     <div className="py-20 flex flex-col items-center justify-center space-y-6">
                       <div className="p-8 bg-bg-elevated rounded-full text-status-success/40 shadow-inner"><CheckCircle2 size={48} /></div>
-                      <p className="text-text-muted text-sm font-black uppercase tracking-widest opacity-60">No procurement alerts detected</p>
+                      <p className="text-text-muted text-sm font-black tracking-widest opacity-60">No procurement alerts detected</p>
                     </div>
                   )}
                 </div>
@@ -180,7 +180,7 @@ const RequestDashboard = () => {
                   {stats.map((s, idx) => (
                     <div key={idx} className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                        <span className="flex items-center gap-3 text-[10px] font-black tracking-widest text-text-muted">
                           <div className="p-1.5 bg-bg-elevated rounded-lg text-accent-secondary border border-border">{categoryIcons[s._id] || <Package size={14} />}</div>
                           {s._id}
                         </span>
@@ -194,8 +194,8 @@ const RequestDashboard = () => {
                     </div>
                   ))}
                   <div className="flex gap-8 pt-6 border-t border-border">
-                    <div className="flex items-center gap-3"><div className="w-3 h-3 bg-accent-primary rounded-full shadow-glow-sm" /><span className="text-[10px] font-black uppercase tracking-widest text-text-disabled">Acquisitions</span></div>
-                    <div className="flex items-center gap-3"><div className="w-3 h-3 bg-accent-secondary rounded-full shadow-glow-sm" /><span className="text-[10px] font-black uppercase tracking-widest text-text-disabled">Maintenance</span></div>
+                    <div className="flex items-center gap-3"><div className="w-3 h-3 bg-accent-primary rounded-full shadow-glow-sm" /><span className="text-[10px] font-black tracking-widest text-text-disabled">Acquisitions</span></div>
+                    <div className="flex items-center gap-3"><div className="w-3 h-3 bg-accent-secondary rounded-full shadow-glow-sm" /><span className="text-[10px] font-black tracking-widest text-text-disabled">Maintenance</span></div>
                   </div>
                 </div>
               </Card>
@@ -213,7 +213,7 @@ const RequestDashboard = () => {
                     <div className="flex justify-between items-start mb-10 relative z-10">
                       <div className="p-4 bg-bg-elevated border border-border rounded-2xl text-accent-primary group-hover:scale-110 group-hover:shadow-glow transition-all shadow-premium">{categoryIcons[cat._id] || <Package size={28} />}</div>
                       <div className="text-right">
-                        <p className="text-[10px] font-black text-text-disabled uppercase tracking-widest opacity-60 mb-1">AGGREGATE</p>
+                        <p className="text-[10px] font-black text-text-disabled tracking-widest opacity-60 mb-1">Aggregate</p>
                         <p className="text-4xl font-black text-text-primary tracking-tighter group-hover:text-white transition-colors">{cat.total}</p>
                       </div>
                     </div>
@@ -252,12 +252,12 @@ const StatCard = ({ title, value, icon: Icon, variant, description }) => {
     <Card className={`bg-gradient-to-br ${variants[variant]} p-8 group hover:brightness-110 shadow-2xl overflow-hidden relative`}>
       <div className="flex justify-between items-start relative z-10">
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">{title}</p>
+          <p className="text-[10px] font-black tracking-[0.2em] opacity-60 mb-2">{title}</p>
           <h4 className="text-4xl font-black text-text-primary tracking-tighter group-hover:text-white transition-colors">{value}</h4>
         </div>
         <div className={`p-4 bg-bg-elevated/40 rounded-2xl border border-border shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-premium`}><Icon size={32} /></div>
       </div>
-      <p className="mt-6 text-text-muted text-xs font-black uppercase tracking-widest opacity-40 leading-relaxed max-w-[200px] relative z-10">{description}</p>
+      <p className="mt-6 text-text-muted text-xs font-black tracking-widest opacity-40 leading-relaxed max-w-[200px] relative z-10">{description}</p>
       <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-bg-tertiary rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
     </Card>
   );

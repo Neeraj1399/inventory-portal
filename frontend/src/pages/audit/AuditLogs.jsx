@@ -181,29 +181,33 @@ const AuditLogs = () => {
         icon={History}
         action={
           <div className="flex items-center gap-4">
-            <Button variant="secondary" size="sm" onClick={clearFilters} icon={RotateCcw} className={loading ? "animate-spin" : ""}>
-              {hasActiveFilters ? "Reset" : ""}
-            </Button>
+            <button
+              onClick={clearFilters}
+              className="p-3.5 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-all shadow-premium active:scale-95"
+            >
+              <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+            </button>
             <Button variant="secondary" onClick={downloadCSV} icon={Download}>Export CSV</Button>
           </div>
         }
       />
 
       <Card className="p-6 !overflow-visible">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-4">
+        <div className="space-y-4">
+          <div className="w-full">
             <Input icon={Search} placeholder="Search by activity, user, or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="lg:col-span-2 flex items-center gap-2 h-14 bg-bg-elevated border border-border rounded-2xl px-4 transition-all focus-within:border-accent-primary">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex items-center gap-2 h-14 bg-bg-elevated border border-border rounded-2xl px-4 transition-all focus-within:border-accent-primary">
             <Calendar size={16} className="text-text-muted shrink-0 cursor-pointer hover:text-accent-primary transition-colors" onClick={(e) => e.currentTarget.closest('div').querySelector('input')?.showPicker?.()} />
             <input type="date" className="flex-1 bg-transparent text-sm text-text-primary focus:outline-none [color-scheme:dark] min-w-0" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
           </div>
-          <div className="lg:col-span-2 relative">
+          <div className="relative">
             <button
               onClick={() => { setIsActionOpen(o => !o); setIsUserOpen(false); setIsEntityOpen(false); }}
               className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isActionOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
             >
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+              <span className="text-[10px] sm:text-xs font-black tracking-widest text-text-muted">
                 {actionFilter || "All Actions"}
               </span>
               <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isActionOpen ? "rotate-180" : ""}`} />
@@ -215,7 +219,7 @@ const AuditLogs = () => {
                   <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
                     {["", ...Array.from(new Set(logs.map(l => l.action))).filter(Boolean)].map(a => (
                       <button key={a || "__all"} onClick={() => { setActionFilter(a); setIsActionOpen(false); }}
-                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${actionFilter === a ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black tracking-widest transition-all flex items-center justify-between ${actionFilter === a ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
                         {a || "All Actions"}
                         {actionFilter === a && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
                       </button>
@@ -225,12 +229,12 @@ const AuditLogs = () => {
               </>
             )}
           </div>
-          <div className="lg:col-span-2 relative">
+          <div className="relative">
             <button
               onClick={() => { setIsUserOpen(o => !o); setIsActionOpen(false); setIsEntityOpen(false); }}
               className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isUserOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
             >
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+              <span className="text-[10px] sm:text-xs font-black tracking-widest text-text-muted">
                 {userFilter || "All Users"}
               </span>
               <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isUserOpen ? "rotate-180" : ""}`} />
@@ -242,7 +246,7 @@ const AuditLogs = () => {
                   <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
                     {["", ...Array.from(new Set(logs.map(l => l.performedBy?.name).filter(Boolean)))].map(u => (
                       <button key={u || "__all"} onClick={() => { setUserFilter(u); setIsUserOpen(false); }}
-                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${userFilter === u ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black tracking-widest transition-all flex items-center justify-between ${userFilter === u ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
                         {u || "All Users"}
                         {userFilter === u && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
                       </button>
@@ -252,12 +256,12 @@ const AuditLogs = () => {
               </>
             )}
           </div>
-          <div className="lg:col-span-2 relative">
+          <div className="relative">
             <button
               onClick={() => { setIsEntityOpen(o => !o); setIsActionOpen(false); setIsUserOpen(false); }}
               className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isEntityOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"}`}
             >
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+              <span className="text-[10px] sm:text-xs font-black tracking-widest text-text-muted">
                 {entityFilter || "All Entities"}
               </span>
               <ChevronDown size={18} className={`text-text-disabled transition-transform duration-300 ${isEntityOpen ? "rotate-180" : ""}`} />
@@ -269,7 +273,7 @@ const AuditLogs = () => {
                   <div className="overflow-y-auto max-h-[205px] custom-scrollbar">
                     {["", ...Array.from(new Set(logs.map(l => l.entityType))).filter(Boolean)].map(e => (
                       <button key={e || "__all"} onClick={() => { setEntityFilter(e); setIsEntityOpen(false); }}
-                        className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${entityFilter === e ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                        className={`w-full text-left px-5 py-3 text-[10px] font-black tracking-widest transition-all flex items-center justify-between ${entityFilter === e ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
                         {e || "All Entities"}
                         {entityFilter === e && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
                       </button>
@@ -278,6 +282,7 @@ const AuditLogs = () => {
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
       </Card>
@@ -291,7 +296,7 @@ const AuditLogs = () => {
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-32 text-center space-y-6">
                 <div className="p-8 bg-bg-elevated rounded-full text-text-disabled shadow-inner inline-block"><History size={64} /></div>
                 <div className="space-y-2">
-                  <p className="text-text-primary font-black uppercase tracking-widest text-xl">Clean Slate</p>
+                  <p className="text-text-primary font-black tracking-widest text-xl">Clean Slate</p>
                   <p className="text-text-muted text-sm font-medium">No system events matching your filters were found.</p>
                 </div>
               </motion.div>
@@ -330,10 +335,10 @@ const LogItem = ({ log, isLast }) => {
       <div className="flex-1 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <Badge variant={getActionVariant(log.action)} className="uppercase font-black tracking-widest text-[10px] px-4 py-1.5">{log.action || "EVENT"}</Badge>
+            <Badge variant={getActionVariant(log.action)} className="font-black tracking-widest text-[10px] px-4 py-1.5">{log.action || "EVENT"}</Badge>
             <Badge variant="muted" className="text-[10px]">{log.entityType || "Audit"}</Badge>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-text-disabled font-black uppercase tracking-widest">
+          <div className="flex items-center gap-3 text-[10px] text-text-disabled font-black tracking-widest">
             <Clock size={16} className="opacity-50" /> {formatDate(time)}
           </div>
         </div>
@@ -355,7 +360,7 @@ const LogItem = ({ log, isLast }) => {
           {expanded && log.changes && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="mt-8 p-10 bg-bg-elevated border border-border rounded-2xl text-xs font-mono relative shadow-inner">
-                 <button onClick={() => navigator.clipboard.writeText(JSON.stringify(log.changes, null, 2))} className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors uppercase font-black tracking-widest text-[10px] flex items-center gap-2"><Copy size={14}/> Copy Data</button>
+                 <button onClick={() => navigator.clipboard.writeText(JSON.stringify(log.changes, null, 2))} className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors font-black tracking-widest text-[10px] flex items-center gap-2"><Copy size={14}/> Copy Data</button>
                  <pre className="whitespace-pre-wrap break-all text-accent-secondary/80 leading-relaxed overflow-x-auto max-h-[600px] custom-scrollbar pt-4">{JSON.stringify(log.changes, null, 2)}</pre>
               </div>
             </motion.div>

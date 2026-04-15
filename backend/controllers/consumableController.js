@@ -124,6 +124,35 @@ export const createConsumable = catchAsync(async (req, res, next) => {
   res.status(201).json({ status: "success", data: newItem });
 });
 /**
+ * @desc    Update consumable details (name, category, unitCost, lowStockThreshold)
+ * @route   PATCH /api/consumables/:id
+ * @access  Admin
+ */
+export const updateConsumable = catchAsync(async (req, res, next) => {
+  const { itemName, category, unitCost, lowStockThreshold } = req.body;
+
+  const item = await Consumable.findByIdAndUpdate(
+    req.params.id,
+    { itemName, category, unitCost: Number(unitCost), lowStockThreshold: Number(lowStockThreshold) },
+    { new: true, runValidators: true }
+  );
+
+  if (!item) return next(new AppError("Consumable not found", 404));
+
+  if (req.user?._id) {
+    await AuditLog.create({
+      action: "MODIFIED",
+      entityType: "Consumable",
+      entityId: item._id,
+      performedBy: req.user._id,
+      description: `Updated details for ${item.itemName}.`,
+    });
+  }
+
+  res.status(200).json({ status: "success", data: item });
+});
+
+/**
  * @desc    Assign consumable to employee
  * @route   POST /api/consumables/:id/assign
  * @access  Admin

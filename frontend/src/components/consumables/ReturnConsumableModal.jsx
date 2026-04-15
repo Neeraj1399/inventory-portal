@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Undo2, Loader2, AlertTriangle, Trash2, Wrench } from "lucide-react";
+import { X, Undo2, Loader2, AlertTriangle, Trash2, Wrench, ChevronDown } from "lucide-react";
 import api from "../../services/api";
 import clsx from "clsx";
 
@@ -36,6 +36,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
   const [status, setStatus] = useState("READY_TO_DEPLOY");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isEmpOpen, setIsEmpOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,6 +44,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
       setQuantity(1);
       setStatus("READY_TO_DEPLOY");
       setError(null);
+      setIsEmpOpen(false);
     }
   }, [isOpen, item?._id]);
 
@@ -93,7 +95,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
         <div className="p-8 border-b border-border flex justify-between items-center bg-bg-tertiary/20">
           <div>
             <h2 className="text-2xl font-black text-white tracking-tight">Consumable <span className="text-accent-primary">Return</span></h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-secondary mt-1">
+            <p className="text-[10px] font-black tracking-[0.2em] text-accent-secondary mt-1">
               {item.itemName} — Reverse Logistics
             </p>
           </div>
@@ -107,7 +109,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
         <form onSubmit={handleSubmit} className="p-8 space-y-8">
           {error && (
-            <div className="p-4 rounded-2xl bg-status-danger/10 border border-status-danger/20 text-status-danger text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+            <div className="p-4 rounded-2xl bg-status-danger/10 border border-status-danger/20 text-status-danger text-[10px] font-black tracking-widest flex items-center gap-3">
               <AlertTriangle size={16} />
               {error}
             </div>
@@ -115,37 +117,49 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
           {/* 1. EMPLOYEE SELECT */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+            <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
               Origin Account
             </label>
             {hasEmployees ? (
               <div className="relative">
-                <select
-                  required
-                  value={employeeId}
-                  onChange={(e) => {
-                    setEmployeeId(e.target.value);
-                    setQuantity(1);
-                  }}
-                  className="w-full h-14 bg-bg-elevated border border-border rounded-2xl px-6 text-sm text-text-primary focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-all appearance-none cursor-pointer font-bold"
+                <button
+                  type="button"
+                  onClick={() => setIsEmpOpen(o => !o)}
+                  className={`w-full flex items-center justify-between px-5 h-14 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isEmpOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}
                 >
-                  <option value="">Select active personnel...</option>
-                  {item.assignments.map((a) => {
-                    const emp = a.employeeId;
-                    if (!emp) return null;
-                    return (
-                      <option key={emp._id} value={emp._id}>
-                        {emp.name} — Holding {a.quantity} Units
-                      </option>
-                    );
-                  })}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
-                  <Undo2 size={18} className="rotate-[135deg]" />
-                </div>
+                  <span className="text-sm font-bold truncate">
+                    {employeeId ? (() => {
+                      const a = item.assignments.find(a => (a.employeeId?._id || a.employeeId) === employeeId);
+                      const emp = a?.employeeId;
+                      return emp ? `${emp.name} — Holding ${a.quantity} Units` : employeeId;
+                    })() : <span className="text-text-muted">Select active personnel...</span>}
+                  </span>
+                  <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isEmpOpen ? "rotate-180" : ""}`} />
+                </button>
+                {isEmpOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsEmpOpen(false)} />
+                    <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="overflow-y-auto max-h-[200px] custom-scrollbar">
+                        {item.assignments.map((a) => {
+                          const emp = a.employeeId;
+                          if (!emp) return null;
+                          const val = emp._id || emp;
+                          return (
+                            <button type="button" key={val} onClick={() => { setEmployeeId(val); setQuantity(1); setIsEmpOpen(false); }}
+                              className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${employeeId === val ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                              {emp.name} — Holding {a.quantity} Units
+                              {employeeId === val && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
-              <div className="py-8 text-center border-2 border-dashed border-border rounded-2xl text-text-disabled text-xs font-black uppercase tracking-widest opacity-40">
+              <div className="py-8 text-center border-2 border-dashed border-border rounded-2xl text-text-disabled text-xs font-black tracking-widest opacity-40">
                 No active assignments detected
               </div>
             )}
@@ -153,7 +167,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
           {/* 2. CONDITION SELECTOR */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+            <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
               Condition Assessment
             </label>
             <div className="grid grid-cols-1 gap-3">
@@ -181,7 +195,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
                       <div className="font-black text-sm text-text-primary tracking-tight">
                         {stat.label} State
                       </div>
-                      <div className="text-[9px] text-text-muted font-black uppercase tracking-widest opacity-60 mt-0.5">{stat.sub}</div>
+                      <div className="text-[9px] text-text-muted font-black tracking-widest opacity-60 mt-0.5">{stat.sub}</div>
                     </div>
                   </div>
                 </label>
@@ -193,10 +207,10 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
           {employeeId && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled shadow-sm">
+                <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled shadow-sm">
                   Return Volume
                 </label>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-secondary">
+                <span className="text-[10px] font-black tracking-[0.2em] text-accent-secondary">
                   Max Limit: {maxReturnable}
                 </span>
               </div>
@@ -227,7 +241,7 @@ const ReturnConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
               !hasEmployees
             }
             className={clsx(
-              "w-full h-16 rounded-[1.25rem] flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] transition-all active:scale-95 disabled:grayscale disabled:opacity-50 text-white shadow-xl",
+              "w-full h-16 rounded-[1.25rem] flex items-center justify-center gap-3 font-black text-[11px] tracking-[0.2em] transition-all active:scale-95 disabled:grayscale disabled:opacity-50 text-white shadow-xl",
               status === "READY_TO_DEPLOY" ? "bg-gradient-to-tr from-status-success to-emerald-600 shadow-status-success/20" : 
               status === "UNDER_MAINTENANCE" ? "bg-gradient-to-tr from-status-warning to-amber-600 shadow-status-warning/20" :
               "bg-gradient-to-tr from-status-danger to-rose-600 shadow-status-danger/20"

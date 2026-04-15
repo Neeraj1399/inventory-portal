@@ -122,14 +122,14 @@ const ConfirmModal = ({
                   <div className="flex flex-col gap-4 pt-4">
                     <Button
                       onClick={onConfirm}
-                      className="w-full h-14 uppercase tracking-widest text-[11px]"
+                      className="w-full h-14 tracking-widest text-[11px]"
                     >
                       {confirmText}
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={onCancel}
-                      className="w-full h-14 uppercase tracking-widest text-[11px]"
+                      className="w-full h-14 tracking-widest text-[11px]"
                     >
                       {cancelText}
                     </Button>
@@ -152,7 +152,7 @@ const ConfirmModal = ({
 
                 {/* Success state indicator */}
                 {success && (
-                  <div className="pt-4 text-[10px] font-black text-status-success/60 uppercase tracking-widest animate-pulse">
+                  <div className="pt-4 text-[10px] font-black text-status-success/60 tracking-widest animate-pulse">
                     Sequence Complete
                   </div>
                 )}

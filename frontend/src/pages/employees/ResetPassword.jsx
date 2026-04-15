@@ -87,14 +87,14 @@ const ResetPassword = () => {
             <h1 className="text-3xl font-black text-text-primary tracking-tight">
               {token ? "Reset" : "Security"} <span className="text-accent-primary">Policy</span>
             </h1>
-            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+            <p className="text-text-muted font-black tracking-[0.2em] mt-4 text-[10px] opacity-60">
               {token ? "Access Calibration Procedure" : "Mandatory Credential Update"}
             </p>
           </div>
 
           <form onSubmit={handleUpdate} className="space-y-8">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+              <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1">
                 New Secure Passcode
               </label>
               <Input
@@ -108,7 +108,7 @@ const ResetPassword = () => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+              <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1">
                 Confirm Calibration
               </label>
               <Input
@@ -122,7 +122,7 @@ const ResetPassword = () => {
             </div>
 
             <div className="bg-bg-elevated p-6 rounded-2xl border border-border shadow-inner space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled opacity-60">
+              <p className="text-[10px] font-black tracking-[0.2em] text-text-disabled opacity-60">
                 Security Requirements
               </p>
               <div className="space-y-3">
@@ -147,7 +147,7 @@ const ResetPassword = () => {
             <Button
               type="submit"
               isLoading={loading}
-              className="w-full h-14 uppercase tracking-widest text-[11px]"
+              className="w-full h-14 tracking-widest text-[11px]"
               icon={ArrowRight}
             >
               Update Credentials

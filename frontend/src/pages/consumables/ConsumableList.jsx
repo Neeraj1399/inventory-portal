@@ -22,6 +22,7 @@ import {
   Wrench,
   CheckCircle,
   PlusCircle,
+  Pencil,
 } from "lucide-react";
 
 import api from "../../services/api";
@@ -108,6 +109,7 @@ const ConsumableList = () => {
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
@@ -228,6 +230,15 @@ const ConsumableList = () => {
   const openAddModal = () => setIsAddModalOpen(true);
   const closeAddModal = () => setIsAddModalOpen(false);
 
+  const openEditModal = (item) => {
+    setSelectedItem(item);
+    setIsEditModalOpen(true);
+  };
+  const closeEditModal = () => {
+    setSelectedItem(null);
+    setIsEditModalOpen(false);
+  };
+
   const openIssueModal = (item) => {
     setSelectedItem(item);
     setIsIssueModalOpen(true);
@@ -307,14 +318,14 @@ const ConsumableList = () => {
             {user?.roleAccess === "ADMIN" ? (
               <button
                 onClick={openAddModal}
-                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] tracking-[0.2em]"
               >
                 <Plus size={20} /> Add Item
               </button>
             ) : (
               <button
                 onClick={openRequestModal}
-                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                className="flex-1 md:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] tracking-[0.2em]"
               >
                 <AlertCircle size={20} /> Request
               </button>
@@ -345,7 +356,7 @@ const ConsumableList = () => {
                 isFilterDropdownOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border hover:border-border"
               }`}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] truncate mr-2 text-text-muted">
+              <span className="text-[10px] font-black tracking-[0.2em] truncate mr-2 text-text-muted">
                 {statusLabels[statusFilter] || statusFilter}
               </span>
               <ChevronDown
@@ -363,7 +374,7 @@ const ConsumableList = () => {
                       setStatusFilter(opt);
                       setIsFilterDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${
+                    className={`w-full text-left px-5 py-4 text-[10px] font-black tracking-widest transition-all flex items-center justify-between group ${
                       statusFilter === opt 
                         ? "bg-accent-primary/10 text-accent-primary" 
                         : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
@@ -386,7 +397,7 @@ const ConsumableList = () => {
         <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[900px]">
-              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black tracking-[0.2em] text-text-muted">
                 <tr>
                   <th className="px-8 py-6">Consumable Specifications</th>
                   <th className="px-8 py-6">Category</th>
@@ -445,14 +456,14 @@ const ConsumableList = () => {
                               </div>
                               <div className="space-y-1">
                                 <div className="font-bold text-text-primary group-hover:text-white transition-colors tracking-tight text-sm">{item.itemName}</div>
-                                <div className="text-[9px] font-black text-status-success uppercase tracking-[0.2em]">
+                                <div className="text-[9px] font-black text-status-success tracking-[0.2em]">
                                   ${unitCost.toFixed(0)} / per unit
                                 </div>
                               </div>
                             </div>
                           </td>
                           <td className="px-8 py-5 text-center">
-                            <span className="text-[9px] font-black text-accent-secondary bg-accent-secondary/10 px-3.5 py-1.5 rounded-2xl border border-accent-secondary/20 uppercase tracking-[0.15em]">
+                            <span className="text-[9px] font-black text-accent-secondary bg-accent-secondary/10 px-3.5 py-1.5 rounded-2xl border border-accent-secondary/20 tracking-[0.15em]">
                               {item.category}
                             </span>
                           </td>
@@ -461,23 +472,23 @@ const ConsumableList = () => {
                               <span className={`text-2xl font-black tabular-nums tracking-tighter ${isLowStock ? "text-status-warning" : "text-text-primary group-hover:text-white transition-colors"}`}>
                                 {available}
                               </span>
-                              <span className="text-[8px] font-black text-text-disabled uppercase tracking-[0.2em]">Inventory</span>
+                              <span className="text-[8px] font-black text-text-disabled tracking-[0.2em]">Inventory</span>
                             </div>
                           </td>
                           <td className="px-8 py-5">
                             <div className="flex justify-center gap-2">
                               {isLowStock && (
-                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-warning bg-status-warning/10 px-2.5 py-1.5 rounded-2xl border border-status-warning/20 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-warning bg-status-warning/10 px-2.5 py-1.5 rounded-2xl border border-status-warning/20 tracking-widest">
                                   <AlertCircle size={10} /> Low
                                 </span>
                               )}
                               {inMaintenance > 0 && (
-                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-accent-primary bg-accent-primary/10 px-2.5 py-1.5 rounded-2xl border border-accent-primary/20 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-accent-primary bg-accent-primary/10 px-2.5 py-1.5 rounded-2xl border border-accent-primary/20 tracking-widest">
                                   <Wrench size={10} /> {inMaintenance} Under Repair
                                 </span>
                               )}
                               {!isLowStock && inMaintenance === 0 && (
-                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-success bg-status-success/10 px-2.5 py-1.5 rounded-2xl border border-status-success/20 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5 text-[8px] font-bold text-status-success bg-status-success/10 px-2.5 py-1.5 rounded-2xl border border-status-success/20 tracking-widest">
                                   <CheckCircle size={10} /> Perfect
                                 </span>
                               )}
@@ -500,6 +511,9 @@ const ConsumableList = () => {
                                   </button>
                                   <button onClick={() => openRestockModal(item)} className="p-3 rounded-2xl text-accent-secondary bg-accent-secondary/10 hover:bg-accent-secondary/20 border border-accent-secondary/20 active:scale-95 transition-all">
                                     <PlusCircle size={16} />
+                                  </button>
+                                  <button onClick={() => openEditModal(item)} className="p-3 rounded-2xl text-text-muted bg-bg-tertiary hover:bg-bg-elevated hover:text-text-primary border border-border active:scale-95 transition-all">
+                                    <Pencil size={16} />
                                   </button>
                                   <button onClick={() => handleDeleteClick(item, assignedQty)} className="p-3 rounded-2xl text-status-danger bg-status-danger/10 hover:bg-status-danger hover:text-white border border-status-danger/30 active:scale-95 transition-all">
                                     <Trash2 size={16} />
@@ -528,6 +542,7 @@ const ConsumableList = () => {
 
         {/* MODAL LAYER */}
         <AddConsumableModal isOpen={isAddModalOpen} onClose={closeAddModal} onRefresh={() => fetchConsumables(true)} />
+        <AddConsumableModal isOpen={isEditModalOpen} onClose={closeEditModal} onRefresh={() => fetchConsumables(true)} item={selectedItem} />
         <IssueConsumableModal isOpen={isIssueModalOpen} item={selectedItem} onClose={closeIssueModal} onRefresh={() => fetchConsumables(true)} />
         <ReturnConsumableModal isOpen={isReturnModalOpen} item={selectedItem} onClose={closeReturnModal} onRefresh={() => fetchConsumables(true)} />
         <ConsumableConditionModal isOpen={isConditionModalOpen} item={selectedItem} onClose={closeConditionModal} onRefresh={() => fetchConsumables(true)} />

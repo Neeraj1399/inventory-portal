@@ -4,6 +4,7 @@ import {
   getConsumables,
   getConsumableById,
   createConsumable,
+  updateConsumable,
   assignConsumable,
   restockConsumable,
   returnConsumable,
@@ -36,6 +37,7 @@ router.use(isAdmin);
 
 // 1. Acquisition & Basic Management
 router.post("/", createConsumable); // Create new SKU
+router.patch("/:id", updateConsumable); // Update details
 router.patch("/:id/restock", restockConsumable); // Increase existing stock
 router.delete("/:id", deleteConsumable); // Remove SKU permanently
 

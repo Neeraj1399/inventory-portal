@@ -71,20 +71,20 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate, anchorRef }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-border bg-bg-tertiary/40">
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+              <p className="text-[10px] font-black text-text-muted tracking-widest">
                 Edit Profile
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
-                <div className="p-3 bg-status-danger/10 border border-status-danger/20 rounded-xl text-status-danger text-[10px] font-black uppercase tracking-widest">
+                <div className="p-3 bg-status-danger/10 border border-status-danger/20 rounded-xl text-status-danger text-[10px] font-black tracking-widest">
                   {error}
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">
+                <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">
                   Full Name
                 </label>
                 <Input
@@ -98,7 +98,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate, anchorRef }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">
+                <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">
                   Email Address
                 </label>
                 <Input
@@ -116,7 +116,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate, anchorRef }) => {
                   variant="secondary"
                   type="button"
                   onClick={onClose}
-                  className="flex-1 uppercase tracking-widest text-[10px]"
+                  className="flex-1 tracking-widest text-[10px]"
                   disabled={isSaving}
                 >
                   Cancel
@@ -124,7 +124,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onUpdate, anchorRef }) => {
                 <Button
                   type="submit"
                   isLoading={isSaving}
-                  className="flex-[2] uppercase tracking-widest text-[10px]"
+                  className="flex-[2] tracking-widest text-[10px]"
                   icon={Save}
                 >
                   Save Changes

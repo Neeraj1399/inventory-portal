@@ -10,6 +10,7 @@ import {
  Building2,
  Layers,
  RefreshCw,
+ ChevronDown,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -45,6 +46,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  roleAccess: "STAFF",
  });
  const [loading, setLoading] = useState(false);
+ const [isRoleOpen, setIsRoleOpen] = useState(false);
 
  useEffect(() => {
  if (isOpen) {
@@ -54,6 +56,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  email: "",
  password: generateTempPassword(),
  }));
+ setIsRoleOpen(false);
  }
  }, [isOpen]);
 
@@ -78,7 +81,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  };
 
  const inputClass = "input-base bg-bg-tertiary";
- const labelClass = "block text-[10px] font-bold uppercase text-text-muted mb-1 ml-1 tracking-wide";
+ const labelClass = "block text-[10px] font-bold text-text-muted mb-1 ml-1 tracking-wide";
  const iconWrap = "flex items-center gap-2 px-3 py-2 bg-bg-tertiary border border-border rounded-xl focus-within:ring-2 focus-within:ring-accent-primary/30 focus-within:border-accent-primary transition-all duration-200";
  const iconInput = "flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-disabled focus:outline-none min-w-0";
 
@@ -228,14 +231,30 @@ const AddEmployeeModal = ({ isOpen, onClose, onRefresh }) => {
  {/* Role Access */}
  <div>
  <label className={labelClass}>Role Access</label>
- <select
- className="select-base bg-bg-tertiary py-2"
- value={formData.roleAccess}
- onChange={(e) => setFormData({ ...formData, roleAccess: e.target.value })}
- >
- <option value="STAFF">Staff Member</option>
- <option value="ADMIN">System Admin</option>
- </select>
+ <div className="relative">
+   <button
+     type="button"
+     onClick={() => setIsRoleOpen(o => !o)}
+     className={`w-full flex items-center justify-between px-5 h-12 bg-bg-tertiary border rounded-2xl transition-all text-text-primary ${isRoleOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}
+   >
+     <span className="text-sm font-bold">{formData.roleAccess === "ADMIN" ? "System Admin" : "Staff Member"}</span>
+     <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isRoleOpen ? "rotate-180" : ""}`} />
+   </button>
+   {isRoleOpen && (
+     <>
+       <div className="fixed inset-0 z-10" onClick={() => setIsRoleOpen(false)} />
+       <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+         {[{ value: "STAFF", label: "Staff Member" }, { value: "ADMIN", label: "System Admin" }].map(opt => (
+           <button type="button" key={opt.value} onClick={() => { setFormData({ ...formData, roleAccess: opt.value }); setIsRoleOpen(false); }}
+             className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${formData.roleAccess === opt.value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+             {opt.label}
+             {formData.roleAccess === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+           </button>
+         ))}
+       </div>
+     </>
+   )}
+ </div>
  </div>
  </div>
 

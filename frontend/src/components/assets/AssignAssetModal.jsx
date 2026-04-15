@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { X, UserPlus, Loader2, Check } from "lucide-react";
+import { X, UserPlus, Loader2, Check, ChevronDown } from "lucide-react";
 import api from "../../services/api";
 
 const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isEmpOpen, setIsEmpOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchEmployees();
       setEmployeeId("");
+      setIsEmpOpen(false);
     }
   }, [isOpen]);
 
@@ -58,7 +60,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
             <h2 className="text-xl font-bold text-text-primary">
               Allocate Asset
             </h2>
-            <p className="text-[10px] font-black text-status-info uppercase tracking-widest">
+            <p className="text-[10px] font-black text-status-info tracking-widest">
               Inventory Management
             </p>
           </div>
@@ -78,7 +80,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
             </div>
             <div>
               <p className="text-sm font-bold text-text-primary">{asset.model}</p>
-              <p className="text-[11px] text-text-muted font-mono uppercase">
+              <p className="text-[11px] text-text-muted font-mono">
                 {asset.serialNumber}
               </p>
             </div>
@@ -86,22 +88,37 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
 
           {/* Recipient Selection */}
           <div>
-            <label className="block text-[10px] font-black uppercase text-text-muted mb-2 px-1 tracking-widest">
+            <label className="block text-[10px] font-black text-text-muted mb-2 px-1 tracking-widest">
               Recipient Employee
             </label>
-            <select
-              required
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              className="select-base px-5 py-3 rounded-2xl font-bold"
-            >
-              <option value="" className="text-text-muted">Select an active staff member...</option>
-              {employees.map((emp) => (
-                <option key={emp._id} value={emp._id}>
-                  {emp.name} — {emp.department}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsEmpOpen(o => !o)}
+                className={`w-full flex items-center justify-between px-5 h-12 bg-bg-elevated border rounded-2xl transition-all text-text-primary ${isEmpOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}
+              >
+                <span className="text-sm font-bold truncate">
+                  {employeeId ? (employees.find(e => e._id === employeeId)?.name + " — " + employees.find(e => e._id === employeeId)?.department) : <span className="text-text-muted">Select an active staff member...</span>}
+                </span>
+                <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isEmpOpen ? "rotate-180" : ""}`} />
+              </button>
+              {isEmpOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsEmpOpen(false)} />
+                  <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="overflow-y-auto max-h-[200px] custom-scrollbar">
+                      {employees.map((emp) => (
+                        <button type="button" key={emp._id} onClick={() => { setEmployeeId(emp._id); setIsEmpOpen(false); }}
+                          className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${employeeId === emp._id ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                          {emp.name} — {emp.department}
+                          {employeeId === emp._id && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <button
@@ -113,7 +130,7 @@ const AssignAssetModal = ({ isOpen, onClose, asset, onRefresh }) => {
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <>
-                <UserPlus size={18} /> CONFIRM ALLOCATION
+                <UserPlus size={18} /> Confirm Allocation
               </>
             )}
           </button>

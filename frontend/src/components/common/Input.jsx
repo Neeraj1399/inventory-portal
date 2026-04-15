@@ -43,7 +43,7 @@ const Input = ({
         <motion.p 
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[10px] font-black text-status-danger uppercase tracking-widest ml-2"
+          className="text-[10px] font-black text-status-danger tracking-widest ml-2"
         >
           {error}
         </motion.p>

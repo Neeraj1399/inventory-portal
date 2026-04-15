@@ -55,7 +55,7 @@ const StatCard = ({ title, value, icon, variant }) => {
       </div>
       
       <div className="space-y-1">
-        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">
+        <p className="text-[10px] font-black text-text-muted tracking-[0.2em]">
           {title}
         </p>
         <p className="text-3xl font-bold text-text-primary tabular-nums tracking-tighter">
@@ -78,7 +78,7 @@ const AuditLogItem = ({ log }) => {
     >
       <div className="md:w-28 flex-shrink-0">
         <div
-          className={`text-center py-2 rounded-2xl border font-black text-[9px] uppercase tracking-[0.2em] shadow-sm transition-all ${
+          className={`text-center py-2 rounded-2xl border font-black text-[9px] tracking-[0.2em] shadow-sm transition-all ${
             log.action === "RECOVERED" || log.action === "RETURNED"
               ? "bg-status-warning/10 border-status-warning/20 text-status-warning"
               : log.action === "ALLOCATED" ||
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
                 </p>
               </div>
        
-              <div className="text-[10px] font-black text-accent-primary uppercase bg-accent-primary/10 px-4 py-1.5 rounded-full border border-accent-primary/20 shadow-glow text-center tracking-widest">
+              <div className="text-[10px] font-black text-accent-primary bg-accent-primary/10 px-4 py-1.5 rounded-full border border-accent-primary/20 shadow-glow text-center tracking-widest">
                 System Operational Health
               </div>
             </header>
@@ -322,7 +322,7 @@ const AdminDashboard = () => {
                    Recent Audit Logs
                 </h3>
 
-                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 scrollbar-hide">
+                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
                   {recentActivity.length > 0 ? (
                     recentActivity.map((log, index) => (
                       <AuditLogItem key={log._id || `log-${index}`} log={log} />
@@ -373,7 +373,7 @@ const AdminDashboard = () => {
                                 {item.itemName}
                               </p>
 
-                              <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${isTopCritical ? "text-status-danger/60" : "text-status-warning/60"}`}>
+                              <p className={`text-[10px] font-black tracking-widest mt-1 ${isTopCritical ? "text-status-danger/60" : "text-status-warning/60"}`}>
                                 Current Stock: <span className="text-text-primary">{item.currentStock}</span> <span className="mx-1">/</span> {item.totalQuantity}
                               </p>
                             </div>
@@ -381,7 +381,7 @@ const AdminDashboard = () => {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => setRestockItem(item)}
-                                className="text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl bg-status-success text-white font-black hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-status-success/20"
+                                className="text-[10px] tracking-widest px-4 py-2 rounded-xl bg-status-success text-white font-black hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-status-success/20"
                               >
                                 Restock
                               </button>

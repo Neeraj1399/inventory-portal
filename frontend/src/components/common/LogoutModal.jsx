@@ -68,14 +68,14 @@ const LogoutModal = ({ isOpen, onConfirm, onCancel, isLoggingOut }) => {
                     <Button
                       variant="danger"
                       onClick={onConfirm}
-                      className="w-full h-14 uppercase tracking-widest text-[11px]"
+                      className="w-full h-14 tracking-widest text-[11px]"
                     >
                       Confirm Logout
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={onCancel}
-                      className="w-full h-14 uppercase tracking-widest text-[11px]"
+                      className="w-full h-14 tracking-widest text-[11px]"
                     >
                       Stay Authenticated
                     </Button>

@@ -96,13 +96,13 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
                     : "text-text-muted hover:text-text-secondary"
                 }`}
               >
-                <Trash2 size={13} /> SCRAP ITEM
+                <Trash2 size={13} /> Scrap Item
               </button>
             </div>
 
             {/* Quantity Input */}
             <div>
-              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
+              <label className="block text-[10px] font-black text-text-muted tracking-widest mb-1.5 ml-1">
                 Quantity to Adjust (Max: {available})
               </label>
               <input
@@ -120,7 +120,7 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
 
             {/* Reason Input */}
             <div>
-              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
+              <label className="block text-[10px] font-black text-text-muted tracking-widest mb-1.5 ml-1">
                 Reason / Remarks
               </label>
               <textarea
@@ -153,7 +153,7 @@ const ConsumableConditionModal = ({ isOpen, item, onClose, onRefresh }) => {
               {loading ? (
                 <Loader2 className="animate-spin" size={18} />
               ) : (
-                "CONFIRM ADJUSTMENT"
+                "Confirm Adjustment"
               )}
             </button>
           </form>

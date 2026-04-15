@@ -226,14 +226,14 @@ const AssetList = () => {
               {user?.roleAccess === "ADMIN" ? (
                 <button
                   onClick={() => { setSelectedAsset(null); setActiveModal("ADD"); }}
-                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] tracking-[0.2em]"
                 >
                   <Plus size={20} /> Add Asset
                 </button>
               ) : (
                 <button
                   onClick={() => { setSelectedAsset(null); setIsRequestModalOpen(true); }}
-                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+                  className="flex-1 sm:flex-none bg-gradient-to-tr from-accent-primary to-accent-secondary hover:brightness-110 text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-[0.97] transition-all whitespace-nowrap border border-border shadow-glow text-[11px] tracking-[0.2em]"
                 >
                   <AlertCircle size={20} /> Request Allocation
                 </button>
@@ -273,7 +273,7 @@ const AssetList = () => {
                 >
                   <div className="flex items-center gap-3">
                     <Filter size={16} className={statusFilter !== "ALL" ? "text-accent-primary" : "text-text-muted"} />
-                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                    <span className="text-[10px] sm:text-xs font-black tracking-widest text-text-muted">
                       {statusFilter === "ALL" ? "Status"
                         : statusFilter === "READY_TO_DEPLOY" ? "Available"
                         : statusFilter === "ALLOCATED" ? "Allocated"
@@ -293,7 +293,7 @@ const AssetList = () => {
                         <button
                           key={opt}
                           onClick={() => { setStatusFilter(opt); setIsFilterDropdownOpen(false); }}
-                          className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${statusFilter === opt ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}
+                          className={`w-full text-left px-5 py-3 text-[10px] font-black tracking-widest transition-all flex items-center justify-between ${statusFilter === opt ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}
                         >
                           {opt === "READY_TO_DEPLOY" ? "Available" : opt === "ALLOCATED" ? "Allocated" : opt === "UNDER_MAINTENANCE" ? "Maintenance" : opt === "DECOMMISSIONED" ? "Retiring" : opt.replace(/_/g, " ")}
                           {statusFilter === opt && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
@@ -310,7 +310,7 @@ const AssetList = () => {
           <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[900px]">
-                <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+                <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black tracking-[0.2em] text-text-muted">
                   <tr>
                     <th className="px-8 py-6">Asset Specification</th>
                     <th className="px-8 py-6">Identity</th>
@@ -352,7 +352,7 @@ const AssetList = () => {
                               </div>
                               <div className="space-y-1">
                                 <div className="font-bold text-text-primary group-hover:text-white transition-colors text-sm">{asset.model}</div>
-                                <div className="text-[9px] font-black text-accent-primary uppercase tracking-[0.2em]">{asset.category}</div>
+                                <div className="text-[9px] font-black text-accent-primary tracking-[0.2em]">{asset.category}</div>
                               </div>
                             </div>
                           </td>
@@ -365,7 +365,7 @@ const AssetList = () => {
                           <td className="px-8 py-5 text-right pr-10">
                             <button
                               onClick={(e) => openActionMenu(e, asset)}
-                              className={`inline-flex items-center gap-2 px-5 py-2.5 border rounded-2xl transition-all active:scale-[0.97] font-black text-[10px] uppercase tracking-[0.2em] shadow-premium group/btn ${
+                              className={`inline-flex items-center gap-2 px-5 py-2.5 border rounded-2xl transition-all active:scale-[0.97] font-black text-[10px] tracking-[0.2em] shadow-premium group/btn ${
                                 actionMenuAsset?._id === asset._id
                                   ? "bg-accent-primary/10 border-accent-primary/40 text-accent-primary"
                                   : "bg-bg-tertiary hover:bg-bg-tertiary/80 text-text-primary border-border"
@@ -466,7 +466,7 @@ const StatusBadge = ({ status }) => {
     DECOMMISSIONED: "Retiring",
   };
   return (
-    <span className={`px-3 py-1.5 rounded-2xl text-[9px] font-black uppercase border tracking-widest ${themes[status] || "bg-bg-tertiary text-text-disabled"}`}>
+    <span className={`px-3 py-1.5 rounded-2xl text-[9px] font-black border tracking-widest ${themes[status] || "bg-bg-tertiary text-text-disabled"}`}>
       {labels[status] || status}
     </span>
   );
@@ -475,7 +475,7 @@ const StatusBadge = ({ status }) => {
 const MenuOption = ({ icon, label, onClick, color = "text-text-muted hover:text-text-primary" }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all text-left hover:bg-bg-tertiary ${color}`}
+    className={`w-full flex items-center gap-3 px-5 py-3 text-[10px] font-black tracking-widest transition-all text-left hover:bg-bg-tertiary ${color}`}
   >
     <span className="shrink-0">{icon}</span>
     <span>{label}</span>

@@ -46,7 +46,7 @@ const ReturnAssetModal = ({ isOpen, asset, onClose, onRefresh }) => {
         <div className="p-8 border-b border-border flex justify-between items-center transition-colors duration-500 bg-bg-tertiary/20">
           <div>
             <h2 className="text-2xl font-black text-white tracking-tight">Return <span className="text-accent-primary">Hardware</span></h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mt-1">
+            <p className="text-[10px] font-black tracking-[0.2em] text-text-muted mt-1">
               {asset.model} • {asset.serialNumber}
             </p>
           </div>
@@ -61,7 +61,7 @@ const ReturnAssetModal = ({ isOpen, asset, onClose, onRefresh }) => {
 
         <form onSubmit={handleReturn} className="p-8 space-y-8">
           <div className="space-y-6">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+            <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
               Item Condition Assessment
             </label>
 
@@ -115,7 +115,7 @@ const ReturnAssetModal = ({ isOpen, asset, onClose, onRefresh }) => {
                       <div className="font-black text-base text-text-primary tracking-tight">
                         {stat.label}
                       </div>
-                      <div className="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60 mt-1">{stat.sub}</div>
+                      <div className="text-[10px] text-text-muted font-black tracking-widest opacity-60 mt-1">{stat.sub}</div>
                     </div>
                   </div>
                 </label>
@@ -126,7 +126,7 @@ const ReturnAssetModal = ({ isOpen, asset, onClose, onRefresh }) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full h-16 font-black uppercase tracking-widest text-[11px] rounded-[1.25rem] flex items-center justify-center gap-3 transition-all text-white shadow-xl hover:shadow-2xl active:scale-95 disabled:grayscale disabled:opacity-50
+            className={`w-full h-16 font-black tracking-widest text-[11px] rounded-[1.25rem] flex items-center justify-center gap-3 transition-all text-white shadow-xl hover:shadow-2xl active:scale-95 disabled:grayscale disabled:opacity-50
             ${
               returnStatus === "READY_TO_DEPLOY"
                 ? "bg-gradient-to-tr from-status-success to-emerald-600 shadow-status-success/20"

@@ -76,6 +76,19 @@ const RequestCardSkeleton = () => (
 
 const itemsPerPage = 20;
 
+const IconButton = ({ icon: Icon, onClick, variant, tooltip, disabled }) => {
+  const styles = {
+    primary: "text-accent-primary bg-accent-primary/5 hover:bg-accent-primary/10 border-accent-primary/10",
+    secondary: "text-text-muted bg-bg-tertiary hover:bg-bg-tertiary/70 border-border",
+    danger: "text-status-danger bg-status-danger/5 hover:bg-status-danger/10 border-status-danger/20",
+  };
+  return (
+    <button onClick={onClick} disabled={disabled} title={tooltip} className={`p-3 rounded-2xl border transition-all active:scale-90 disabled:opacity-20 shadow-sm ${styles[variant]}`}>
+      <Icon size={18} />
+    </button>
+  );
+};
+
 const RequestList = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
@@ -247,13 +260,12 @@ const RequestList = () => {
         icon={ClipboardList}
         action={
           <div className="flex items-center gap-4">
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
               onClick={handleManualRefresh}
-              icon={RefreshCw}
-              className={loading ? "animate-spin" : ""}
-            />
+              className="p-3.5 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-all shadow-premium active:scale-95"
+            >
+              <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+            </button>
             {isAdmin ? (
               <Link to="/requests/stats">
                 <Button variant="secondary" icon={TrendingUp}>Analytics</Button>
@@ -288,7 +300,7 @@ const RequestList = () => {
             >
               <div className="flex items-center gap-3">
                 <Filter size={16} className={statusFilter ? "text-accent-primary" : "text-text-muted"} />
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-muted">
+                <span className="text-[10px] sm:text-xs font-black tracking-widest text-text-muted">
                   {statusFilter === "" ? "All Statuses"
                     : statusFilter === "PENDING" ? "Pending Approval"
                     : statusFilter === "APPROVED" ? "Approved"
@@ -311,7 +323,7 @@ const RequestList = () => {
                     { value: "REJECTED", label: "Rejected" },
                   ].map(({ value, label }) => (
                     <button key={value || "__all"} onClick={() => { setStatusFilter(value); setIsStatusOpen(false); }}
-                      className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${statusFilter === value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                      className={`w-full text-left px-5 py-3 text-[10px] font-black tracking-widest transition-all flex items-center justify-between ${statusFilter === value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
                       {label}
                       {statusFilter === value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-glow" />}
                     </button>
@@ -338,7 +350,7 @@ const RequestList = () => {
                 <ClipboardList size={64} />
               </div>
               <div className="space-y-2 text-center">
-                <h3 className="text-text-primary font-black text-xl tracking-tight uppercase">No records found</h3>
+                <h3 className="text-text-primary font-black text-xl tracking-tight">No records found</h3>
                 <p className="text-text-muted text-sm font-medium">Try adjusting your filters or search criteria.</p>
               </div>
             </Card>
@@ -356,7 +368,7 @@ const RequestList = () => {
                 <Card key={req._id} className="group hover:border-accent-primary/30 relative h-full flex flex-col justify-between">
                   <div className="space-y-8 h-full">
                     <div className="flex justify-between items-start gap-4">
-                      <div className="space-y-3 flex-1">
+                      <div className="space-y-3 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={getPriorityVariant(req.priority)}>
                             {req.priority || "MEDIUM"}
@@ -368,11 +380,11 @@ const RequestList = () => {
                             {req.requestType || "NEW"}
                           </Badge>
                         </div>
-                        <h3 className="text-2xl font-black text-text-primary leading-tight group-hover:text-white transition-colors tracking-tight">
+                        <h3 className="text-xl sm:text-2xl font-black text-text-primary leading-tight group-hover:text-white transition-colors tracking-tight">
                           {req.title}
                         </h3>
                       </div>
-                      <Badge variant={getStatusVariant(req.status)} className="px-5 py-2 uppercase font-black tracking-widest text-[10px]">
+                      <Badge variant={getStatusVariant(req.status)} className="px-5 py-2 shrink-0 font-black tracking-widest text-[10px]">
                         {req.status}
                       </Badge>
                     </div>
@@ -388,20 +400,20 @@ const RequestList = () => {
                             <MessageSquare size={20} />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[10px] font-black text-text-disabled uppercase tracking-widest">Resource Allocation</p>
+                            <p className="text-[10px] font-black text-text-disabled tracking-widest">Resource Allocation</p>
                             <p className="text-base text-text-primary font-black tracking-tight">{req.itemId?.model || req.itemId?.itemName || "Unknown Resource"}</p>
                           </div>
                         </div>
                       )}
 
                       <div className="flex items-center justify-between py-6 border-y border-border">
-                        <div className="flex flex-wrap items-center gap-8">
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-8">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-2xl bg-accent-secondary/10 flex items-center justify-center text-accent-secondary border border-accent-secondary/10">
                               <User size={18} />
                             </div>
                             <div className="space-y-1">
-                              <p className="text-xs font-black text-text-disabled uppercase tracking-widest">Requester</p>
+                              <p className="text-xs font-black text-text-disabled tracking-widest">Requester</p>
                               <p className="text-sm font-bold text-text-primary">{isAdmin ? (req.employeeId?.name || "Unregistered") : "Self"}</p>
                             </div>
                           </div>
@@ -410,7 +422,7 @@ const RequestList = () => {
                               <Clock size={18} />
                             </div>
                             <div className="space-y-1">
-                              <p className="text-xs font-black text-text-disabled uppercase tracking-widest">Submitted</p>
+                              <p className="text-xs font-black text-text-disabled tracking-widest">Submitted</p>
                               <p className="text-sm font-bold text-text-primary">{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Date N/A"}</p>
                             </div>
                           </div>
@@ -433,12 +445,12 @@ const RequestList = () => {
                         <div className="flex gap-4">
                           {req.status === "PENDING" && (
                             <>
-                              <Button onClick={() => handleStatusUpdate(req._id, "APPROVED")} className="flex-1 h-14 uppercase tracking-widest text-[10px] font-black">Approve</Button>
-                              <Button variant="secondary" onClick={() => handleStatusUpdate(req._id, "REJECTED")} className="flex-1 h-14 font-black text-[10px] uppercase tracking-widest text-status-danger border-status-danger/30 hover:bg-status-danger hover:text-white shadow-lg active:scale-95 transition-all">Reject</Button>
+                              <Button onClick={() => handleStatusUpdate(req._id, "APPROVED")} className="flex-1 h-14 tracking-widest text-[10px] font-black">Approve</Button>
+                              <Button variant="secondary" onClick={() => handleStatusUpdate(req._id, "REJECTED")} className="flex-1 h-14 font-black text-[10px] tracking-widest text-status-danger border-status-danger/30 hover:bg-status-danger hover:text-white shadow-lg active:scale-95 transition-all">Reject</Button>
                             </>
                           )}
                           {req.status === "APPROVED" && (
-                            <Button onClick={() => handleStatusUpdate(req._id, "FULFILLED")} className="w-full h-14 bg-gradient-to-tr from-status-success to-emerald-600 border-none font-black text-[11px] uppercase tracking-widest">Mark Fulfilled</Button>
+                            <Button onClick={() => handleStatusUpdate(req._id, "FULFILLED")} className="w-full h-14 bg-gradient-to-tr from-status-success to-status-success/70 border-none font-black text-[11px] tracking-widest">Mark Fulfilled</Button>
                           )}
                         </div>
                       </div>
@@ -446,7 +458,7 @@ const RequestList = () => {
 
                     {req.adminNote && (
                       <div className="p-5 bg-accent-primary/5 rounded-2xl border border-accent-primary/20 relative mt-4">
-                        <p className="text-[10px] font-black text-accent-primary uppercase tracking-widest mb-1 opacity-80">Admin Note</p>
+                        <p className="text-[10px] font-black text-accent-primary tracking-widest mb-1 opacity-80">Admin Note</p>
                         <p className="text-sm text-text-secondary italic">"{req.adminNote}"</p>
                       </div>
                     )}
@@ -465,19 +477,6 @@ const RequestList = () => {
       <ReasonModal isOpen={isReasonModalOpen} onClose={() => setIsReasonModalOpen(false)} onConfirm={(note) => handleStatusUpdate(selectedReq?._id, "REJECTED", note)} mode={reasonModalMode} title={reasonModalMode === "INPUT" ? "Resolution Required" : "Ticket Record"} description={reasonModalMode === "INPUT" ? `Reason for rejecting "${selectedReq?.title}".` : `Admin feedback for "${selectedReq?.title}"`} initialValue={selectedReq?.adminNote || ""} isLoading={isUpdatingStatus} />
       <PriorityModal isOpen={isPriorityModalOpen} onClose={() => setIsPriorityModalOpen(false)} onConfirm={handlePriorityUpdate} initialPriority={selectedReq?.priority || "MEDIUM"} isLoading={isUpdatingStatus} />
     </PageTransition>
-  );
-};
-
-const IconButton = ({ icon: Icon, onClick, variant, tooltip, disabled }) => {
-  const styles = {
-    primary: "text-accent-primary bg-accent-primary/5 hover:bg-accent-primary/10 border-accent-primary/10",
-    secondary: "text-text-muted bg-bg-tertiary hover:bg-bg-tertiary/70 border-border",
-    danger: "text-status-danger bg-status-danger/5 hover:bg-status-danger/10 border-status-danger/20",
-  };
-  return (
-    <button onClick={onClick} disabled={disabled} title={tooltip} className={`p-3 rounded-2xl border transition-all active:scale-90 disabled:opacity-20 shadow-sm ${styles[variant]}`}>
-      <Icon size={18} />
-    </button>
   );
 };
 

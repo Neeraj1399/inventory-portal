@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Send, AlertCircle, CheckCircle2, RefreshCw, ClipboardList, Package } from "lucide-react";
+import { X, Send, AlertCircle, CheckCircle2, RefreshCw, ClipboardList, Package, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/api";
 
@@ -25,6 +25,10 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [isTypeOpen, setIsTypeOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isRequestTypeOpen, setIsRequestTypeOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -79,7 +83,7 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 bg-bg-primary/80 backdrop-blur-xl" 
+            className="fixed inset-0 bg-bg-primary/80 backdrop-blur-xl"
             onClick={!loading ? onClose : undefined} 
           />
           
@@ -101,7 +105,7 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
                   <h2 className="text-xl font-black text-text-primary tracking-tight">
                     {success ? "Submission Success" : "New Service Entry"}
                   </h2>
-                  <p className="text-text-muted text-[10px] uppercase font-black tracking-widest mt-1 opacity-60">
+                  <p className="text-text-muted text-[10px] font-black tracking-widest mt-1 opacity-60">
                     {formData.type === "INCIDENT" ? "Critical Event Reporting" : "Resource Allocation Request"}
                   </p>
                 </div>
@@ -136,7 +140,7 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      className="p-5 bg-status-danger/10 border border-status-danger/20 rounded-[1.5rem] flex items-center gap-4 text-status-danger text-xs font-black uppercase tracking-widest"
+                      className="p-5 bg-status-danger/10 border border-status-danger/20 rounded-[1.5rem] flex items-center gap-4 text-status-danger text-xs font-black tracking-widest"
                     >
                       <AlertCircle size={20} />
                       {error}
@@ -145,83 +149,108 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Logic Pattern</label>
+                      <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Logic Pattern</label>
                       <div className="relative">
-                        <select
-                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
-                          value={formData.type}
-                          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                        >
-                          <option value="ALLOCATION">Allocation</option>
-                          <option value="REPLACEMENT">Replacement</option>
-                          <option value="SERVICE">Maintenance</option>
-                          <option value="INCIDENT">Incident</option>
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
-                          <AlertCircle size={16} className="opacity-40" />
-                        </div>
+                        <button type="button" onClick={() => { setIsTypeOpen(o => !o); setIsCategoryOpen(false); setIsRequestTypeOpen(false); setIsPriorityOpen(false); }}
+                          className={`w-full flex items-center justify-between px-6 h-14 bg-bg-elevated border rounded-[1.25rem] transition-all text-text-primary ${isTypeOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}>
+                          <span className="text-sm font-bold">{{ ALLOCATION: "Allocation", REPLACEMENT: "Replacement", SERVICE: "Maintenance", INCIDENT: "Incident" }[formData.type]}</span>
+                          <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isTypeOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {isTypeOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsTypeOpen(false)} />
+                            <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              {[{ value: "ALLOCATION", label: "Allocation" }, { value: "REPLACEMENT", label: "Replacement" }, { value: "SERVICE", label: "Maintenance" }, { value: "INCIDENT", label: "Incident" }].map(opt => (
+                                <button type="button" key={opt.value} onClick={() => { setFormData({ ...formData, type: opt.value }); setIsTypeOpen(false); }}
+                                  className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${formData.type === opt.value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                                  {opt.label}
+                                  {formData.type === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Entity Cluster</label>
+                      <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Entity Cluster</label>
                       <div className="relative">
-                        <select
-                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
-                          value={formData.category}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        >
-                          <option value="Laptop">Laptop</option>
-                          <option value="Monitor">Monitor</option>
-                          <option value="Mobile">Smartphone</option>
-                          <option value="Headphones">Headphones</option>
-                          <option value="Keyboard">Keyboard</option>
-                          <option value="Others">Others</option>
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
-                          <AlertCircle size={16} className="opacity-40" />
-                        </div>
+                        <button type="button" onClick={() => { setIsCategoryOpen(o => !o); setIsTypeOpen(false); setIsRequestTypeOpen(false); setIsPriorityOpen(false); }}
+                          className={`w-full flex items-center justify-between px-6 h-14 bg-bg-elevated border rounded-[1.25rem] transition-all text-text-primary ${isCategoryOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}>
+                          <span className="text-sm font-bold">{{ Laptop: "Laptop", Monitor: "Monitor", Mobile: "Smartphone", Headphones: "Headphones", Keyboard: "Keyboard", Others: "Others" }[formData.category] || formData.category}</span>
+                          <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isCategoryOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {isCategoryOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsCategoryOpen(false)} />
+                            <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              {[{ value: "Laptop", label: "Laptop" }, { value: "Monitor", label: "Monitor" }, { value: "Mobile", label: "Smartphone" }, { value: "Headphones", label: "Headphones" }, { value: "Keyboard", label: "Keyboard" }, { value: "Others", label: "Others" }].map(opt => (
+                                <button type="button" key={opt.value} onClick={() => { setFormData({ ...formData, category: opt.value }); setIsCategoryOpen(false); }}
+                                  className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${formData.category === opt.value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                                  {opt.label}
+                                  {formData.category === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Acquisition Model</label>
+                      <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Acquisition Model</label>
                       <div className="relative">
-                        <select
-                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
-                          value={formData.requestType}
-                          onChange={(e) => setFormData({ ...formData, requestType: e.target.value })}
-                        >
-                          <option value="NEW">New Provisions</option>
-                          <option value="REPLACEMENT">Hardware Replacement</option>
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
-                          <AlertCircle size={16} className="opacity-40" />
-                        </div>
+                        <button type="button" onClick={() => { setIsRequestTypeOpen(o => !o); setIsTypeOpen(false); setIsCategoryOpen(false); setIsPriorityOpen(false); }}
+                          className={`w-full flex items-center justify-between px-6 h-14 bg-bg-elevated border rounded-[1.25rem] transition-all text-text-primary ${isRequestTypeOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}>
+                          <span className="text-sm font-bold">{{ NEW: "New Provisions", REPLACEMENT: "Hardware Replacement" }[formData.requestType]}</span>
+                          <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isRequestTypeOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {isRequestTypeOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsRequestTypeOpen(false)} />
+                            <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              {[{ value: "NEW", label: "New Provisions" }, { value: "REPLACEMENT", label: "Hardware Replacement" }].map(opt => (
+                                <button type="button" key={opt.value} onClick={() => { setFormData({ ...formData, requestType: opt.value }); setIsRequestTypeOpen(false); }}
+                                  className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${formData.requestType === opt.value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                                  {opt.label}
+                                  {formData.requestType === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Priority Vector</label>
+                      <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Priority Vector</label>
                       <div className="relative">
-                        <select
-                          className="w-full h-14 bg-bg-elevated border border-border rounded-[1.25rem] px-6 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all appearance-none cursor-pointer"
-                          value={formData.priority}
-                          onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        >
-                          <option value="LOW">Optimized (Low)</option>
-                          <option value="MEDIUM">Standard (Medium)</option>
-                          <option value="HIGH">Critical (High)</option>
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-text-disabled pointer-events-none">
-                          <AlertCircle size={16} className="opacity-40" />
-                        </div>
+                        <button type="button" onClick={() => { setIsPriorityOpen(o => !o); setIsTypeOpen(false); setIsCategoryOpen(false); setIsRequestTypeOpen(false); }}
+                          className={`w-full flex items-center justify-between px-6 h-14 bg-bg-elevated border rounded-[1.25rem] transition-all text-text-primary ${isPriorityOpen ? "border-accent-primary/50 ring-4 ring-accent-primary/10" : "border-border"}`}>
+                          <span className="text-sm font-bold">{{ LOW: "Low", MEDIUM: "Medium", HIGH: "High" }[formData.priority]}</span>
+                          <ChevronDown size={16} className={`text-text-disabled shrink-0 transition-transform duration-300 ${isPriorityOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {isPriorityOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsPriorityOpen(false)} />
+                            <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-bg-secondary border border-border rounded-2xl shadow-premium z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              {[{ value: "LOW", label: "Low" }, { value: "MEDIUM", label: "Medium" }, { value: "HIGH", label: "High" }].map(opt => (
+                                <button type="button" key={opt.value} onClick={() => { setFormData({ ...formData, priority: opt.value }); setIsPriorityOpen(false); }}
+                                  className={`w-full text-left px-5 py-3 text-sm font-bold transition-all flex items-center justify-between ${formData.priority === opt.value ? "bg-accent-primary/10 text-accent-primary" : "text-text-muted hover:bg-bg-tertiary hover:text-text-primary"}`}>
+                                  {opt.label}
+                                  {formData.priority === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Identification Header</label>
+                    <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Identification Header</label>
                     <Input
                       type="text"
                       required
@@ -232,7 +261,7 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-text-disabled uppercase tracking-widest px-1">Contextual Description</label>
+                    <label className="text-[10px] font-black text-text-disabled tracking-widest px-1">Contextual Description</label>
                     <textarea
                       ref={textareaRef}
                       required
@@ -249,8 +278,8 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
                         <Package size={20} className="group-hover:scale-110 transition-transform" />
                       </div>
                       <div className="space-y-0.5">
-                        <p className="text-[10px] font-black text-accent-primary uppercase tracking-widest opacity-60">Attached Resource</p>
-                        <p className="text-sm text-text-primary font-black tracking-tight uppercase">{item.model || item.itemName}</p>
+                        <p className="text-[10px] font-black text-accent-primary tracking-widest opacity-60">Attached Resource</p>
+                        <p className="text-sm text-text-primary font-black tracking-tight">{item.model || item.itemName}</p>
                       </div>
                     </div>
                   )}
@@ -260,14 +289,14 @@ const RequestModal = ({ isOpen, onClose, item = null, type = "ALLOCATION" }) => 
                       variant="secondary"
                       type="button"
                       onClick={onClose}
-                      className="flex-1 h-16 uppercase tracking-widest text-[11px]"
+                      className="flex-1 h-16 tracking-widest text-[11px]"
                     >
                       Cancel Sequence
                     </Button>
                     <Button
                       type="submit"
                       isLoading={loading}
-                      className="flex-[2] h-16 uppercase tracking-widest text-[11px]"
+                      className="flex-[2] h-16 tracking-widest text-[11px]"
                       icon={Send}
                     >
                       Transmit Vitals

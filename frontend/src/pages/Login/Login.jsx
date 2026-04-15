@@ -96,7 +96,7 @@ const Login = () => {
             <h1 className="text-3xl font-black text-text-primary tracking-tight">
               Inventory <span className="text-accent-primary">Portal</span>
             </h1>
-            <p className="text-text-muted font-black uppercase tracking-[0.2em] mt-4 text-[10px] opacity-60">
+            <p className="text-text-muted font-black tracking-[0.2em] mt-4 text-[10px] opacity-60">
               {isForgotPassword ? "Secure Access Recovery" : "Enterprise Authentication Gate"}
             </p>
           </div>
@@ -107,7 +107,7 @@ const Login = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 text-status-danger text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3"
+                className="mb-8 p-4 bg-status-danger/10 border border-status-danger/20 text-status-danger text-[10px] font-black tracking-widest rounded-2xl flex items-center gap-3"
               >
                 <div className="w-1.5 h-1.5 bg-status-danger rounded-full animate-pulse" />
                 {error}
@@ -119,7 +119,7 @@ const Login = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-8 p-4 bg-status-success/10 border border-status-success/20 text-status-success text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3"
+                className="mb-8 p-4 bg-status-success/10 border border-status-success/20 text-status-success text-[10px] font-black tracking-widest rounded-2xl flex items-center gap-3"
               >
                 <div className="w-1.5 h-1.5 bg-status-success rounded-full animate-pulse" />
                 {successMessage}
@@ -139,7 +139,7 @@ const Login = () => {
                 className="space-y-8"
               >
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                  <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
                     Identity Verification
                   </label>
                   <Input
@@ -158,7 +158,7 @@ const Login = () => {
                 <Button
                   type="submit"
                   isLoading={loading}
-                  className="w-full h-14 uppercase tracking-widest text-[11px]"
+                  className="w-full h-14 tracking-widest text-[11px]"
                 >
                   Request Reset Link
                 </Button>
@@ -167,7 +167,7 @@ const Login = () => {
                   <button 
                     type="button"
                     onClick={() => { setIsForgotPassword(false); setError(""); setSuccessMessage(""); }}
-                    className="text-text-muted hover:text-white transition-colors text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
+                    className="text-text-muted hover:text-white transition-colors text-xs font-black tracking-widest flex items-center justify-center gap-2 mx-auto"
                   >
                     Sign In
                   </button>
@@ -184,7 +184,7 @@ const Login = () => {
                 className="space-y-8"
               >
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+                  <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1">
                     Work Email
                   </label>
                   <Input
@@ -202,13 +202,13 @@ const Login = () => {
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled">
+                    <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled">
                       Password
                     </label>
                     <button 
                       type="button"
                       onClick={() => setIsForgotPassword(true)}
-                      className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-primary hover:text-white transition-colors"
+                      className="text-[10px] font-black tracking-[0.2em] text-accent-primary hover:text-white transition-colors"
                     >
                       Recovery?
                     </button>
@@ -238,14 +238,14 @@ const Login = () => {
                 <Button
                   type="submit"
                   isLoading={loading}
-                  className="w-full h-14 uppercase tracking-widest text-[11px]"
+                  className="w-full h-14 tracking-widest text-[11px]"
                   icon={ArrowRight}
                 >
                   Enter Dashboard
                 </Button>
 
                 <div className="pt-8 text-center">
-                  <p className="text-text-disabled text-[9px] font-black uppercase tracking-[0.3em] opacity-40">
+                  <p className="text-text-disabled text-[9px] font-black tracking-[0.3em] opacity-40">
                     Proprietary Resource Access
                   </p>
                 </div>

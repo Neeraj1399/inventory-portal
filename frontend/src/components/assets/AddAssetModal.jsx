@@ -83,14 +83,14 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-bg-primary/80 backdrop-blur-sm">
-      <div className="bg-bg-secondary border border-border w-full max-w-2xl rounded-2xl shadow-premium overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-bg-secondary border border-border w-full max-w-2xl rounded-2xl shadow-premium overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center shrink-0">
           <div>
             <h2 className="text-xl font-black text-text-primary tracking-tight">
               {asset ? "Update Unit" : "Register Unit"}
             </h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-primary mt-0.5">
+            <p className="text-[10px] font-black tracking-[0.2em] text-accent-primary mt-0.5">
               Hardware Resource Management
             </p>
           </div>
@@ -102,12 +102,13 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Left column */}
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                   Category
                 </label>
                 <Input
@@ -120,7 +121,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                   Model
                 </label>
                 <Input
@@ -133,7 +134,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                   Serial Number
                 </label>
                 <Input
@@ -150,7 +151,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
             {/* Right column */}
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                   Acquisition Date
                 </label>
                 <Input
@@ -163,7 +164,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                     Cost
                   </label>
                   <Input
@@ -175,7 +176,7 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                  <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                     Warranty (Mo)
                   </label>
                   <Input
@@ -188,12 +189,12 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
+                <label className="block text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 mb-1.5">
                   Receipt
                 </label>
                 <label className="flex flex-col items-center justify-center w-full h-[72px] border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-bg-elevated hover:border-accent-primary/50 transition-all duration-200 group">
                   <Upload size={16} className="text-text-disabled group-hover:text-accent-primary mb-1 transition-colors" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-disabled group-hover:text-text-primary transition-colors">
+                  <span className="text-[10px] font-black tracking-widest text-text-disabled group-hover:text-text-primary transition-colors">
                     {file ? file.name : asset?.receiptUrl ? "Replace" : "Attach Receipt"}
                   </span>
                   <input
@@ -215,7 +216,8 @@ const AddAssetModal = ({ isOpen, onClose, onRefresh, asset }) => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-border">
+          </div>
+          <div className="px-5 py-4 border-t border-border flex justify-end gap-3 shrink-0">
             <Button variant="secondary" onClick={onClose} className="px-8">
               Discard
             </Button>

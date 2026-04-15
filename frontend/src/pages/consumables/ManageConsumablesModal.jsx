@@ -70,7 +70,7 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
               <h2 className="text-2xl font-black text-white tracking-tight">
                 Consumable <span className="text-accent-primary">Logistics</span>
               </h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mt-1">
+              <p className="text-[10px] font-black tracking-[0.2em] text-text-muted mt-1">
                 {employee.name} • {employee.department || "Staff"}
               </p>
             </div>
@@ -101,7 +101,7 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
               <>
                 {/* Section: Held by Employee */}
                 <section>
-                  <h3 className="text-[10px] font-black text-text-disabled uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                  <h3 className="text-[10px] font-black text-text-disabled tracking-[0.2em] mb-6 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-accent-primary rounded-full shadow-glow" />
                     Currently Held
                   </h3>
@@ -120,7 +120,7 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
                               <span className="text-base font-black text-text-primary tracking-tight">
                                 {item.itemName}
                               </span>
-                              <span className="text-[10px] text-accent-primary/70 font-black uppercase tracking-widest">
+                              <span className="text-[10px] text-accent-primary/70 font-black tracking-widest">
                                 Holding {item.heldQuantity} units
                               </span>
                             </div>
@@ -128,7 +128,7 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
                           <button
                             onClick={() => setItemToReturn(item)}
                             disabled={isRefreshing}
-                            className="text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl bg-bg-tertiary border border-border hover:bg-status-danger/10 hover:text-status-danger hover:border-status-danger/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                            className="text-[10px] font-black tracking-widest px-4 py-2.5 rounded-xl bg-bg-tertiary border border-border hover:bg-status-danger/10 hover:text-status-danger hover:border-status-danger/20 transition-all flex items-center gap-2 disabled:opacity-50"
                           >
                             Return Items
                           </button>
@@ -146,7 +146,7 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
 
                 {/* Section: Available to Allocate */}
                 <section>
-                  <h3 className="text-[10px] font-black text-text-disabled uppercase tracking-[0.2em] mb-6 flex items-center gap-2 mt-4">
+                  <h3 className="text-[10px] font-black text-text-disabled tracking-[0.2em] mb-6 flex items-center gap-2 mt-4">
                     <div className="w-1.5 h-1.5 bg-accent-secondary rounded-full shadow-glow" />
                     Allocate New Stock
                   </h3>
@@ -160,13 +160,13 @@ const ManageConsumablesModal = ({ isOpen, employee, onClose, onRefresh }) => {
                             className="flex items-center justify-between p-4 bg-bg-elevated/20 border border-border rounded-2xl hover:border-accent-primary/50 transition-all group"
                           >
                             <div className="flex flex-col">
-                              <span className="text-[9px] font-black text-accent-secondary uppercase tracking-[0.2em] mb-1">
+                              <span className="text-[9px] font-black text-accent-secondary tracking-[0.2em] mb-1">
                                 {item.category || "GENERAL"}
                               </span>
                               <span className="text-base font-black text-text-primary tracking-tight group-hover:text-white transition-colors">
                                 {item.itemName}
                               </span>
-                              <span className="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60">
+                              <span className="text-[10px] text-text-muted font-black tracking-widest opacity-60">
                                 {available} units available in warehouse
                               </span>
                             </div>

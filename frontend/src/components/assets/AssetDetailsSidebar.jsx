@@ -53,7 +53,7 @@ const AssetDetailsSidebar = ({
         <h3 className="text-lg font-bold text-text-primary leading-tight">
           {data?.model || data?.name}
         </h3>
-        <p className="text-[10px] font-black text-accent-primary uppercase tracking-[0.2em] mt-0.5">
+        <p className="text-[10px] font-black text-accent-primary tracking-[0.2em] mt-0.5">
           {data?.serialNumber || "Bulk Consumable"}
         </p>
       </div>
@@ -69,8 +69,8 @@ const AssetDetailsSidebar = ({
  <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
  {/* 1. CURRENT OWNER SECTION */}
  <section>
- <h4 className="flex items-center gap-2 text-[10px] font-black uppercase text-text-muted mb-4 tracking-widest">
- <User size={14} /> Currently ALLOCATED Recipient
+ <h4 className="flex items-center gap-2 text-[10px] font-black text-text-muted mb-4 tracking-widest">
+ <User size={14} /> Currently Allocated Recipient
  </h4>
  {data?.ALLOCATEDTo ? (
  <div className="p-4 rounded-xl border border-accent-primary/20 bg-accent-primary/10 flex items-center gap-4">
@@ -88,7 +88,7 @@ const AssetDetailsSidebar = ({
  </div>
  ) : (
  <div className="p-4 rounded-xl border border-dashed border-border text-center text-text-muted text-sm italic">
- READY_TO_DEPLOY
+ Ready to Deploy
  </div>
  )}
  </section>
@@ -96,7 +96,7 @@ const AssetDetailsSidebar = ({
  {/* 2. QUICK STATS */}
  <div className="grid grid-cols-2 gap-3">
  <div className="p-3 bg-bg-tertiary rounded-lg border border-border">
- <div className="text-[10px] font-bold text-text-muted uppercase">
+ <div className="text-[10px] font-bold text-text-muted">
  Asset Classification
  </div>
  <div className="text-sm font-semibold text-text-secondary mt-0.5">
@@ -104,7 +104,7 @@ const AssetDetailsSidebar = ({
  </div>
  </div>
  <div className="p-3 bg-bg-tertiary rounded-lg border border-border">
- <div className="text-[10px] font-bold text-text-muted uppercase">
+ <div className="text-[10px] font-bold text-text-muted">
  Status
  </div>
  <div
@@ -118,7 +118,7 @@ const AssetDetailsSidebar = ({
  {/* 3. RECEIPT SECTION (Optional Addition) */}
  {data?.receiptUrl && (
  <section className="pt-4 border-t border-border">
- <h4 className="flex items-center gap-2 text-[10px] font-black uppercase text-text-muted mb-4 tracking-widest">
+ <h4 className="flex items-center gap-2 text-[10px] font-black text-text-muted mb-4 tracking-widest">
  <FileText size={14} /> Documents
  </h4>
  <a
@@ -135,7 +135,7 @@ const AssetDetailsSidebar = ({
 
  {/* 4. ASSIGNMENT HISTORY SECTION */}
  <section className="pt-4 border-t border-border">
- <h4 className="flex items-center gap-2 text-[10px] font-black uppercase text-text-muted mb-4 tracking-widest">
+ <h4 className="flex items-center gap-2 text-[10px] font-black text-text-muted mb-4 tracking-widest">
  <History size={14} /> Assignment History
  </h4>
  <div className="space-y-4">

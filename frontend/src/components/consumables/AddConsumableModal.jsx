@@ -1,12 +1,14 @@
-import React, { useState } from "react";
-import { X, Package, Layers, Hash, DollarSign, AlertCircle, Plus, LayoutGrid } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Package, Layers, Hash, DollarSign, AlertCircle, LayoutGrid } from "lucide-react";
 import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 import Input from "../common/Input";
 import Button from "../common/Button";
 
-const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
+const AddConsumableModal = ({ isOpen, onClose, onRefresh, item }) => {
   const { addToast } = useToast();
+  const isEdit = !!item;
+
   const [formData, setFormData] = useState({
     itemName: "",
     category: "",
@@ -15,6 +17,28 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
     lowStockThreshold: 1,
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (item) {
+        setFormData({
+          itemName: item.itemName || "",
+          category: item.category || "",
+          totalQuantity: item.totalQuantity ?? "",
+          unitCost: item.unitCost ?? "",
+          lowStockThreshold: item.lowStockThreshold ?? 1,
+        });
+      } else {
+        setFormData({
+          itemName: "",
+          category: "",
+          totalQuantity: "",
+          unitCost: "",
+          lowStockThreshold: 1,
+        });
+      }
+    }
+  }, [isOpen, item]);
 
   if (!isOpen) return null;
 
@@ -27,29 +51,31 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        totalQuantity: Number(formData.totalQuantity) || 0,
-        unitCost: Number(formData.unitCost) || 0,
-        lowStockThreshold: Number(formData.lowStockThreshold) || 0,
-        maintenanceQuantity: 0,
-        assignedQuantity: 0,
-      };
-
-      await api.post("/consumables", payload);
+      if (isEdit) {
+        const payload = {
+          itemName: formData.itemName,
+          category: formData.category,
+          unitCost: Number(formData.unitCost) || 0,
+          lowStockThreshold: Number(formData.lowStockThreshold) || 0,
+        };
+        await api.patch(`/consumables/${item._id}`, payload);
+        addToast("Consumable updated successfully.", "success");
+      } else {
+        const payload = {
+          ...formData,
+          totalQuantity: Number(formData.totalQuantity) || 0,
+          unitCost: Number(formData.unitCost) || 0,
+          lowStockThreshold: Number(formData.lowStockThreshold) || 0,
+          maintenanceQuantity: 0,
+          assignedQuantity: 0,
+        };
+        await api.post("/consumables", payload);
+        addToast("Resource initialized in inventory.", "success");
+      }
       onRefresh();
-
-      setFormData({
-        itemName: "",
-        category: "",
-        totalQuantity: "",
-        unitCost: "",
-        lowStockThreshold: 5,
-      });
-      addToast("Resource initialized in inventory.", "success");
       onClose();
     } catch (err) {
-      addToast(err.response?.data?.message || "Failed to initialize resource.", "error");
+      addToast(err.response?.data?.message || (isEdit ? "Failed to update resource." : "Failed to initialize resource."), "error");
     } finally {
       setLoading(false);
     }
@@ -57,13 +83,15 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary/80 backdrop-blur-sm p-4">
-      <div className="bg-bg-secondary border border-border rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      <div className="bg-bg-secondary border border-border rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden max-h-[90vh]">
         {/* Header */}
-        <div className="p-8 border-b border-border flex justify-between items-center bg-bg-tertiary/20">
+        <div className="p-8 border-b border-border flex justify-between items-center bg-bg-tertiary/20 shrink-0">
           <div>
-            <h2 className="text-2xl font-black text-white tracking-tight">New <span className="text-accent-primary">Resource</span></h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-secondary mt-1">
-              Consumable Inventory Intake
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              {isEdit ? "Edit " : "New "}<span className="text-accent-primary">Resource</span>
+            </h2>
+            <p className="text-[10px] font-black tracking-[0.2em] text-accent-secondary mt-1">
+              {isEdit ? "Consumable Details" : "Consumable Inventory Intake"}
             </p>
           </div>
           <button
@@ -74,10 +102,10 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+              <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
                 Name
               </label>
               <Input
@@ -92,7 +120,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
                   Classification
                 </label>
                 <Input
@@ -106,7 +134,7 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
                   Unit Cost ($)
                 </label>
                 <Input
@@ -122,10 +150,10 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            {!isEdit && (
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
-                  Stock
+                <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                  Initial Stock
                 </label>
                 <Input
                   icon={Hash}
@@ -137,29 +165,29 @@ const AddConsumableModal = ({ isOpen, onClose, onRefresh }) => {
                   placeholder="0"
                 />
               </div>
+            )}
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
-                  Critical Threshold
-                </label>
-                <Input
-                  icon={AlertCircle}
-                  type="number"
-                  name="lowStockThreshold"
-                  value={formData.lowStockThreshold}
-                  onChange={handleChange}
-                />
-              </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1 shadow-sm">
+                Critical Threshold
+              </label>
+              <Input
+                icon={AlertCircle}
+                type="number"
+                name="lowStockThreshold"
+                value={formData.lowStockThreshold}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end items-center gap-4 pt-4 border-t border-border">
+          {/* Footer */}
+          <div className="flex justify-end items-center gap-4 px-8 py-5 border-t border-border shrink-0">
             <Button variant="secondary" onClick={onClose} className="px-8 flex-1">
               Cancel
             </Button>
             <Button type="submit" isLoading={loading} className="px-8 flex-1">
-              Commit Stock
+              {isEdit ? "Save Changes" : "Commit Stock"}
             </Button>
           </div>
         </form>

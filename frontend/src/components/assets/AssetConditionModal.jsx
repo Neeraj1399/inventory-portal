@@ -89,7 +89,7 @@ const AssetConditionModal = ({
         <div className="p-8 pb-8 bg-bg-tertiary/20 relative border-b border-border">
           <button
             onClick={onClose}
-            className="absolute top-8 right-8 text-text-muted hover:text-white transition-colors"
+            className="absolute top-8 right-8 p-2 text-text-muted hover:text-white hover:bg-bg-tertiary rounded-2xl transition-all"
           >
             <X size={24} />
           </button>
@@ -112,7 +112,7 @@ const AssetConditionModal = ({
                   ? "Bulk Migration"
                   : "State Engineering"}
               </h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mt-1">
+              <p className="text-[10px] font-black tracking-[0.2em] text-text-muted mt-1">
                 {isBulk
                   ? `${selectedIds.length} Fleet Units Selected`
                   : `${asset.model} • SN-${asset.serialNumber}`}
@@ -139,7 +139,7 @@ const AssetConditionModal = ({
             </div>
           ) : (
             <>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-disabled ml-1">
+              <label className="text-[10px] font-black tracking-[0.2em] text-text-disabled ml-1">
                 Transition Protocol
               </label>
 
@@ -160,7 +160,7 @@ const AssetConditionModal = ({
                         <span className="font-black text-base text-text-primary tracking-tight">
                           {opt.title}
                         </span>
-                        <span className="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60">
+                        <span className="text-[10px] text-text-muted font-black tracking-widest opacity-60">
                           {opt.description}
                         </span>
                       </div>
@@ -173,7 +173,7 @@ const AssetConditionModal = ({
           {loading && (
             <div className="flex flex-col items-center justify-center py-6 gap-3 animate-in fade-in">
               <Loader2 className="animate-spin text-accent-primary" size={28} />
-              <span className="text-[10px] font-black text-accent-primary uppercase tracking-[0.2em]">
+              <span className="text-[10px] font-black text-accent-primary tracking-[0.2em]">
                 Synchronizing State...
               </span>
             </div>

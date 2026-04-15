@@ -11,7 +11,7 @@ const RepairActionModal = ({ isOpen, asset, onClose, onAction }) => {
  <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-status-warning/10">
  <div>
  <h2 className="text-xl font-bold text-text-primary">Resolve Repair</h2>
- <p className="text-xs text-status-warning font-bold uppercase tracking-wider">
+ <p className="text-xs text-status-warning font-bold tracking-wider">
  {asset.model} • {asset.serialNumber}
  </p>
  </div>

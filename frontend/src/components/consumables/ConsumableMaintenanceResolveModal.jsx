@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
  X,
- RefreshCcw,
+ Wrench,
  Trash2,
  AlertTriangle,
  Loader2,
@@ -69,7 +69,7 @@ const ConsumableMaintenanceResolveModal = ({
  <div className="flex justify-between items-start mb-6">
  <div className="flex items-center gap-4">
  <div className="p-3 bg-accent-primary/10 text-accent-primary rounded-2xl border border-accent-primary/20">
- <RefreshCcw size={22} />
+ <Wrench size={22} />
  </div>
  <div>
  <h2 className="text-xl font-black text-text-primary tracking-tight">
@@ -100,7 +100,7 @@ const ConsumableMaintenanceResolveModal = ({
  : "text-text-muted hover:text-text-secondary"
  }`}
  >
- <CheckCircle size={13} /> RETURN TO STOCK
+ <CheckCircle size={13} /> Return to Stock
  </button>
  <button
  type="button"
@@ -111,13 +111,13 @@ const ConsumableMaintenanceResolveModal = ({
  : "text-text-muted hover:text-text-secondary"
  }`}
  >
- <Trash2 size={13} /> SCRAP PERMANENTLY
+ <Trash2 size={13} /> Scrap Permanently
  </button>
  </div>
 
  {/* Quantity Input */}
  <div>
- <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 ml-1">
+ <label className="block text-[10px] font-black text-text-muted tracking-widest mb-1.5 ml-1">
  Quantity to Resolve
  </label>
  <input
@@ -152,7 +152,7 @@ const ConsumableMaintenanceResolveModal = ({
  >
  {isReturn
  ? `These ${formData.quantity} units will be moved back to available warehouse stock.`
- : `These ${formData.quantity} units will be PERMANENTLY deleted from total inventory.`}
+ : `These ${formData.quantity} units will be permanently deleted from total inventory.`}
  </p>
  </div>
 
@@ -164,7 +164,7 @@ const ConsumableMaintenanceResolveModal = ({
  {loading ? (
  <Loader2 className="animate-spin" size={18} />
  ) : (
- "CONFIRM RESOLUTION"
+ "Confirm Resolution"
  )}
  </button>
  </form>

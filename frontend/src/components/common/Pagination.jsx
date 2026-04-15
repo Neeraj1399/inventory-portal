@@ -48,7 +48,7 @@ const Pagination = ({
     <div className="flex flex-col sm:flex-row items-center justify-between gap-8 mt-12 px-6 py-8 border-t border-border bg-bg-secondary/30 rounded-b-[2rem]">
       {/* Items Info */}
       {totalItems !== undefined && (
-        <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] order-2 sm:order-1 opacity-60">
+        <div className="text-[10px] font-black text-text-muted tracking-[0.2em] order-2 sm:order-1 opacity-60">
           Syncing <span className="text-text-primary">{startItem}</span> – <span className="text-text-primary">{endItem}</span> <span className="mx-1 font-medium opacity-40 italic">of</span> <span className="text-accent-primary font-black">{totalItems}</span> entries
         </div>
       )}
@@ -67,7 +67,7 @@ const Pagination = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 px-4 text-text-muted hover:text-accent-primary disabled:opacity-20 disabled:hover:text-text-muted transition-all mr-2 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 active:scale-95 group"
+          className="h-10 px-4 text-text-muted hover:text-accent-primary disabled:opacity-20 disabled:hover:text-text-muted transition-all mr-2 text-[10px] font-black tracking-[0.2em] flex items-center gap-3 active:scale-95 group"
         >
           <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> 
           <span className="hidden md:inline">Previous</span>
@@ -83,7 +83,7 @@ const Pagination = ({
                 <button
                   onClick={() => onPageChange(page)}
                   className={`
-                    min-w-[40px] h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-90 relative overflow-hidden group
+                    min-w-[40px] h-10 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 active:scale-90 relative overflow-hidden group
                     ${
                       currentPage === page
                         ? "bg-accent-primary text-white shadow-glow border border-border"
@@ -105,7 +105,7 @@ const Pagination = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-10 px-4 text-text-muted hover:text-accent-primary disabled:opacity-20 disabled:hover:text-text-muted transition-all ml-2 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 active:scale-95 group"
+          className="h-10 px-4 text-text-muted hover:text-accent-primary disabled:opacity-20 disabled:hover:text-text-muted transition-all ml-2 text-[10px] font-black tracking-[0.2em] flex items-center gap-3 active:scale-95 group"
         >
           <span className="hidden md:inline">Next</span> 
           <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />

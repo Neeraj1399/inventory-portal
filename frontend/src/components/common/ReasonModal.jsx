@@ -94,7 +94,7 @@ const ReasonModal = ({
                       type="submit"
                       isLoading={isLoading}
                       disabled={!reason.trim()}
-                      className="w-full h-16 uppercase tracking-widest text-[11px]"
+                      className="w-full h-16 tracking-widest text-[11px]"
                       icon={Send}
                     >
                       Transmit Resolution
@@ -113,7 +113,7 @@ const ReasonModal = ({
                     <Button
                       variant="secondary"
                       onClick={onClose}
-                      className="w-full h-14 uppercase tracking-widest text-[11px]"
+                      className="w-full h-14 tracking-widest text-[11px]"
                     >
                       Dismiss View
                     </Button>

@@ -3,7 +3,7 @@ import {
   UserPlus,
   Mail,
   Laptop,
-  Edit,
+  Edit3,
   Package,
   ShieldCheck,
   Ban,
@@ -262,26 +262,28 @@ const EmployeeList = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-            <button
-              onClick={handleManualRefresh}
-              className="p-3.5 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary transition-all shadow-premium active:scale-95"
-              title="Refresh"
-            >
-              <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-            </button>
-            <div className="relative flex-1 sm:w-72 group">
-              <input
-                type="text"
-                placeholder="Lookup Name or Email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-bg-secondary border border-border rounded-2xl px-5 py-3.5 text-sm text-text-primary placeholder-text-muted focus:border-accent-primary transition-all pl-12 shadow-premium"
-              />
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary" />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={handleManualRefresh}
+                className="p-3.5 shrink-0 bg-bg-secondary border border-border rounded-2xl text-text-muted hover:text-text-primary transition-all shadow-premium active:scale-95"
+                title="Refresh"
+              >
+                <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+              </button>
+              <div className="relative flex-1 sm:w-72 group">
+                <input
+                  type="text"
+                  placeholder="Lookup Name or Email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-bg-secondary border border-border rounded-2xl px-5 py-3.5 text-sm text-text-primary placeholder-text-muted focus:border-accent-primary transition-all pl-12 shadow-premium"
+                />
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary" />
+              </div>
             </div>
             <button
               onClick={openAddModal}
-              className="bg-gradient-to-tr from-accent-primary to-accent-secondary text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-[0.97] transition-all border border-border shadow-glow text-[11px] uppercase tracking-[0.2em]"
+              className="bg-gradient-to-tr from-accent-primary to-accent-secondary text-white px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-[0.97] transition-all border border-border shadow-glow text-[11px] tracking-[0.2em]"
             >
               <UserPlus size={20} /> Add Employee
             </button>
@@ -314,12 +316,12 @@ const EmployeeList = () => {
                       <div className="font-bold text-text-primary text-xl tracking-tight group-hover/card:text-white">{req.name}</div>
                       <div className="text-sm text-text-muted mb-4">{req.email}</div>
                       <div className="flex gap-2">
-                        <span className="bg-bg-tertiary text-[9px] font-black text-accent-primary px-2.5 py-1.5 rounded-xl border border-border uppercase tracking-widest">{req.role}</span>
+                        <span className="bg-bg-tertiary text-[9px] font-black text-accent-primary px-2.5 py-1.5 rounded-xl border border-border tracking-widest">{req.role}</span>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => handleApproveReset(req.email)} className="flex-1 bg-status-warning/10 hover:bg-status-warning text-status-warning hover:text-white font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-all">Approve</button>
-                      <button onClick={() => handleRejectReset(req._id)} className="px-5 bg-bg-secondary border border-border text-text-muted hover:text-status-danger transition-all py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest">Reject</button>
+                      <button onClick={() => handleApproveReset(req.email)} className="flex-1 bg-status-warning/10 hover:bg-status-warning text-status-warning hover:text-white font-black py-3 rounded-2xl text-[10px] tracking-widest active:scale-95 transition-all">Approve</button>
+                      <button onClick={() => handleRejectReset(req._id)} className="px-5 bg-bg-secondary border border-border text-text-muted hover:text-status-danger transition-all py-3 rounded-2xl text-[10px] font-black tracking-widest">Reject</button>
                     </div>
                   </div>
                 ))}
@@ -332,7 +334,7 @@ const EmployeeList = () => {
         <div className="bg-bg-secondary rounded-2xl border border-border shadow-premium overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[900px]">
-              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+              <thead className="bg-bg-tertiary/50 border-b border-border text-[10px] font-black tracking-[0.2em] text-text-muted">
                 <tr>
                   <th className="px-8 py-6">Identity & Authorization</th>
                   <th className="px-8 py-6">Hardware</th>
@@ -385,7 +387,7 @@ const EmployeeList = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-text-primary group-hover:text-white transition-colors tracking-tight text-lg">{emp.name}</span>
-                                  {emp.roleAccess === "ADMIN" && <span className="text-[9px] bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/20 px-2.5 py-1 rounded-2xl font-black uppercase tracking-widest">Admin</span>}
+                                  {emp.roleAccess === "ADMIN" && <span className="text-[9px] bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/20 px-2.5 py-1 rounded-2xl font-black tracking-widest">Admin</span>}
                                 </div>
                                 <div className="text-xs font-medium text-text-muted flex items-center gap-2">
                                   <Mail size={12} className="text-accent-primary opacity-60" />
@@ -410,7 +412,7 @@ const EmployeeList = () => {
                                 <>
                                   <button onClick={() => openAssetModal(emp)} className="p-3 rounded-2xl text-accent-primary bg-accent-primary/10 hover:bg-accent-primary/20 transition-all active:scale-90 border border-accent-primary/20 shadow-sm" title="Assets"><Laptop size={16} /></button>
                                   <button onClick={() => openConsumableModal(emp)} className="p-3 rounded-2xl text-status-success bg-status-success/10 hover:bg-status-success/20 transition-all active:scale-90 border border-status-success/20 shadow-sm" title="Items"><Package size={16} /></button>
-                                  <button onClick={() => openEditModal(emp)} className="p-3 rounded-2xl text-text-muted bg-bg-tertiary border border-border active:scale-90 transition-all hover:text-text-primary" title="Edit"><Edit size={16} /></button>
+                                  <button onClick={() => openEditModal(emp)} className="p-3 rounded-2xl text-text-muted bg-bg-tertiary border border-border active:scale-90 transition-all hover:text-text-primary" title="Edit"><Edit3 size={16} /></button>
                                   <button disabled={hasItemsAssigned} onClick={() => handleToggleStatus(emp._id, emp.status)} className={`p-3 rounded-2xl transition-all border active:scale-90 ${hasItemsAssigned ? "border-border text-text-disabled bg-bg-tertiary opacity-50 cursor-not-allowed" : "text-status-danger bg-status-danger/10 border-status-danger/20 hover:bg-status-danger hover:text-white"}`} title="Offboard"><Ban size={16} /></button>
                                 </>
                               )}

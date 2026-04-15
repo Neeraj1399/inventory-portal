@@ -36,7 +36,7 @@ const RestockConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
         <div className="px-5 py-4 border-b border-border flex justify-between items-center">
           <div>
             <h2 className="text-lg font-bold text-text-primary">Restock Units</h2>
-            <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
+            <p className="text-[10px] text-text-muted font-bold tracking-wider">
               Replenish Inventory
             </p>
           </div>
@@ -69,7 +69,7 @@ const RestockConsumableModal = ({ isOpen, item, onClose, onRefresh }) => {
 
           {/* Input */}
           <div>
-            <label className="block text-[10px] font-black uppercase text-text-muted ml-1 mb-1.5 tracking-widest">
+            <label className="block text-[10px] font-black text-text-muted ml-1 mb-1.5 tracking-widest">
               Quantity to Add
             </label>
             <input
